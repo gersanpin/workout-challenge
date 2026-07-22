@@ -1,0 +1,126 @@
+import React from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Text } from 'react-native';
+import { useAuth } from '../context/AuthContext';
+import { AuthScreen } from '../screens/AuthScreen';
+import { HomeScreen } from '../screens/HomeScreen';
+import { LogWorkoutScreen } from '../screens/LogWorkoutScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
+import { colors } from '../constants/theme';
+
+export type TabParamList = {
+  Home: undefined;
+  Log: undefined;
+  History: undefined;
+  Profile: undefined;
+};
+
+const Tab = createBottomTabNavigator<TabParamList>();
+const Stack = createNativeStackNavigator();
+
+const navTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: colors.bg,
+    card: colors.bgElevated,
+    text: colors.text,
+    border: colors.border,
+    primary: colors.accent,
+  },
+};
+
+function TabIcon({ label, focused }: { label: string; focused: boolean }) {
+  return (
+    <Text style={{ fontSize: 11, color: focused ? colors.accent : colors.textDim }}>
+      {label}
+    </Text>
+  );
+}
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.bgElevated,
+          borderTopColor: colors.border,
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textDim,
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ focused }) => <TabIcon label="●" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Log"
+        component={LogWorkoutScreen}
+        options={{
+          title: 'Log',
+          tabBarIcon: ({ focused }) => <TabIcon label="＋" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{
+          title: 'History',
+          tabBarIcon: ({ focused }) => <TabIcon label="☰" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ focused }) => <TabIcon label="☺" focused={focused} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+export function RootNavigator() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ActivityIndicator color={colors.accent} size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer theme={navTheme}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {session ? (
+          <Stack.Screen name="Main" component={MainTabs} />
+        ) : (
+          <Stack.Screen name="Auth" component={AuthScreen} />
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}

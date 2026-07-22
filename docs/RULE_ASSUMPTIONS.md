@@ -1,6 +1,6 @@
-# Challenge rule assumptions (v1)
+# Challenge rules (v1) — confirmed
 
-Please confirm or correct these before treating money totals as final.
+These rules are locked for v1 (confirmed by product owner).
 
 ## 1. Double-day credit minting
 

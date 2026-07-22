@@ -11,7 +11,7 @@ React Native (Expo) + Supabase app for a friends fitness accountability challeng
 - Credits are applied **forward-only** via chronological week processing (a credit earned later cannot wipe an earlier unpaid week).
 - Photo evidence is **required** for a workout to count.
 
-> The original brief said `distinct_workout_days == 6` to mint a credit. That conflicts with “5 days + one double = 6th workout.” Implementation follows the narrative (5 days + double). Say if you want the stricter reading.
+> Credit minting uses the narrative rule (5 days + double → 1 credit), not `distinct_workout_days == 6`. Confirmed for v1 — see `docs/RULE_ASSUMPTIONS.md`.
 
 ## Folder structure
 

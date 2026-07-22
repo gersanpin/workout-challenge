@@ -1,25 +1,23 @@
 /**
  * Weekly challenge calculation (pure, unit-testable).
  *
- * RULE ASSUMPTIONS (locked for v1 — confirm if you want different behavior):
+ * RULES (v1 — confirmed):
  *
  * 1. Weeks run Monday–Sunday.
  * 2. Missed days = shortfall from the 5 distinct-workout-day minimum:
  *      raw_missed_days = max(0, 5 - distinct_workout_days)
  *    Rest days beyond that (the 6th/7th calendar day without a workout) are NOT charged.
- * 3. Double-day / banked credit minting (narrative interpretation):
+ * 3. Double-day / banked credit minting:
  *      Earn 1 credit when ALL of:
  *        - distinct_workout_days >= 5
  *        - total_workouts >= 6
  *        - at least one calendar day has 2+ workouts ("double day")
  *      Max 1 credit minted per week, even with multiple double days.
- *    NOTE: The original brief said `distinct_workout_days == 6`, which conflicts with
- *    “5 days + one double = 6th workout earns a credit.” We follow the narrative.
  * 4. Credits are applied forward-only via chronological week processing:
- *    when recalculating from the start of the year, each week is settled in order.
- *    A credit earned in week N can offset a missed day in week N or any later week,
+ *    a credit earned in week N can offset a missed day in week N or any later week,
  *    but cannot rewrite an earlier week that was already settled.
- * 5. Only workouts with a non-empty photo_url count as valid evidence.
+ * 5. Incomplete weeks show progress but do not charge fees until weekEnd <= today.
+ * 6. Only workouts with a non-empty photo_url count as valid evidence.
  */
 
 import {

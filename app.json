@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Squad Sweat",
+    "slug": "squad-sweat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F1A14"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.squadsweat.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Squad Sweat needs the camera to capture workout evidence photos.",
+        "NSPhotoLibraryUsageDescription": "Squad Sweat needs photo library access to attach workout evidence."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F1A14",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.squadsweat.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Squad Sweat to access your photos for workout evidence.",
+          "cameraPermission": "Allow Squad Sweat to use the camera for workout evidence.",
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}

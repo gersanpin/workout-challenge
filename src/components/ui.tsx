@@ -10,7 +10,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing, typography } from '../constants/theme';
+import { borderWidth, colors, spacing, typography } from '../constants/theme';
 
 export function Screen({
   children,
@@ -35,6 +35,22 @@ export function Screen({
 
 export function Title({ children }: { children: React.ReactNode }) {
   return <Text style={styles.title}>{children}</Text>;
+}
+
+export function Brand({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.brand}>{children}</Text>;
+}
+
+export function Display({
+  children,
+  color,
+}: {
+  children: React.ReactNode;
+  color?: string;
+}) {
+  return (
+    <Text style={[styles.display, color ? { color } : null]}>{children}</Text>
+  );
 }
 
 export function Subtitle({ children }: { children: React.ReactNode }) {
@@ -83,17 +99,12 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator
-          color={variant === 'primary' ? colors.white : colors.accent}
-        />
+        <ActivityIndicator color={colors.text} />
       ) : (
         <Text
           style={[
             styles.buttonLabel,
-            variant === 'primary' && styles.buttonLabelPrimary,
-            variant === 'danger' && styles.buttonLabelPrimary,
-            (variant === 'secondary' || variant === 'ghost') &&
-              styles.buttonLabelAlt,
+            variant === 'ghost' && { color: colors.textMuted },
           ]}
         >
           {label}
@@ -119,15 +130,6 @@ export function Field({
   );
 }
 
-export function ProgressBar({ value, max }: { value: number; max: number }) {
-  const pct = max <= 0 ? 0 : Math.min(1, value / max);
-  return (
-    <View style={styles.progressTrack}>
-      <View style={[styles.progressFill, { width: `${pct * 100}%` }]} />
-    </View>
-  );
-}
-
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <View style={styles.empty}>
@@ -144,56 +146,68 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
   },
+  brand: { ...typography.brand, color: colors.text },
   title: { ...typography.title, color: colors.text },
+  display: { ...typography.display, color: colors.accent },
   subtitle: { ...typography.subtitle, color: colors.text },
   muted: { ...typography.caption, color: colors.textMuted },
   card: {
     backgroundColor: colors.bgElevated,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
     padding: spacing.md,
   },
   button: {
     minHeight: 48,
-    borderRadius: radii.md,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
   },
-  buttonPrimary: { backgroundColor: colors.accent },
-  buttonSecondary: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+  buttonPrimary: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
-  buttonDanger: { backgroundColor: colors.danger },
-  buttonGhost: { backgroundColor: 'transparent' },
-  buttonDisabled: { opacity: 0.5 },
-  buttonPressed: { opacity: 0.85 },
-  buttonLabel: { fontSize: 16, fontWeight: '700' },
-  buttonLabelPrimary: { color: colors.white },
-  buttonLabelAlt: { color: colors.text },
-  field: { gap: spacing.xs },
-  fieldLabel: { ...typography.caption, color: colors.textMuted },
-  input: {
+  buttonSecondary: {
     backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    borderColor: colors.borderMuted,
+  },
+  buttonDanger: {
+    backgroundColor: colors.danger,
+    borderColor: colors.danger,
+  },
+  buttonGhost: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    borderWidth: 0,
+  },
+  buttonDisabled: { opacity: 0.45 },
+  buttonPressed: { opacity: 0.85 },
+  buttonLabel: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 20,
+    letterSpacing: 1,
+    color: colors.text,
+  },
+  field: { gap: spacing.xs },
+  fieldLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  input: {
+    backgroundColor: colors.bg,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
     color: colors.text,
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
-    fontSize: 16,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 15,
   },
-  progressTrack: {
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-  },
-  progressFill: { height: '100%', backgroundColor: colors.accent },
   empty: { paddingVertical: spacing.xl, gap: spacing.sm },
-  emptyTitle: { ...typography.subtitle, color: colors.text },
+  emptyTitle: { ...typography.title, color: colors.text, fontSize: 22 },
   emptyBody: { ...typography.body, color: colors.textMuted },
 });

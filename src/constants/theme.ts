@@ -1,26 +1,29 @@
 /**
- * Fortachones — minimal clean theme
- * Light surface, spinach green accent, navy text. No purple/glow clutter.
+ * Fortachones — lucha libre / old-school gym poster theme
  */
 export const colors = {
-  bg: '#F7F6F2',
-  bgElevated: '#FFFFFF',
-  bgSoft: '#EEF3EC',
-  surface: '#F0F2ED',
-  border: '#D8DFD4',
-  text: '#1A2420',
-  textMuted: '#5C6B63',
-  textDim: '#8A968E',
-  accent: '#2F7D4A',
-  accentSoft: '#D7EBDD',
-  accentDark: '#1F5A34',
-  danger: '#C23B2E',
-  warning: '#C48A12',
-  navy: '#1E3A5F',
-  white: '#FFFFFF',
-  overlay: 'rgba(26, 36, 32, 0.45)',
-  chatBubbleMe: '#D7EBDD',
-  chatBubbleThem: '#FFFFFF',
+  bg: '#0B0D0C',
+  bgElevated: '#17191A',
+  bgSoft: '#1E2223',
+  surface: '#1E2223',
+  border: '#F2F0EA',
+  borderMuted: '#3A3E3F',
+  text: '#F2F0EA',
+  textMuted: '#A8A59C',
+  textDim: '#6E6B64',
+  accent: '#2FA84F',
+  accentSoft: '#163822',
+  danger: '#C81E3A',
+  warning: '#C81E3A',
+  navy: '#F2F0EA',
+  white: '#F2F0EA',
+  black: '#0B0D0C',
+  overlay: 'rgba(11, 13, 12, 0.72)',
+  chatBubbleMe: '#1E3224',
+  chatBubbleThem: '#17191A',
+  plate: '#F2F0EA',
+  plateAccent: '#2FA84F',
+  plateMiss: '#C81E3A',
 };
 
 export const spacing = {
@@ -32,34 +35,45 @@ export const spacing = {
   xxl: 48,
 };
 
+/** Square corners — lucha poster style */
 export const radii = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  pill: 999,
+  sm: 0,
+  md: 0,
+  lg: 0,
+  pill: 0,
 };
 
 export const typography = {
   brand: {
-    fontSize: 30,
-    fontWeight: '800' as const,
-    letterSpacing: -0.8,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 40,
+    letterSpacing: 1,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700' as const,
-    letterSpacing: -0.3,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 28,
+    letterSpacing: 0.5,
+  },
+  display: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 48,
+    letterSpacing: 1,
   },
   subtitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 15,
   },
   body: {
+    fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    fontWeight: '400' as const,
   },
   caption: {
-    fontSize: 13,
-    fontWeight: '500' as const,
+    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
   },
+};
+
+export const borderWidth = {
+  thick: 3,
+  thin: 1,
 };

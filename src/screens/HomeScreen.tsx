@@ -1,7 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -10,66 +9,47 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Button,
+  Brand,
   Card,
+  Display,
   EmptyState,
-  Field,
   Muted,
-  ProgressBar,
   Screen,
   Title,
 } from '../components/ui';
+import { WeightPlateStack } from '../components/WeightPlateStack';
 import { APP_NAME } from '../constants/challenge';
 import { colors, spacing, typography } from '../constants/theme';
-import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
-import {
-  addGhostMember,
-  createGroup,
-  inviteLink,
-  joinGroupWithCode,
-  removeMember,
-} from '../lib/groupApi';
 import type { LeaderboardEntry } from '../types';
 
 function MemberRow({
   entry,
   requiredDays,
-  isAdmin,
-  onRemove,
 }: {
   entry: LeaderboardEntry;
   requiredDays: number;
-  isAdmin: boolean;
-  onRemove: () => void;
 }) {
   const done = entry.currentWeek?.distinctWorkoutDays ?? 0;
   const remaining = Math.max(0, requiredDays - done);
+  const owed = entry.totalMoneyOwedMxn;
   return (
     <Card style={styles.memberCard}>
       <View style={styles.memberTop}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>
-            {entry.profile.display_name}
-            {entry.profile.is_admin ? ' · admin' : ''}
-          </Text>
-          <Muted>
-            {done}/{requiredDays} done · {remaining} remaining · banked{' '}
-            {entry.bankedCredits}
-          </Muted>
-        </View>
-        <Text style={styles.owed}>${entry.totalMoneyOwedMxn}</Text>
+        <Text style={styles.name}>{entry.profile.display_name}</Text>
+        <Text style={[styles.owed, owed > 0 ? styles.owedBad : styles.owedOk]}>
+          ${owed}
+        </Text>
       </View>
-      <ProgressBar value={done} max={requiredDays} />
-      {isAdmin && !entry.profile.is_admin ? (
-        <Button label="Remove" variant="ghost" onPress={onRemove} />
-      ) : null}
+      <WeightPlateStack daysDone={done} maxDays={requiredDays} />
+      <Muted>
+        {remaining} restantes · banked {entry.bankedCredits}
+      </Muted>
     </Card>
   );
 }
 
 export function HomeScreen() {
-  const { user, profile, refreshProfile } = useAuth();
   const {
     leaderboard,
     groupPot,
@@ -77,76 +57,16 @@ export function HomeScreen() {
     myDaysRemaining,
     myEntry,
     requiredDays,
-    group,
     loading,
     error,
     refresh,
   } = useChallengeData();
-
-  const [inviteCode, setInviteCode] = useState('');
-  const [ghostName, setGhostName] = useState('');
-  const [busy, setBusy] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       void refresh();
     }, [refresh]),
   );
-
-  const onCreateGroup = async () => {
-    if (!user) return;
-    setBusy(true);
-    try {
-      await createGroup(user.id, APP_NAME);
-      await refreshProfile();
-      await refresh();
-      Alert.alert('Group created', 'Share your invite code with the crew.');
-    } catch (e) {
-      Alert.alert('Error', (e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onJoin = async () => {
-    if (!user) return;
-    setBusy(true);
-    try {
-      await joinGroupWithCode(user.id, inviteCode);
-      await refreshProfile();
-      await refresh();
-      setInviteCode('');
-    } catch (e) {
-      Alert.alert('Could not join', (e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onRemove = (memberId: string, name: string) => {
-    if (!user) return;
-    Alert.alert(
-      'Remove member?',
-      `${name}'s owed amount will leave the group pot.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await removeMember(user.id, memberId);
-                await refresh();
-              } catch (e) {
-                Alert.alert('Error', (e as Error).message);
-              }
-            })();
-          },
-        },
-      ],
-    );
-  };
 
   if (loading && leaderboard.length === 0) {
     return (
@@ -155,6 +75,8 @@ export function HomeScreen() {
       </Screen>
     );
   }
+
+  const owed = myEntry?.totalMoneyOwedMxn ?? 0;
 
   return (
     <Screen style={{ paddingHorizontal: 0 }}>
@@ -170,132 +92,48 @@ export function HomeScreen() {
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.brand}>{APP_NAME}</Text>
-            <Title>Home</Title>
+            <Brand>{APP_NAME}</Brand>
+            <Title>HOME</Title>
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <Card style={styles.meCard}>
-              <Text style={styles.sectionLabel}>Your week</Text>
-              <Text style={styles.bigStat}>
-                {myDaysDone}/{requiredDays} days
-              </Text>
-              <Muted>{myDaysRemaining} remaining to hit the minimum</Muted>
-              <ProgressBar value={myDaysDone} max={requiredDays} />
+              <Text style={styles.sectionLabel}>TU SEMANA</Text>
+              <Display color={myDaysRemaining === 0 ? colors.accent : colors.text}>
+                {myDaysDone}/{requiredDays}
+              </Display>
+              <Muted>{myDaysRemaining} días de workout restantes</Muted>
+              <WeightPlateStack daysDone={myDaysDone} maxDays={requiredDays} />
               <View style={styles.rowBetween}>
-                <Muted>You owe</Muted>
-                <Text style={styles.owed}>
-                  ${myEntry?.totalMoneyOwedMxn ?? 0} MXN
+                <Muted>Debes</Muted>
+                <Text style={[styles.owed, owed > 0 ? styles.owedBad : styles.owedOk]}>
+                  ${owed} MXN
                 </Text>
               </View>
               <View style={styles.rowBetween}>
-                <Muted>Banked credits</Muted>
-                <Text style={styles.credit}>
-                  {myEntry?.bankedCredits ?? 0}
-                </Text>
+                <Muted>Créditos</Muted>
+                <Text style={styles.credit}>{myEntry?.bankedCredits ?? 0}</Text>
               </View>
             </Card>
 
             <Card style={styles.potCard}>
-              <Text style={styles.sectionLabel}>Group pot</Text>
-              <Text style={styles.potAmount}>${groupPot} MXN</Text>
-              <Muted>
-                Year-end prize pool (informational — no in-app payments)
-              </Muted>
+              <Text style={styles.sectionLabel}>POZO DEL GRUPO</Text>
+              <Display color={colors.danger}>${groupPot}</Display>
+              <Muted>Premio de fin de año (solo informativo)</Muted>
             </Card>
 
-            {!profile?.group_id ? (
-              <Card style={{ gap: spacing.md }}>
-                <Text style={styles.sectionLabel}>Join or create a group</Text>
-                <Muted>
-                  Admins create the group and share an invite code / link.
-                  Members join with that code.
-                </Muted>
-                <Button
-                  label="Create Fortachones group (become admin)"
-                  onPress={() => void onCreateGroup()}
-                  loading={busy}
-                />
-                <Field
-                  label="Invite code"
-                  value={inviteCode}
-                  onChangeText={setInviteCode}
-                  autoCapitalize="characters"
-                  placeholder="ABCD1234"
-                />
-                <Button
-                  label="Join with code"
-                  variant="secondary"
-                  onPress={() => void onJoin()}
-                  loading={busy}
-                />
-              </Card>
-            ) : (
-              <Card style={{ gap: spacing.sm }}>
-                <Text style={styles.sectionLabel}>Group</Text>
-                <Muted>
-                  {group?.name ?? APP_NAME} · code{' '}
-                  <Text style={{ fontWeight: '700', color: colors.text }}>
-                    {group?.invite_code}
-                  </Text>
-                </Muted>
-                <Muted>Link: {inviteLink(group?.invite_code ?? '')}</Muted>
-
-                {profile.is_admin ? (
-                  <>
-                    <Field
-                      label="Add made-up / pending member (admin)"
-                      value={ghostName}
-                      onChangeText={setGhostName}
-                      placeholder="Nickname to invite"
-                    />
-                    <Button
-                      label="Post invite note"
-                      variant="secondary"
-                      onPress={() => {
-                        if (!user || !ghostName.trim()) return;
-                        void addGhostMember(user.id, ghostName.trim())
-                          .then(() => {
-                            setGhostName('');
-                            return refresh();
-                          })
-                          .catch((e) =>
-                            Alert.alert('Error', (e as Error).message),
-                          );
-                      }}
-                    />
-                    <Muted>
-                      Real joins still use the invite code. Removing a member
-                      drops their owed total from the pot.
-                    </Muted>
-                  </>
-                ) : (
-                  <Muted>Only admins can add or remove members.</Muted>
-                )}
-              </Card>
-            )}
-
-            <Text style={[styles.sectionLabel, { marginTop: spacing.sm }]}>
-              Crew this week
-            </Text>
+            <Text style={styles.sectionLabel}>LA CREW</Text>
           </View>
         }
         renderItem={({ item }) => (
           <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
-            <MemberRow
-              entry={item}
-              requiredDays={requiredDays}
-              isAdmin={Boolean(profile?.is_admin)}
-              onRemove={() =>
-                onRemove(item.profile.id, item.profile.display_name)
-              }
-            />
+            <MemberRow entry={item} requiredDays={requiredDays} />
           </View>
         )}
         ListEmptyComponent={
           <View style={{ paddingHorizontal: spacing.md }}>
             <EmptyState
-              title="No crew yet"
-              body="Create a group or join with an invite code."
+              title="Sin crew"
+              body="Entra al Chat para crear o unirte a un grupo."
             />
           </View>
         }
@@ -312,40 +150,41 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.md,
   },
-  brand: { ...typography.brand, color: colors.accent, fontSize: 24 },
   sectionLabel: {
-    ...typography.subtitle,
-    color: colors.text,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 18,
+    letterSpacing: 1.5,
+    color: colors.textMuted,
   },
   meCard: { gap: spacing.sm },
-  potCard: {
-    gap: 4,
-    backgroundColor: colors.bgSoft,
-  },
-  bigStat: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.navy,
-    letterSpacing: -1,
-  },
-  potAmount: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.accent,
-  },
+  potCard: { gap: 4 },
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  owed: { color: colors.warning, fontWeight: '800', fontSize: 18 },
-  credit: { color: colors.accent, fontWeight: '800', fontSize: 18 },
+  owed: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    letterSpacing: 1,
+  },
+  owedBad: { color: colors.danger },
+  owedOk: { color: colors.accent },
+  credit: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.accent,
+  },
   memberCard: { gap: spacing.sm },
   memberTop: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: spacing.sm,
   },
-  name: { ...typography.subtitle, color: colors.text },
-  error: { color: colors.danger },
+  name: {
+    ...typography.subtitle,
+    color: colors.text,
+    textTransform: 'uppercase',
+  },
+  error: { color: colors.danger, fontFamily: 'Inter_400Regular' },
 });

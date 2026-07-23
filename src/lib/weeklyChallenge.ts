@@ -1,34 +1,30 @@
 /**
- * Weekly challenge calculation (pure, unit-testable).
+ * Weekly challenge calculation for Fortachones (pure, unit-testable).
  *
  * RULES (v1 — confirmed):
  *
  * 1. Weeks run Monday–Sunday.
  * 2. Missed days = shortfall from the 5 distinct-workout-day minimum:
  *      raw_missed_days = max(0, 5 - distinct_workout_days)
- *    Rest days beyond that (the 6th/7th calendar day without a workout) are NOT charged.
  * 3. Double-day / banked credit minting:
  *      Earn 1 credit when ALL of:
  *        - distinct_workout_days >= 5
  *        - total_workouts >= 6
  *        - at least one calendar day has 2+ workouts ("double day")
- *      Max 1 credit minted per week, even with multiple double days.
- * 4. Credits are applied forward-only via chronological week processing:
- *    a credit earned in week N can offset a missed day in week N or any later week,
- *    but cannot rewrite an earlier week that was already settled.
- * 5. Incomplete weeks show progress but do not charge fees until weekEnd <= today.
+ *      Max 1 credit minted per week.
+ * 4. Credits are applied forward-only via chronological week processing.
+ * 5. Weeks stay open for WEEK_CLOSE_GRACE_DAYS after Sunday before fees lock.
  * 6. Only workouts with a non-empty photo_url count as valid evidence.
  */
 
 import {
   FEE_PER_MISSED_DAY_MXN,
   REQUIRED_WORKOUT_DAYS,
-  type WeeklySummary,
-  type Workout,
-  type YearlyTotals,
-} from '../types';
+} from '../constants/challenge';
+import type { WeeklySummary, Workout, YearlyTotals } from '../types';
 import {
   addDays,
+  getWeekCloseDate,
   getWeekEnd,
   getWeekStart,
   listWeekStartsInRange,
@@ -36,24 +32,22 @@ import {
 } from './dates';
 
 export interface WorkoutLike {
-  workout_date: string; // YYYY-MM-DD
+  workout_date: string;
   photo_url?: string | null;
 }
 
 export interface WeekInput {
   weekStart: string;
   workouts: WorkoutLike[];
-  /** Banked credits available at the start of this week (before mint/use). */
   bankedCreditsBefore: number;
+  /** When true, missed-day fees are applied; otherwise provisional. */
+  isClosed: boolean;
 }
 
-/**
- * Count valid workouts for a single week and derive that week's summary,
- * given the user's credit balance entering the week.
- */
 export function calculateWeekSummary(input: WeekInput): WeeklySummary {
-  const { weekStart, bankedCreditsBefore } = input;
+  const { weekStart, bankedCreditsBefore, isClosed } = input;
   const weekEnd = getWeekEnd(weekStart);
+  const weekCloseDate = getWeekCloseDate(weekStart);
 
   const valid = input.workouts.filter(
     (w) =>
@@ -80,7 +74,25 @@ export function calculateWeekSummary(input: WeekInput): WeeklySummary {
 
   const rawMissedDays = Math.max(0, REQUIRED_WORKOUT_DAYS - distinctWorkoutDays);
 
-  // Credits available to spend this week include any credit just earned this week.
+  if (!isClosed) {
+    // Open week: show progress + bank earned credits, but don't charge or spend yet.
+    return {
+      weekStart,
+      weekEnd,
+      weekCloseDate,
+      distinctWorkoutDays,
+      totalWorkouts,
+      hasDoubleDay,
+      creditEarned,
+      rawMissedDays: 0,
+      creditsUsed: 0,
+      finalMissedDays: 0,
+      moneyOwedMxn: 0,
+      bankedCreditsAfterWeek: bankedCreditsBefore + creditEarned,
+      isClosed: false,
+    };
+  }
+
   let available = bankedCreditsBefore + creditEarned;
   const creditsUsed = Math.min(rawMissedDays, available);
   available -= creditsUsed;
@@ -91,6 +103,7 @@ export function calculateWeekSummary(input: WeekInput): WeeklySummary {
   return {
     weekStart,
     weekEnd,
+    weekCloseDate,
     distinctWorkoutDays,
     totalWorkouts,
     hasDoubleDay,
@@ -100,29 +113,19 @@ export function calculateWeekSummary(input: WeekInput): WeeklySummary {
     finalMissedDays,
     moneyOwedMxn,
     bankedCreditsAfterWeek: available,
+    isClosed: true,
   };
 }
 
 export interface YearCalculationInput {
   userId: string;
   workouts: WorkoutLike[];
-  /** Calendar year to evaluate (e.g. 2026). */
   year: number;
-  /** Last date to include (defaults to today conceptually — pass explicitly for tests). */
   throughDate: string;
-  /** Optional starting credit balance before the year (default 0). */
   startingBankedCredits?: number;
-  /**
-   * First date that counts for scoring (challenge kickoff and/or user join date).
-   * Defaults to Jan 1 of `year`.
-   */
   fromDate?: string;
 }
 
-/**
- * Process every week from `fromDate` (or Jan 1) through `throughDate` in chronological order,
- * carrying banked credits forward. This is the source of truth for yearly totals.
- */
 export function calculateYearTotals(input: YearCalculationInput): YearlyTotals {
   const starting = input.startingBankedCredits ?? 0;
   const from = input.fromDate ?? yearStartDate(input.year);
@@ -134,31 +137,18 @@ export function calculateYearTotals(input: YearCalculationInput): YearlyTotals {
   let totalMoneyOwedMxn = 0;
 
   for (const weekStart of weekStarts) {
+    const closeDate = getWeekCloseDate(weekStart);
+    const isClosed = closeDate <= input.throughDate;
     const summary = calculateWeekSummary({
       weekStart,
       workouts: input.workouts,
       bankedCreditsBefore: banked,
+      isClosed,
     });
-
-    // Incomplete (current) weeks: show progress + allow minting credits, but do not
-    // charge missed-day fees until the week has ended (Sunday < throughDate is done).
-    const weekComplete = summary.weekEnd <= input.throughDate;
-    const settled: WeeklySummary = weekComplete
-      ? summary
-      : {
-          ...summary,
-          // Keep credits earned available; do not spend credits on provisional misses.
-          creditsUsed: 0,
-          finalMissedDays: 0,
-          moneyOwedMxn: 0,
-          rawMissedDays: 0,
-          bankedCreditsAfterWeek: banked + summary.creditEarned,
-        };
-
-    banked = settled.bankedCreditsAfterWeek;
-    totalMissedDays += settled.finalMissedDays;
-    totalMoneyOwedMxn += settled.moneyOwedMxn;
-    weeks.push(settled);
+    banked = summary.bankedCreditsAfterWeek;
+    totalMissedDays += summary.finalMissedDays;
+    totalMoneyOwedMxn += summary.moneyOwedMxn;
+    weeks.push(summary);
   }
 
   return {
@@ -170,29 +160,25 @@ export function calculateYearTotals(input: YearCalculationInput): YearlyTotals {
   };
 }
 
-/** Convenience: group workouts by user then compute yearly totals for each. */
 export function calculateLeaderboard(
-  profiles: { id: string; created_at?: string }[],
+  profiles: { id: string; created_at?: string; removed_at?: string | null }[],
   workouts: Pick<Workout, 'user_id' | 'workout_date' | 'photo_url'>[],
   year: number,
   throughDate: string,
   challengeStartDate?: string,
 ): Map<string, YearlyTotals> {
+  const active = profiles.filter((p) => !p.removed_at);
   const byUser = new Map<string, WorkoutLike[]>();
-  for (const p of profiles) {
+  for (const p of active) {
     byUser.set(p.id, []);
   }
   for (const w of workouts) {
     const list = byUser.get(w.user_id);
-    if (list) {
-      list.push(w);
-    } else {
-      byUser.set(w.user_id, [w]);
-    }
+    if (list) list.push(w);
   }
 
   const result = new Map<string, YearlyTotals>();
-  for (const profile of profiles) {
+  for (const profile of active) {
     const userWorkouts = byUser.get(profile.id) ?? [];
     const joinDate = profile.created_at
       ? profile.created_at.slice(0, 10)
@@ -218,36 +204,20 @@ export function calculateLeaderboard(
   return result;
 }
 
-export function getCurrentWeekSummary(
-  workouts: WorkoutLike[],
-  bankedCreditsBeforeCurrentWeek: number,
-  today: string,
-): WeeklySummary {
-  return calculateWeekSummary({
-    weekStart: getWeekStart(today),
-    workouts,
-    bankedCreditsBefore: bankedCreditsBeforeCurrentWeek,
-  });
-}
-
-/**
- * Credits available entering the current week = year totals after the previous week.
- * Equivalent to running year calc and reading the prior week's ending balance.
- */
 export function getBankedCreditsBeforeWeek(
   workouts: WorkoutLike[],
   userId: string,
   year: number,
   weekStart: string,
   startingBankedCredits = 0,
+  fromDate?: string,
 ): number {
-  const from = yearStartDate(year);
+  const from = fromDate ?? yearStartDate(year);
   const firstWeek = getWeekStart(from);
   if (weekStart <= firstWeek) {
     return startingBankedCredits;
   }
 
-  // Settle all weeks through the Sunday before this Monday.
   const priorThrough = addDays(weekStart, -1);
   if (priorThrough < from) {
     return startingBankedCredits;
@@ -259,5 +229,10 @@ export function getBankedCreditsBeforeWeek(
     year,
     throughDate: priorThrough,
     startingBankedCredits,
+    fromDate: from,
   }).bankedCredits;
+}
+
+export function daysRemainingToGoal(distinctWorkoutDays: number): number {
+  return Math.max(0, REQUIRED_WORKOUT_DAYS - distinctWorkoutDays);
 }

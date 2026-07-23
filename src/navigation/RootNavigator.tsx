@@ -1,31 +1,39 @@
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { ActivityIndicator, Text, View } from 'react-native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { AuthScreen } from '../screens/AuthScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { FeedScreen } from '../screens/FeedScreen';
 import { LogWorkoutScreen } from '../screens/LogWorkoutScreen';
-import { HistoryScreen } from '../screens/HistoryScreen';
+import { ChatScreen } from '../screens/ChatScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { colors } from '../constants/theme';
 
 export type TabParamList = {
   Home: undefined;
+  Feed: undefined;
   Log: undefined;
+  Chat: undefined;
+  ProfileTab: undefined;
+};
+
+export type ProfileStackParamList = {
+  ProfileHome: undefined;
   History: undefined;
-  Profile: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 const navTheme = {
-  ...DarkTheme,
+  ...DefaultTheme,
   colors: {
-    ...DarkTheme.colors,
+    ...DefaultTheme.colors,
     background: colors.bg,
     card: colors.bgElevated,
     text: colors.text,
@@ -36,9 +44,36 @@ const navTheme = {
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   return (
-    <Text style={{ fontSize: 11, color: focused ? colors.accent : colors.textDim }}>
+    <Text
+      style={{
+        fontSize: 11,
+        fontWeight: focused ? '800' : '600',
+        color: focused ? colors.accent : colors.textDim,
+      }}
+    >
       {label}
     </Text>
+  );
+}
+
+function ProfileStackScreen() {
+  return (
+    <ProfileStack.Navigator>
+      <ProfileStack.Screen
+        name="ProfileHome"
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{
+          title: 'History',
+          headerStyle: { backgroundColor: colors.bgElevated },
+          headerTintColor: colors.text,
+        }}
+      />
+    </ProfileStack.Navigator>
   );
 }
 
@@ -62,29 +97,33 @@ function MainTabs() {
         name="Home"
         component={HomeScreen}
         options={{
-          title: 'Home',
           tabBarIcon: ({ focused }) => <TabIcon label="●" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Feed"
+        component={FeedScreen}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon label="◎" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Log"
         component={LogWorkoutScreen}
         options={{
-          title: 'Log',
           tabBarIcon: ({ focused }) => <TabIcon label="＋" focused={focused} />,
         }}
       />
       <Tab.Screen
-        name="History"
-        component={HistoryScreen}
+        name="Chat"
+        component={ChatScreen}
         options={{
-          title: 'History',
-          tabBarIcon: ({ focused }) => <TabIcon label="☰" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon label="✎" focused={focused} />,
         }}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="ProfileTab"
+        component={ProfileStackScreen}
         options={{
           title: 'Profile',
           tabBarIcon: ({ focused }) => <TabIcon label="☺" focused={focused} />,

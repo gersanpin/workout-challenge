@@ -1,74 +1,41 @@
-# Squad Sweat — Workout Challenge Tracker
+# Fortachones
 
-React Native (Expo) + Supabase app for a friends fitness accountability challenge.
+Expo (React Native + TypeScript) app for a friends fitness accountability challenge — workouts, banked credits, group pot, social feed, chat, and a personal sports/nutrition coach.
 
-## Challenge rules (implemented)
+Formerly known as Squad Sweat.
 
-- Weeks run **Monday–Sunday**.
-- Minimum **5 distinct workout days** per week.
-- A **double workout day** (2+ workouts on one calendar day), together with ≥5 distinct days and ≥6 total workouts, mints **1 banked credit** (max once/week).
-- Each shortfall day below 5 costs **$100 MXN**, unless a banked credit is consumed instead.
-- Credits are applied **forward-only** via chronological week processing (a credit earned later cannot wipe an earlier unpaid week).
-- Photo evidence is **required** for a workout to count.
+## Challenge rules
 
-> Credit minting uses the narrative rule (5 days + double → 1 credit), not `distinct_workout_days == 6`. Confirmed for v1 — see `docs/RULE_ASSUMPTIONS.md`.
-
-## Folder structure
-
-```
-├── App.tsx
-├── app.json
-├── supabase/
-│   └── schema.sql          # profiles, workouts, weekly_summaries, storage RLS
-├── src/
-│   ├── components/         # shared UI
-│   ├── constants/          # theme
-│   ├── context/            # AuthProvider
-│   ├── hooks/              # challenge data + leaderboard
-│   ├── lib/
-│   │   ├── dates.ts
-│   │   ├── supabase.ts
-│   │   ├── workoutsApi.ts  # camera/library + storage upload
-│   │   ├── weeklyChallenge.ts       # pure weekly math
-│   │   └── weeklyChallenge.test.ts  # unit tests
-│   ├── navigation/         # bottom tabs
-│   ├── screens/            # Home, Log, History, Profile, Auth
-│   └── types/
-```
-
-## Setup
-
-1. Create a Supabase project.
-2. Run `supabase/schema.sql` in the SQL editor (creates tables, RLS, storage bucket).
-3. Copy `.env.example` → `.env` and fill in:
-   - `EXPO_PUBLIC_SUPABASE_URL`
-   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-4. Install & run:
-
-```bash
-npm install
-npm start
-```
-
-5. Run unit tests for the weekly logic:
-
-```bash
-npm test
-```
+- Weeks: **Monday–Sunday**, with a **+2 day grace** before the week locks (timezone buffer).
+- Minimum **5 distinct workout days** / week.
+- Optional **double day** banks **1 credit** (5+ days, 6+ workouts, one day with 2+ sessions).
+- Missed shortfall days cost **$100 MXN** (credits apply forward-only).
+- Photo evidence required (video planned: ~30s / 25 MB).
 
 ## Tabs
 
 | Tab | Purpose |
 | --- | --- |
-| Home | Leaderboard + recent workout feed with photos |
-| Log | Log workout (type, duration, date, required photo) |
-| History | Personal weekly breakdown + all logs + YTD totals |
-| Profile | Name, snapshot, sign out |
+| Home | Your week, pot, crew summary, admin group invite |
+| Feed | Instagram-style workout posts + comments + activity shouts |
+| Log | Exercise type, calendar date picker, required photo |
+| Chat | Text, searchable GIFs, YouTube links |
+| Profile | Height/weight history, goals, coach chat, history |
 
-## Data model
+## Setup
 
-- `profiles` — id, display_name, avatar_url
-- `workouts` — user_id, workout_date, exercise_type, duration_minutes, photo_url
-- `weekly_summaries` — optional cache (app computes live from workouts today)
+1. Run `supabase/schema.sql` in the Supabase SQL editor.
+2. Copy `.env.example` → `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`).
+3. Optional: `EXPO_PUBLIC_GIPHY_API_KEY`, `EXPO_PUBLIC_OPENAI_API_KEY`.
+4. `npm install && npm start` · `npm test`
 
-Weekly/yearly money, missed days, and banked credits are derived in `src/lib/weeklyChallenge.ts`.
+## Folder structure
+
+```
+src/
+  screens/   Auth, Home, Feed, Log, Chat, Profile, History
+  lib/       weeklyChallenge, dates, groupApi, coach, giphy, workoutsApi
+  constants/ challenge + theme (minimal light spinach/navy)
+supabase/schema.sql
+assets/fortachones-logo.png
+```

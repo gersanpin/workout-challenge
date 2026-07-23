@@ -84,14 +84,16 @@ export function Button({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'primary' ? colors.bg : colors.accent}
+          color={variant === 'primary' ? colors.white : colors.accent}
         />
       ) : (
         <Text
           style={[
             styles.buttonLabel,
             variant === 'primary' && styles.buttonLabelPrimary,
-            variant !== 'primary' && styles.buttonLabelAlt,
+            variant === 'danger' && styles.buttonLabelPrimary,
+            (variant === 'secondary' || variant === 'ghost') &&
+              styles.buttonLabelAlt,
           ]}
         >
           {label}
@@ -117,13 +119,7 @@ export function Field({
   );
 }
 
-export function ProgressBar({
-  value,
-  max,
-}: {
-  value: number;
-  max: number;
-}) {
+export function ProgressBar({ value, max }: { value: number; max: number }) {
   const pct = max <= 0 ? 0 : Math.min(1, value / max);
   return (
     <View style={styles.progressTrack}>
@@ -132,13 +128,7 @@ export function ProgressBar({
   );
 }
 
-export function EmptyState({
-  title,
-  body,
-}: {
-  title: string;
-  body: string;
-}) {
+export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyTitle}>{title}</Text>
@@ -154,18 +144,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
   },
-  title: {
-    ...typography.title,
-    color: colors.text,
-  },
-  subtitle: {
-    ...typography.subtitle,
-    color: colors.text,
-  },
-  muted: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
+  title: { ...typography.title, color: colors.text },
+  subtitle: { ...typography.subtitle, color: colors.text },
+  muted: { ...typography.caption, color: colors.textMuted },
   card: {
     backgroundColor: colors.bgElevated,
     borderRadius: radii.lg,
@@ -180,45 +161,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
   },
-  buttonPrimary: {
-    backgroundColor: colors.accent,
-  },
+  buttonPrimary: { backgroundColor: colors.accent },
   buttonSecondary: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  buttonDanger: {
-    backgroundColor: colors.danger,
-  },
-  buttonGhost: {
-    backgroundColor: 'transparent',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  buttonLabelPrimary: {
-    color: colors.bg,
-  },
-  buttonLabelAlt: {
-    color: colors.text,
-  },
-  field: {
-    gap: spacing.xs,
-  },
-  fieldLabel: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
+  buttonDanger: { backgroundColor: colors.danger },
+  buttonGhost: { backgroundColor: 'transparent' },
+  buttonDisabled: { opacity: 0.5 },
+  buttonPressed: { opacity: 0.85 },
+  buttonLabel: { fontSize: 16, fontWeight: '700' },
+  buttonLabelPrimary: { color: colors.white },
+  buttonLabelAlt: { color: colors.text },
+  field: { gap: spacing.xs },
+  fieldLabel: { ...typography.caption, color: colors.textMuted },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
@@ -233,20 +192,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.accent,
-  },
-  empty: {
-    paddingVertical: spacing.xl,
-    gap: spacing.sm,
-  },
-  emptyTitle: {
-    ...typography.subtitle,
-    color: colors.text,
-  },
-  emptyBody: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
+  progressFill: { height: '100%', backgroundColor: colors.accent },
+  empty: { paddingVertical: spacing.xl, gap: spacing.sm },
+  emptyTitle: { ...typography.subtitle, color: colors.text },
+  emptyBody: { ...typography.body, color: colors.textMuted },
 });

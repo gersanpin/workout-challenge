@@ -1,39 +1,20 @@
-# Challenge rules (v1) — confirmed
+# Challenge rules (v1) — confirmed + Fortachones updates
 
-These rules are locked for v1 (confirmed by product owner).
+## Core
+1. Weeks run **Monday–Sunday**.
+2. Missed days = shortfall from 5 distinct workout days.
+3. Double day (2+ workouts same calendar day) + ≥5 days + ≥6 workouts → **1 banked credit** (max once/week).
+4. Credits apply **forward-only**.
+5. Fee = **$100 MXN** per final missed day.
+6. Photo evidence required; visible to the group.
 
-## 1. Double-day credit minting
+## Grace period / timezones
+Weeks stay **open for 2 days after Sunday** (close on Tuesday). Logging/adjustments allowed for today or up to 2 days back, but never into a locked week. This buffers timezone differences across the crew.
 
-**Implemented:** Earn **1** banked credit when ALL of:
+## Groups
+- Admins create the group and share an **invite code / deep link**.
+- Only admins can add/remove members.
+- Removing a member drops their owed amount from the **active group pot**.
 
-- `distinct_workout_days >= 5`
-- `total_workouts >= 6`
-- at least one calendar day has **2+** workouts
-
-Max **1** credit per week even with multiple double days.
-
-**Rejected alternative:** The brief’s `distinct_workout_days == 6` condition, which conflicts with “5 days + one double = 6th workout earns a credit.”
-
-## 2. Credits: forward-only (not retroactive)
-
-Weeks are processed in chronological order. A credit earned in week N can offset a miss in week N (only if you somehow have raw misses the same week — normally earning requires 5 days so raw misses are 0) or any **later** week.
-
-A credit earned in week 10 **cannot** erase a miss already settled in week 3.
-
-## 3. Missed days = shortfall from 5, not all rest days
-
-`raw_missed_days = max(0, 5 - distinct_workout_days)`.
-
-Hitting 5 days means **$0** that week, even though 2 calendar days had no workout.
-
-## 4. Incomplete current week
-
-Progress (`X/5 days`) is shown live, but missed-day fees are **not** charged until the week’s Sunday has been reached (`weekEnd <= today`).
-
-## 5. Photo evidence
-
-Workouts without a non-empty `photo_url` do not count.
-
-## 6. Challenge window
-
-Scoring starts at `CHALLENGE_START_DATE` (`src/constants/challenge.ts`), and not before a user’s `profiles.created_at` join date.
+## Units
+Metric: **kg** and **meters**.

@@ -2,36 +2,51 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button, Field, Muted, Screen, Title } from '../components/ui';
+import { LOG_LOOKBACK_DAYS } from '../constants/challenge';
 import { colors, radii, spacing } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
-import { todayDateOnly } from '../lib/dates';
-import { logWorkout, pickWorkoutPhoto } from '../lib/workoutsApi';
-import { EXERCISE_TYPES, REQUIRED_WORKOUT_DAYS } from '../types';
 import { useChallengeData } from '../hooks/useChallengeData';
+import {
+  formatDateOnly,
+  getAllowedLogDates,
+  parseDateOnly,
+  todayDateOnly,
+} from '../lib/dates';
+import { logWorkout, pickWorkoutPhoto } from '../lib/workoutsApi';
+import { EXERCISE_TYPES } from '../types';
+import { REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
 
 export function LogWorkoutScreen() {
-  const { user } = useAuth();
-  const { myWorkouts, myTotals, refresh } = useChallengeData();
+  const { user, profile } = useAuth();
+  const { myWorkouts, myDaysDone, myDaysRemaining, refresh } =
+    useChallengeData();
+
+  const today = todayDateOnly();
+  const allowed = useMemo(
+    () => getAllowedLogDates(today, LOG_LOOKBACK_DAYS),
+    [today],
+  );
+
   const [exerciseType, setExerciseType] = useState('gym');
   const [customType, setCustomType] = useState('');
-  const [duration, setDuration] = useState('45');
-  const [workoutDate, setWorkoutDate] = useState(todayDateOnly());
+  const [workoutDate, setWorkoutDate] = useState(today);
+  const [showPicker, setShowPicker] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const todayCount = useMemo(
+  const dayCount = useMemo(
     () => myWorkouts.filter((w) => w.workout_date === workoutDate).length,
     [myWorkouts, workoutDate],
   );
-
-  const currentWeek = myTotals?.weeks[myTotals.weeks.length - 1];
 
   const onPick = async (source: 'camera' | 'library') => {
     try {
@@ -42,25 +57,26 @@ export function LogWorkoutScreen() {
     }
   };
 
-  const onSubmit = async () => {
-    if (!user) return;
-    const minutes = Number(duration);
-    if (!Number.isFinite(minutes) || minutes <= 0) {
-      Alert.alert('Invalid duration', 'Enter duration in minutes.');
-      return;
-    }
-    if (!photoUri) {
+  const onChangeDate = (_: unknown, selected?: Date) => {
+    if (Platform.OS === 'android') setShowPicker(false);
+    if (!selected) return;
+    const next = formatDateOnly(selected);
+    if (!allowed.isAllowed(next)) {
       Alert.alert(
-        'Photo required',
-        'A photo is required for a workout to count.',
+        'Date not allowed',
+        'Only today or up to 2 days back, and only weeks that are still open.',
       );
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(workoutDate)) {
-      Alert.alert('Invalid date', 'Use YYYY-MM-DD format.');
+    setWorkoutDate(next);
+  };
+
+  const onSubmit = async () => {
+    if (!user) return;
+    if (!photoUri) {
+      Alert.alert('Photo required', 'Evidence photo is required.');
       return;
     }
-
     const type =
       exerciseType === 'other' && customType.trim()
         ? customType.trim()
@@ -70,17 +86,17 @@ export function LogWorkoutScreen() {
     try {
       await logWorkout({
         userId: user.id,
+        groupId: profile?.group_id ?? null,
         exerciseType: type,
-        durationMinutes: minutes,
         workoutDate,
         localPhotoUri: photoUri,
+        displayName: profile?.display_name ?? 'Athlete',
       });
       setPhotoUri(null);
-      setDuration('45');
       await refresh();
       Alert.alert(
         'Logged!',
-        todayCount + 1 >= 2
+        dayCount + 1 >= 2
           ? 'Second workout today — double-day progress saved.'
           : 'Workout saved with photo evidence.',
       );
@@ -99,25 +115,21 @@ export function LogWorkoutScreen() {
       >
         <Title>Log workout</Title>
         <Muted>
-          Photo evidence is required. You can log a second workout on the same
-          day for the double-day credit (max useful once per week).
+          Photo evidence is required and visible to the whole group. Video
+          support is next (max ~30s / 25 MB).
         </Muted>
 
-        {currentWeek ? (
-          <View style={styles.status}>
-            <Text style={styles.statusTitle}>
-              This week: {currentWeek.distinctWorkoutDays}/
-              {REQUIRED_WORKOUT_DAYS} days
-            </Text>
-            <Muted>
-              Workouts logged today ({workoutDate}): {todayCount}
-              {currentWeek.hasDoubleDay ? ' · double day used' : ''}
-              {myTotals ? ` · banked credits: ${myTotals.bankedCredits}` : ''}
-            </Muted>
-          </View>
-        ) : null}
+        <View style={styles.status}>
+          <Text style={styles.statusTitle}>
+            This week: {myDaysDone}/{REQUIRED_WORKOUT_DAYS} · {myDaysRemaining}{' '}
+            remaining
+          </Text>
+          <Muted>
+            Logs on {workoutDate}: {dayCount}
+          </Muted>
+        </View>
 
-        <Text style={styles.label}>Exercise type</Text>
+        <Text style={styles.label}>Exercise</Text>
         <View style={styles.chips}>
           {EXERCISE_TYPES.map((t) => {
             const selected = exerciseType === t.value;
@@ -146,19 +158,28 @@ export function LogWorkoutScreen() {
           />
         ) : null}
 
-        <Field
-          label="Duration (minutes)"
-          value={duration}
-          onChangeText={setDuration}
-          keyboardType="number-pad"
-        />
-
-        <Field
-          label="Date (YYYY-MM-DD)"
-          value={workoutDate}
-          onChangeText={setWorkoutDate}
-          autoCapitalize="none"
-        />
+        <Text style={styles.label}>Date</Text>
+        <Pressable style={styles.dateBtn} onPress={() => setShowPicker(true)}>
+          <Text style={styles.dateText}>{workoutDate}</Text>
+          <Muted>Today or up to 2 days back · open weeks only</Muted>
+        </Pressable>
+        {showPicker ? (
+          <DateTimePicker
+            value={parseDateOnly(workoutDate)}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            minimumDate={parseDateOnly(allowed.minDate)}
+            maximumDate={parseDateOnly(allowed.maxDate)}
+            onChange={onChangeDate}
+          />
+        ) : null}
+        {Platform.OS === 'ios' && showPicker ? (
+          <Button
+            label="Done"
+            variant="secondary"
+            onPress={() => setShowPicker(false)}
+          />
+        ) : null}
 
         <Text style={styles.label}>Evidence photo</Text>
         {photoUri ? (
@@ -171,7 +192,11 @@ export function LogWorkoutScreen() {
 
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Button label="Camera" variant="secondary" onPress={() => void onPick('camera')} />
+            <Button
+              label="Camera"
+              variant="secondary"
+              onPress={() => void onPick('camera')}
+            />
           </View>
           <View style={{ flex: 1 }}>
             <Button
@@ -193,10 +218,7 @@ export function LogWorkoutScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: {
-    gap: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
+  content: { gap: spacing.md, paddingBottom: spacing.xxl },
   status: {
     backgroundColor: colors.bgElevated,
     borderRadius: radii.lg,
@@ -205,21 +227,9 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: 4,
   },
-  statusTitle: {
-    color: colors.text,
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  label: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
+  statusTitle: { color: colors.text, fontWeight: '700', fontSize: 16 },
+  label: { color: colors.textMuted, fontSize: 13, fontWeight: '500' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -233,7 +243,16 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   chipText: { color: colors.text, fontWeight: '600' },
-  chipTextSelected: { color: colors.bg },
+  chipTextSelected: { color: colors.white },
+  dateBtn: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: 4,
+  },
+  dateText: { color: colors.text, fontWeight: '700', fontSize: 16 },
   preview: {
     width: '100%',
     height: 220,
@@ -250,8 +269,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.bgElevated,
   },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
+  row: { flexDirection: 'row', gap: spacing.sm },
 });

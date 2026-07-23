@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
-import type { Profile } from '../types';
+import type { FoodPreference, GoalType, Profile } from '../types';
 
 interface AuthContextValue {
   session: Session | null;
@@ -24,10 +24,18 @@ interface AuthContextValue {
   ) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  updateProfile: (patch: {
-    display_name?: string;
-    avatar_url?: string | null;
-  }) => Promise<string | null>;
+  updateProfile: (patch: Partial<{
+    display_name: string;
+    avatar_url: string | null;
+    height_m: number | null;
+    weight_kg: number | null;
+    goal_type: GoalType | null;
+    goal_exercise: string | null;
+    food_preference: FoodPreference | null;
+    group_id: string | null;
+    is_admin: boolean;
+    removed_at: string | null;
+  }>) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -55,13 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       return;
     }
-    const p = await fetchProfile(session.user.id);
-    setProfile(p);
+    setProfile(await fetchProfile(session.user.id));
   }, [session?.user?.id]);
 
   useEffect(() => {
     let mounted = true;
-
     if (!isSupabaseConfigured) {
       setLoading(false);
       return;
@@ -73,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, next) => {
       setSession(next);
     });
 
@@ -101,9 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { display_name: displayName.trim() || 'Athlete' },
-        },
+        options: { data: { display_name: displayName.trim() || 'Athlete' } },
       });
       return error?.message ?? null;
     },
@@ -116,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateProfile = useCallback(
-    async (patch: { display_name?: string; avatar_url?: string | null }) => {
+    async (patch: Record<string, unknown>) => {
       if (!session?.user?.id) return 'Not signed in';
       const { error } = await supabase
         .from('profiles')

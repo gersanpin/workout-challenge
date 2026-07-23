@@ -1,16 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CHALLENGE_START_DATE, CHALLENGE_YEAR } from '../constants/challenge';
-import { supabase } from '../lib/supabase';
-import { todayDateOnly } from '../lib/dates';
-import { calculateLeaderboard } from '../lib/weeklyChallenge';
-import type { LeaderboardEntry, Profile, Workout, WorkoutWithProfile } from '../types';
+import { CHALLENGE_START_DATE, CHALLENGE_YEAR, REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
 import { useAuth } from '../context/AuthContext';
+import { todayDateOnly } from '../lib/dates';
+import { calculateLeaderboard, daysRemainingToGoal } from '../lib/weeklyChallenge';
+import { publishWeekActivityShouts } from '../lib/activityShouts';
+import { supabase } from '../lib/supabase';
+import type {
+  ActivityEvent,
+  ChallengeGroup,
+  LeaderboardEntry,
+  Profile,
+  Workout,
+  WorkoutComment,
+  WorkoutWithProfile,
+} from '../types';
 
 export function useChallengeData() {
   const { user, profile, configured } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [feed, setFeed] = useState<WorkoutWithProfile[]>([]);
+  const [comments, setComments] = useState<WorkoutComment[]>([]);
+  const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  const [group, setGroup] = useState<ChallengeGroup | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,8 +38,32 @@ export function useChallengeData() {
     setError(null);
     setLoading(true);
 
-    const [profilesRes, workoutsRes, feedRes] = await Promise.all([
-      supabase.from('profiles').select('*').order('display_name'),
+    let groupData: ChallengeGroup | null = null;
+    if (profile?.group_id) {
+      const g = await supabase
+        .from('challenge_groups')
+        .select('*')
+        .eq('id', profile.group_id)
+        .maybeSingle();
+      groupData = (g.data as ChallengeGroup) ?? null;
+      setGroup(groupData);
+    } else {
+      setGroup(null);
+    }
+
+    const profilesQuery = profile?.group_id
+      ? supabase
+          .from('profiles')
+          .select('*')
+          .eq('group_id', profile.group_id)
+          .is('removed_at', null)
+          .order('display_name')
+      : supabase.from('profiles').select('*').eq('id', user?.id ?? '').maybeSingle();
+
+    const [profilesRes, workoutsRes, feedRes, activityRes] = await Promise.all([
+      profile?.group_id
+        ? profilesQuery
+        : supabase.from('profiles').select('*').eq('id', user?.id ?? ''),
       supabase
         .from('workouts')
         .select('*')
@@ -39,6 +75,14 @@ export function useChallengeData() {
         .select('*, profiles(display_name, avatar_url)')
         .order('created_at', { ascending: false })
         .limit(40),
+      profile?.group_id
+        ? supabase
+            .from('activity_events')
+            .select('*, profiles(display_name, avatar_url)')
+            .eq('group_id', profile.group_id)
+            .order('created_at', { ascending: false })
+            .limit(40)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
     if (profilesRes.error || workoutsRes.error || feedRes.error) {
@@ -46,17 +90,69 @@ export function useChallengeData() {
         profilesRes.error?.message ||
           workoutsRes.error?.message ||
           feedRes.error?.message ||
-          'Failed to load data',
+          'Failed to load',
       );
       setLoading(false);
       return;
     }
 
-    setProfiles((profilesRes.data ?? []) as Profile[]);
-    setWorkouts((workoutsRes.data ?? []) as Workout[]);
-    setFeed((feedRes.data ?? []) as WorkoutWithProfile[]);
+    const profileRows = (profilesRes.data ?? []) as Profile[];
+    const activeProfiles = profileRows.filter((p) => !p.removed_at);
+    setProfiles(activeProfiles);
+
+    const activeIds = new Set(activeProfiles.map((p) => p.id));
+    const allWorkouts = (workoutsRes.data ?? []) as Workout[];
+    const scopedWorkouts = profile?.group_id
+      ? allWorkouts.filter((w) => activeIds.has(w.user_id))
+      : allWorkouts.filter((w) => w.user_id === user?.id);
+    setWorkouts(scopedWorkouts);
+
+    const feedRows = ((feedRes.data ?? []) as WorkoutWithProfile[]).filter((w) =>
+      profile?.group_id ? activeIds.has(w.user_id) : w.user_id === user?.id,
+    );
+    setFeed(feedRows);
+
+    setActivity((activityRes.data ?? []) as ActivityEvent[]);
+
+    if (feedRows.length) {
+      const ids = feedRows.map((f) => f.id);
+      const { data: commentRows } = await supabase
+        .from('workout_comments')
+        .select('*, profiles(display_name, avatar_url)')
+        .in('workout_id', ids)
+        .order('created_at', { ascending: true });
+      setComments((commentRows ?? []) as WorkoutComment[]);
+    } else {
+      setComments([]);
+    }
+
+    // Public feed shouts for week complete / banked / missed (best-effort)
+    if (profile?.group_id && activeProfiles.length) {
+      const totals = calculateLeaderboard(
+        activeProfiles,
+        scopedWorkouts,
+        year,
+        throughDate,
+        CHALLENGE_START_DATE,
+      );
+      const board = activeProfiles.map((p) => {
+        const t = totals.get(p.id);
+        return {
+          profile: p,
+          currentWeek: t?.weeks[t.weeks.length - 1] ?? null,
+          bankedCredits: t?.bankedCredits ?? 0,
+          totalMissedDays: t?.totalMissedDays ?? 0,
+          totalMoneyOwedMxn: t?.totalMoneyOwedMxn ?? 0,
+        };
+      });
+      void publishWeekActivityShouts({
+        groupId: profile.group_id,
+        leaderboard: board,
+      }).catch(() => undefined);
+    }
+
     setLoading(false);
-  }, [configured, throughDate]);
+  }, [configured, profile?.group_id, user?.id, throughDate, year]);
 
   useEffect(() => {
     void refresh();
@@ -82,21 +178,22 @@ export function useChallengeData() {
           totalMoneyOwedMxn: t?.totalMoneyOwedMxn ?? 0,
         };
       })
-      .sort((a, b) => {
-        // Best first: fewer missed days, then more days done this week
-        if (a.totalMissedDays !== b.totalMissedDays) {
-          return a.totalMissedDays - b.totalMissedDays;
-        }
-        return (
-          (b.currentWeek?.distinctWorkoutDays ?? 0) -
-          (a.currentWeek?.distinctWorkoutDays ?? 0)
-        );
-      });
+      .sort((a, b) => a.totalMissedDays - b.totalMissedDays);
   }, [profiles, workouts, year, throughDate]);
+
+  const groupPot = useMemo(
+    () => leaderboard.reduce((s, e) => s + e.totalMoneyOwedMxn, 0),
+    [leaderboard],
+  );
 
   const myWorkouts = useMemo(
     () => (user ? workouts.filter((w) => w.user_id === user.id) : []),
     [workouts, user],
+  );
+
+  const myEntry = useMemo(
+    () => leaderboard.find((e) => e.profile.id === user?.id) ?? null,
+    [leaderboard, user?.id],
   );
 
   const myTotals = useMemo(() => {
@@ -112,13 +209,26 @@ export function useChallengeData() {
     );
   }, [user, profile?.created_at, myWorkouts, year, throughDate]);
 
+  const myWeek = myEntry?.currentWeek ?? null;
+  const myDaysDone = myWeek?.distinctWorkoutDays ?? 0;
+  const myDaysRemaining = daysRemainingToGoal(myDaysDone);
+
   return {
     profiles,
     workouts,
     feed,
+    comments,
+    activity,
+    group,
     leaderboard,
+    groupPot,
     myWorkouts,
     myTotals,
+    myEntry,
+    myWeek,
+    myDaysDone,
+    myDaysRemaining,
+    requiredDays: REQUIRED_WORKOUT_DAYS,
     loading,
     error,
     refresh,

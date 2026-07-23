@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -13,16 +13,28 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   Button,
   Card,
+  Display,
   Field,
   Muted,
   Screen,
   Title,
 } from '../components/ui';
-import { colors, radii, spacing } from '../constants/theme';
+import { CHALLENGE_START_DATE } from '../constants/challenge';
+import { borderWidth, colors, spacing, typography } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
-import { askCoach, type CoachMessage } from '../lib/coach';
+import type { CoachMessage } from '../lib/coach';
+import { parseDateOnly, todayDateOnly } from '../lib/dates';
 import { supabase } from '../lib/supabase';
+import {
+  coachRevisePlan,
+  type WeeklyPlanContent,
+} from '../lib/weeklyPlan';
+import {
+  fetchOrCreateWeeklyPlan,
+  regenerateWeeklyPlan,
+  saveWeeklyPlan,
+} from '../lib/weeklyPlanApi';
 import {
   FOOD_OPTIONS,
   GOAL_OPTIONS,
@@ -31,11 +43,17 @@ import {
 } from '../types';
 import type { ProfileStackParamList } from '../navigation/RootNavigator';
 
+function daysBetween(from: string, to: string): number {
+  const a = parseDateOnly(from).getTime();
+  const b = parseDateOnly(to).getTime();
+  return Math.max(0, Math.floor((b - a) / (24 * 60 * 60 * 1000)) + 1);
+}
+
 export function ProfileScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const { user, profile, signOut, updateProfile, refreshProfile } = useAuth();
-  const { myTotals } = useChallengeData();
+  const { myTotals, myWorkouts } = useChallengeData();
 
   const [name, setName] = useState(profile?.display_name ?? '');
   const [height, setHeight] = useState(
@@ -58,10 +76,22 @@ export function ProfileScreen() {
     { id: string; weight_kg: number; recorded_on: string }[]
   >([]);
 
+  const [plan, setPlan] = useState<WeeklyPlanContent | null>(null);
+  const [planWeek, setPlanWeek] = useState('');
   const [coachOpen, setCoachOpen] = useState(false);
   const [coachInput, setCoachInput] = useState('');
   const [coachBusy, setCoachBusy] = useState(false);
   const [coachThread, setCoachThread] = useState<CoachMessage[]>([]);
+
+  const challengeDays = useMemo(
+    () => daysBetween(CHALLENGE_START_DATE, todayDateOnly()),
+    [],
+  );
+
+  const totalWorkoutDays = useMemo(() => {
+    const set = new Set(myWorkouts.map((w) => w.workout_date));
+    return set.size;
+  }, [myWorkouts]);
 
   useEffect(() => {
     if (profile?.display_name) setName(profile.display_name);
@@ -73,7 +103,7 @@ export function ProfileScreen() {
   }, [profile]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !profile) return;
     void (async () => {
       const { data } = await supabase
         .from('weight_entries')
@@ -90,8 +120,14 @@ export function ProfileScreen() {
         .order('created_at', { ascending: true })
         .limit(40);
       setCoachThread((msgs as CoachMessage[]) ?? []);
+
+      if (profile.goal_type && profile.food_preference) {
+        const p = await fetchOrCreateWeeklyPlan(profile);
+        setPlan({ goalSection: p.goalSection, foodSection: p.foodSection });
+        setPlanWeek(p.weekStart);
+      }
     })();
-  }, [user]);
+  }, [user, profile]);
 
   const onSave = async () => {
     setSaving(true);
@@ -99,12 +135,12 @@ export function ProfileScreen() {
     const weight_kg = weight.trim() ? Number(weight) : null;
     if (height_m != null && (!Number.isFinite(height_m) || height_m <= 0)) {
       setSaving(false);
-      Alert.alert('Invalid height', 'Use meters, e.g. 1.75');
+      Alert.alert('Altura inválida', 'Usa metros, ej. 1.75');
       return;
     }
     if (weight_kg != null && (!Number.isFinite(weight_kg) || weight_kg <= 0)) {
       setSaving(false);
-      Alert.alert('Invalid weight', 'Use kg, e.g. 78.5');
+      Alert.alert('Peso inválido', 'Usa kg, ej. 78.5');
       return;
     }
 
@@ -119,7 +155,7 @@ export function ProfileScreen() {
 
     if (!err && user && weight_kg != null) {
       const last = weightHistory[0];
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayDateOnly();
       const shouldLog =
         !last ||
         last.recorded_on.slice(0, 7) !== today.slice(0, 7) ||
@@ -133,16 +169,32 @@ export function ProfileScreen() {
       }
     }
 
+    if (!err && profile && goalType && food) {
+      const updated = {
+        ...profile,
+        goal_type: goalType,
+        goal_exercise:
+          goalType === 'improve_exercise' ? goalExercise.trim() : null,
+        food_preference: food,
+      };
+      const regenerated = await regenerateWeeklyPlan(updated);
+      setPlan({
+        goalSection: regenerated.goalSection,
+        foodSection: regenerated.foodSection,
+      });
+      setPlanWeek(regenerated.weekStart);
+    }
+
     setSaving(false);
-    if (err) Alert.alert('Update failed', err);
+    if (err) Alert.alert('Error', err);
     else {
       await refreshProfile();
-      Alert.alert('Saved', 'Profile updated.');
+      Alert.alert('Guardado', 'Perfil y plan semanal actualizados.');
     }
   };
 
   const onAskCoach = async () => {
-    if (!profile || !user || !coachInput.trim()) return;
+    if (!profile || !user || !coachInput.trim() || !plan) return;
     const message = coachInput.trim();
     setCoachInput('');
     setCoachBusy(true);
@@ -154,7 +206,16 @@ export function ProfileScreen() {
       body: message,
     });
 
-    const reply = await askCoach(profile, coachThread, message);
+    const { reply, plan: nextPlan } = await coachRevisePlan(
+      profile,
+      plan,
+      coachThread,
+      message,
+    );
+    setPlan(nextPlan);
+    if (planWeek) {
+      await saveWeeklyPlan(user.id, planWeek, nextPlan);
+    }
     setCoachThread([...nextHistory, { role: 'assistant', body: reply }]);
     await supabase.from('coach_messages').insert({
       user_id: user.id,
@@ -172,39 +233,66 @@ export function ProfileScreen() {
         renderItem={null}
         ListHeaderComponent={
           <View style={styles.content}>
-            <Title>Profile</Title>
+            <Title>PERFIL</Title>
             <Muted>{user?.email}</Muted>
 
             <Card style={styles.card}>
+              <Text style={styles.heading}>RETO</Text>
+              <View style={styles.statsRow}>
+                <View style={styles.statBox}>
+                  <Display>{challengeDays}</Display>
+                  <Muted>días del reto</Muted>
+                </View>
+                <View style={styles.statBox}>
+                  <Display color={colors.accent}>{totalWorkoutDays}</Display>
+                  <Muted>días con ejercicio</Muted>
+                </View>
+              </View>
+              <View style={styles.rowBetween}>
+                <Muted>Debes YTD</Muted>
+                <Text style={styles.value}>
+                  ${myTotals?.totalMoneyOwedMxn ?? 0} MXN
+                </Text>
+              </View>
+              <View style={styles.rowBetween}>
+                <Muted>Banked</Muted>
+                <Text style={styles.valueOk}>
+                  {myTotals?.bankedCredits ?? 0}
+                </Text>
+              </View>
+            </Card>
+
+            <Card style={styles.card}>
               <Field
-                label="Display name"
+                label="Nombre"
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
               />
               <Field
-                label="Height (meters)"
+                label="Altura (m)"
                 value={height}
                 onChangeText={setHeight}
                 keyboardType="decimal-pad"
                 placeholder="1.75"
               />
               <Field
-                label="Weight (kg)"
+                label="Peso (kg)"
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="decimal-pad"
                 placeholder="78.5"
               />
-              <Muted>
-                Weight history logs about monthly when you save a new value.
-              </Muted>
-              <Button label="Save profile" onPress={() => void onSave()} loading={saving} />
+              <Button
+                label="GUARDAR PERFIL"
+                onPress={() => void onSave()}
+                loading={saving}
+              />
             </Card>
 
             {weightHistory.length ? (
               <Card style={styles.card}>
-                <Text style={styles.heading}>Weight history</Text>
+                <Text style={styles.heading}>HISTORIAL DE PESO</Text>
                 {weightHistory.map((w) => (
                   <View key={w.id} style={styles.rowBetween}>
                     <Muted>{w.recorded_on}</Muted>
@@ -215,7 +303,7 @@ export function ProfileScreen() {
             ) : null}
 
             <Card style={styles.card}>
-              <Text style={styles.heading}>Goal</Text>
+              <Text style={styles.heading}>METAS</Text>
               <View style={styles.chips}>
                 {GOAL_OPTIONS.map((g) => {
                   const selected = goalType === g.value;
@@ -225,7 +313,9 @@ export function ProfileScreen() {
                       onPress={() => setGoalType(g.value)}
                       style={[styles.chip, selected && styles.chipOn]}
                     >
-                      <Text style={[styles.chipText, selected && styles.chipTextOn]}>
+                      <Text
+                        style={[styles.chipText, selected && styles.chipTextOn]}
+                      >
                         {g.label}
                       </Text>
                     </Pressable>
@@ -234,13 +324,14 @@ export function ProfileScreen() {
               </View>
               {goalType === 'improve_exercise' ? (
                 <Field
-                  label="Which exercise?"
+                  label="¿Qué ejercicio?"
                   value={goalExercise}
                   onChangeText={setGoalExercise}
                   placeholder="Climbing, padel…"
                 />
               ) : null}
-              <Text style={styles.subheading}>Food preference</Text>
+
+              <Text style={styles.subheading}>PREFERENCIA DE COMIDA</Text>
               <View style={styles.chips}>
                 {FOOD_OPTIONS.map((f) => {
                   const selected = food === f.value;
@@ -250,23 +341,39 @@ export function ProfileScreen() {
                       onPress={() => setFood(f.value)}
                       style={[styles.chip, selected && styles.chipOn]}
                     >
-                      <Text style={[styles.chipText, selected && styles.chipTextOn]}>
+                      <Text
+                        style={[styles.chipText, selected && styles.chipTextOn]}
+                      >
                         {f.label}
                       </Text>
                     </Pressable>
                   );
                 })}
               </View>
+              <Muted>
+                Al guardar meta + comida se genera el weekly plan automáticamente.
+              </Muted>
             </Card>
 
+            {plan ? (
+              <Card style={styles.card}>
+                <Text style={styles.heading}>WEEKLY PLAN</Text>
+                <Muted>Semana {planWeek}</Muted>
+                <Text style={styles.planTitle}>META</Text>
+                <Text style={styles.planBody}>{plan.goalSection}</Text>
+                <Text style={styles.planTitle}>COMIDA</Text>
+                <Text style={styles.planBody}>{plan.foodSection}</Text>
+              </Card>
+            ) : null}
+
             <Card style={styles.card}>
-              <Text style={styles.heading}>Fortachones Coach</Text>
+              <Text style={styles.heading}>COACH</Text>
               <Muted>
-                Personal sports & nutrition agent — weekly workouts, long-term
-                plans, and diets tailored to your goal.
+                Habla con el coach para cambiar el weekly plan (“no me gusta
+                esto”, “tengo estos ingredientes…”).
               </Muted>
               <Button
-                label={coachOpen ? 'Hide coach' : 'Open coach chat'}
+                label={coachOpen ? 'CERRAR COACH' : 'ABRIR COACH'}
                 variant="secondary"
                 onPress={() => setCoachOpen((o) => !o)}
               />
@@ -285,43 +392,28 @@ export function ProfileScreen() {
                   ))}
                   <TextInput
                     style={styles.coachInput}
-                    placeholder="Ask for this week’s plan…"
+                    placeholder="Ej. cámbame la cena del martes…"
                     placeholderTextColor={colors.textDim}
                     value={coachInput}
                     onChangeText={setCoachInput}
                     multiline
                   />
                   <Button
-                    label="Send to coach"
+                    label="ENVIAR AL COACH"
                     onPress={() => void onAskCoach()}
                     loading={coachBusy}
+                    disabled={!plan}
                   />
                 </View>
               ) : null}
             </Card>
 
-            <Card style={styles.card}>
-              <Text style={styles.heading}>Challenge snapshot</Text>
-              <Row
-                label="Banked credits"
-                value={String(myTotals?.bankedCredits ?? 0)}
-              />
-              <Row
-                label="Missed days (YTD)"
-                value={String(myTotals?.totalMissedDays ?? 0)}
-              />
-              <Row
-                label="Money owed (YTD)"
-                value={`$${myTotals?.totalMoneyOwedMxn ?? 0} MXN`}
-              />
-              <Button
-                label="Open full history"
-                variant="secondary"
-                onPress={() => navigation.navigate('History')}
-              />
-            </Card>
-
-            <Button label="Sign out" variant="danger" onPress={() => void signOut()} />
+            <Button
+              label="HISTORIAL COMPLETO"
+              variant="secondary"
+              onPress={() => navigation.navigate('History')}
+            />
+            <Button label="CERRAR SESIÓN" variant="danger" onPress={() => void signOut()} />
           </View>
         }
       />
@@ -329,55 +421,76 @@ export function ProfileScreen() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.rowBetween}>
-      <Muted>{label}</Muted>
-      <Text style={styles.value}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xxl },
   card: { gap: spacing.md },
-  heading: { color: colors.text, fontWeight: '700', fontSize: 16 },
-  subheading: { color: colors.textMuted, fontWeight: '600' },
+  heading: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.text,
+    fontSize: 22,
+    letterSpacing: 1,
+  },
+  subheading: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.textMuted,
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+  statsRow: { flexDirection: 'row', gap: spacing.md },
+  statBox: { flex: 1, gap: 4 },
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  value: { color: colors.accent, fontWeight: '800', fontSize: 16 },
+  value: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.danger,
+    fontSize: 20,
+  },
+  valueOk: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.accent,
+    fontSize: 20,
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.bg,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
   },
   chipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipText: { color: colors.text, fontWeight: '600' },
-  chipTextOn: { color: colors.white },
+  chipText: { color: colors.text, fontFamily: 'Inter_600SemiBold' },
+  chipTextOn: { color: colors.black },
+  planTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.accent,
+    fontSize: 18,
+    letterSpacing: 1,
+  },
+  planBody: {
+    ...typography.body,
+    color: colors.text,
+    lineHeight: 22,
+  },
   coachBox: { gap: spacing.sm },
   coachBubble: {
-    borderRadius: radii.md,
     padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
   },
   coachUser: { backgroundColor: colors.accentSoft, alignSelf: 'flex-end' },
-  coachAi: { backgroundColor: colors.bgElevated, alignSelf: 'flex-start' },
-  coachText: { color: colors.text, lineHeight: 20 },
+  coachAi: { backgroundColor: colors.bg, alignSelf: 'flex-start' },
+  coachText: { ...typography.body, color: colors.text, lineHeight: 20 },
   coachInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
     padding: spacing.sm,
     minHeight: 64,
     color: colors.text,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
+    fontFamily: 'Inter_400Regular',
   },
 });

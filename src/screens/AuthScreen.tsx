@@ -8,9 +8,9 @@ import {
   View,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { Button, Field, Screen } from '../components/ui';
+import { Brand, Button, Field, Screen } from '../components/ui';
 import { APP_NAME } from '../constants/challenge';
-import { colors, spacing, typography } from '../constants/theme';
+import { borderWidth, colors, spacing, typography } from '../constants/theme';
 
 export function AuthScreen() {
   const { signIn, signUp, configured } = useAuth();
@@ -24,7 +24,7 @@ export function AuthScreen() {
   const onSubmit = async () => {
     setError(null);
     if (!email.trim() || !password) {
-      setError('Email and password are required.');
+      setError('Email y password requeridos.');
       return;
     }
     setLoading(true);
@@ -47,19 +47,17 @@ export function AuthScreen() {
             source={require('../../assets/fortachones-logo.png')}
             style={styles.logo}
           />
-          <Text style={styles.brand}>{APP_NAME}</Text>
+          <Brand>{APP_NAME}</Brand>
           <Text style={styles.tagline}>
-            Log workouts. Bank extra days. Keep the pot honest — and the chat
-            spicy.
+            Log. Bank. Paga o pelea. El chat del crew vive aquí.
           </Text>
         </View>
 
         {!configured ? (
           <View style={styles.banner}>
-            <Text style={styles.bannerTitle}>Supabase not configured</Text>
+            <Text style={styles.bannerTitle}>SUPABASE OFF</Text>
             <Text style={styles.bannerBody}>
-              Copy `.env.example` → `.env`, add your URL and anon key, run
-              `supabase/schema.sql`, then restart Expo.
+              Copia `.env.example` → `.env` y corre `supabase/schema.sql`.
             </Text>
           </View>
         ) : null}
@@ -67,7 +65,7 @@ export function AuthScreen() {
         <View style={styles.form}>
           {mode === 'signup' ? (
             <Field
-              label="Display name"
+              label="Nombre"
               value={displayName}
               onChangeText={setDisplayName}
               autoCapitalize="words"
@@ -91,16 +89,14 @@ export function AuthScreen() {
           />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button
-            label={mode === 'signin' ? 'Log in' : 'Create account'}
+            label={mode === 'signin' ? 'ENTRAR' : 'CREAR CUENTA'}
             onPress={() => void onSubmit()}
             loading={loading}
             disabled={!configured}
           />
           <Button
             label={
-              mode === 'signin'
-                ? 'Need an account? Sign up'
-                : 'Already have an account? Log in'
+              mode === 'signin' ? '¿No tienes cuenta? Regístrate' : 'Ya tengo cuenta'
             }
             variant="ghost"
             onPress={() => {
@@ -118,8 +114,13 @@ const styles = StyleSheet.create({
   screen: { justifyContent: 'center' },
   inner: { gap: spacing.xl },
   hero: { alignItems: 'center', gap: spacing.sm },
-  logo: { width: 112, height: 112, borderRadius: 24 },
-  brand: { ...typography.brand, color: colors.accent },
+  logo: {
+    width: 120,
+    height: 120,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
   tagline: {
     ...typography.body,
     color: colors.textMuted,
@@ -128,15 +129,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   form: { gap: spacing.md },
-  error: { color: colors.danger, fontSize: 14 },
+  error: { color: colors.danger, fontFamily: 'Inter_400Regular' },
   banner: {
-    backgroundColor: colors.bgSoft,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.bgElevated,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.danger,
     padding: spacing.md,
     gap: spacing.xs,
   },
-  bannerTitle: { color: colors.warning, fontWeight: '700' },
-  bannerBody: { color: colors.textMuted, lineHeight: 20 },
+  bannerTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.danger,
+    fontSize: 20,
+    letterSpacing: 1,
+  },
+  bannerBody: { ...typography.body, color: colors.textMuted },
 });

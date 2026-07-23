@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button, Field, Muted, Screen, Title } from '../components/ui';
-import { LOG_LOOKBACK_DAYS } from '../constants/challenge';
-import { colors, radii, spacing } from '../constants/theme';
+import { WeightPlateStack } from '../components/WeightPlateStack';
+import { LOG_LOOKBACK_DAYS, REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
+import { borderWidth, colors, spacing, typography } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
 import {
@@ -23,7 +24,6 @@ import {
 } from '../lib/dates';
 import { logWorkout, pickWorkoutPhoto } from '../lib/workoutsApi';
 import { EXERCISE_TYPES } from '../types';
-import { REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
 
 export function LogWorkoutScreen() {
   const { user, profile } = useAuth();
@@ -38,7 +38,9 @@ export function LogWorkoutScreen() {
 
   const [exerciseType, setExerciseType] = useState('gym');
   const [customType, setCustomType] = useState('');
-  const [workoutDate, setWorkoutDate] = useState(today);
+  const [workoutDate, setWorkoutDate] = useState(
+    allowed.isAllowed(today) ? today : allowed.minDate,
+  );
   const [showPicker, setShowPicker] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -57,24 +59,20 @@ export function LogWorkoutScreen() {
     }
   };
 
-  const onChangeDate = (_: unknown, selected?: Date) => {
-    if (Platform.OS === 'android') setShowPicker(false);
+  const onChangeDate = (_event: unknown, selected?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+    }
     if (!selected) return;
     const next = formatDateOnly(selected);
-    if (!allowed.isAllowed(next)) {
-      Alert.alert(
-        'Date not allowed',
-        'Only today or up to 2 days back, and only weeks that are still open.',
-      );
-      return;
-    }
+    if (!allowed.isAllowed(next)) return;
     setWorkoutDate(next);
   };
 
   const onSubmit = async () => {
     if (!user) return;
     if (!photoUri) {
-      Alert.alert('Photo required', 'Evidence photo is required.');
+      Alert.alert('Foto requerida', 'La evidencia fotográfica es obligatoria.');
       return;
     }
     const type =
@@ -95,13 +93,13 @@ export function LogWorkoutScreen() {
       setPhotoUri(null);
       await refresh();
       Alert.alert(
-        'Logged!',
+        '¡Logged!',
         dayCount + 1 >= 2
-          ? 'Second workout today — double-day progress saved.'
-          : 'Workout saved with photo evidence.',
+          ? 'Segundo workout del día — double day.'
+          : 'Workout guardado.',
       );
     } catch (e) {
-      Alert.alert('Could not log workout', (e as Error).message);
+      Alert.alert('Error', (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -113,23 +111,15 @@ export function LogWorkoutScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Title>Log workout</Title>
-        <Muted>
-          Photo evidence is required and visible to the whole group. Video
-          support is next (max ~30s / 25 MB).
-        </Muted>
-
+        <Title>LOG</Title>
         <View style={styles.status}>
-          <Text style={styles.statusTitle}>
-            This week: {myDaysDone}/{REQUIRED_WORKOUT_DAYS} · {myDaysRemaining}{' '}
-            remaining
-          </Text>
+          <WeightPlateStack daysDone={myDaysDone} maxDays={REQUIRED_WORKOUT_DAYS} />
           <Muted>
-            Logs on {workoutDate}: {dayCount}
+            {myDaysRemaining} restantes · logs en {workoutDate}: {dayCount}
           </Muted>
         </View>
 
-        <Text style={styles.label}>Exercise</Text>
+        <Text style={styles.label}>EJERCICIO</Text>
         <View style={styles.chips}>
           {EXERCISE_TYPES.map((t) => {
             const selected = exerciseType === t.value;
@@ -151,56 +141,59 @@ export function LogWorkoutScreen() {
 
         {exerciseType === 'other' ? (
           <Field
-            label="Custom type"
+            label="Tipo custom"
             value={customType}
             onChangeText={setCustomType}
             placeholder="CrossFit, hiking…"
           />
         ) : null}
 
-        <Text style={styles.label}>Date</Text>
-        <Pressable style={styles.dateBtn} onPress={() => setShowPicker(true)}>
+        <Text style={styles.label}>FECHA</Text>
+        <Pressable
+          style={styles.dateBtn}
+          onPress={() => setShowPicker((v) => !v)}
+        >
           <Text style={styles.dateText}>{workoutDate}</Text>
-          <Muted>Today or up to 2 days back · open weeks only</Muted>
         </Pressable>
         {showPicker ? (
-          <DateTimePicker
-            value={parseDateOnly(workoutDate)}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            minimumDate={parseDateOnly(allowed.minDate)}
-            maximumDate={parseDateOnly(allowed.maxDate)}
-            onChange={onChangeDate}
-          />
-        ) : null}
-        {Platform.OS === 'ios' && showPicker ? (
-          <Button
-            label="Done"
-            variant="secondary"
-            onPress={() => setShowPicker(false)}
-          />
+          <View style={styles.calendarBox}>
+            <DateTimePicker
+              value={parseDateOnly(workoutDate)}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+              minimumDate={parseDateOnly(allowed.minDate)}
+              maximumDate={parseDateOnly(allowed.maxDate)}
+              onChange={onChangeDate}
+              themeVariant="dark"
+              accentColor={colors.accent}
+              style={styles.picker}
+            />
+            {Platform.OS === 'ios' ? (
+              <Button label="LISTO" variant="secondary" onPress={() => setShowPicker(false)} />
+            ) : null}
+          </View>
         ) : null}
 
-        <Text style={styles.label}>Evidence photo</Text>
+        <Text style={styles.label}>EVIDENCIA</Text>
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.preview} />
         ) : (
           <View style={styles.photoPlaceholder}>
-            <Muted>No photo selected</Muted>
+            <Muted>Sin foto</Muted>
           </View>
         )}
 
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
             <Button
-              label="Camera"
+              label="CÁMARA"
               variant="secondary"
               onPress={() => void onPick('camera')}
             />
           </View>
           <View style={{ flex: 1 }}>
             <Button
-              label="Library"
+              label="GALERÍA"
               variant="secondary"
               onPress={() => void onPick('library')}
             />
@@ -208,7 +201,7 @@ export function LogWorkoutScreen() {
         </View>
 
         <Button
-          label="Save workout"
+          label="GUARDAR WORKOUT"
           onPress={() => void onSubmit()}
           loading={loading}
         />
@@ -221,50 +214,65 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xxl },
   status: {
     backgroundColor: colors.bgElevated,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
     padding: spacing.md,
-    gap: 4,
+    gap: spacing.sm,
   },
-  statusTitle: { color: colors.text, fontWeight: '700', fontSize: 16 },
-  label: { color: colors.textMuted, fontSize: 13, fontWeight: '500' },
+  label: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.textMuted,
+    fontSize: 16,
+    letterSpacing: 1.5,
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.bgElevated,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
   },
   chipSelected: {
     backgroundColor: colors.accent,
     borderColor: colors.accent,
   },
-  chipText: { color: colors.text, fontWeight: '600' },
-  chipTextSelected: { color: colors.white },
+  chipText: {
+    color: colors.text,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  chipTextSelected: { color: colors.black },
   dateBtn: {
     backgroundColor: colors.bgElevated,
-    borderRadius: radii.md,
-    borderWidth: 1,
+    borderWidth: borderWidth.thick,
     borderColor: colors.border,
     padding: spacing.md,
-    gap: 4,
   },
-  dateText: { color: colors.text, fontWeight: '700', fontSize: 16 },
+  dateText: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.text,
+    fontSize: 24,
+    letterSpacing: 1,
+  },
+  calendarBox: {
+    backgroundColor: colors.bgElevated,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
+    padding: spacing.sm,
+    gap: spacing.sm,
+  },
+  picker: {
+    alignSelf: 'stretch',
+  },
   preview: {
     width: '100%',
     height: 220,
-    borderRadius: radii.md,
     backgroundColor: colors.surface,
   },
   photoPlaceholder: {
     height: 120,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.bgElevated,

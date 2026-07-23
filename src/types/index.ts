@@ -74,6 +74,7 @@ export interface ChatMessage {
   media_url: string | null;
   media_type: 'text' | 'gif' | 'image' | 'link' | null;
   link_url: string | null;
+  workout_id?: string | null;
   created_at: string;
   profiles?: Pick<Profile, 'display_name' | 'avatar_url'> | null;
 }

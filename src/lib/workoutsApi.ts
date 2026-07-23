@@ -105,6 +105,17 @@ export async function logWorkout(input: LogWorkoutInput): Promise<string> {
       body: `Evidence from ${input.workoutDate}`,
       workout_id: data.id,
     });
+
+    // Unified chat stream — workout appears as a message with photo
+    await supabase.from('chat_messages').insert({
+      group_id: input.groupId,
+      user_id: input.userId,
+      body: `${input.displayName} · ${input.exerciseType} · ${input.workoutDate}`,
+      media_url: photoUrl,
+      media_type: 'image',
+      link_url: null,
+      workout_id: data.id,
+    });
   }
 
   return data.id as string;

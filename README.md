@@ -1,41 +1,19 @@
 # Fortachones
 
-Expo (React Native + TypeScript) app for a friends fitness accountability challenge — workouts, banked credits, group pot, social feed, chat, and a personal sports/nutrition coach.
-
-Formerly known as Squad Sweat.
-
-## Challenge rules
-
-- Weeks: **Monday–Sunday**, with a **+2 day grace** before the week locks (timezone buffer).
-- Minimum **5 distinct workout days** / week.
-- Optional **double day** banks **1 credit** (5+ days, 6+ workouts, one day with 2+ sessions).
-- Missed shortfall days cost **$100 MXN** (credits apply forward-only).
-- Photo evidence required (video planned: ~30s / 25 MB).
+Expo app for a friends workout challenge — lucha libre gym aesthetic, unified chat/feed, banked credits, and a personal coach.
 
 ## Tabs
-
 | Tab | Purpose |
 | --- | --- |
-| Home | Your week, pot, crew summary, admin group invite |
-| Feed | Instagram-style workout posts + comments + activity shouts |
-| Log | Exercise type, calendar date picker, required photo |
-| Chat | Text, searchable GIFs, YouTube links |
-| Profile | Height/weight history, goals, coach chat, history |
+| Home | Your week (weight-plate stack), pot, crew summary |
+| Chat | Unified WhatsApp-style stream (workout photos + free text + GIFs). Group invite/remove lives here |
+| Log | Exercise + calendar (today…−2 days) + required photo |
+| Profile | Challenge days, workout days, goals, food pref, auto weekly plan (Meta + Comida), coach |
+
+## Visual
+Black `#0B0D0C` / cards `#17191A` / green `#2FA84F` / red `#C81E3A` / bone `#F2F0EA`. Bebas Neue + Inter. Square corners, thick borders, stacked weight plates for weekly progress.
 
 ## Setup
-
-1. Run `supabase/schema.sql` in the Supabase SQL editor.
-2. Copy `.env.example` → `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`).
-3. Optional: `EXPO_PUBLIC_GIPHY_API_KEY`, `EXPO_PUBLIC_OPENAI_API_KEY`.
-4. `npm install && npm start` · `npm test`
-
-## Folder structure
-
-```
-src/
-  screens/   Auth, Home, Feed, Log, Chat, Profile, History
-  lib/       weeklyChallenge, dates, groupApi, coach, giphy, workoutsApi
-  constants/ challenge + theme (minimal light spinach/navy)
-supabase/schema.sql
-assets/fortachones-logo.png
-```
+1. Run `supabase/schema.sql`
+2. `.env` from `.env.example`
+3. `npm install && npm start` · `npm test`

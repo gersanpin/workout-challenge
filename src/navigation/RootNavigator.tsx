@@ -1,12 +1,11 @@
 import React from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { AuthScreen } from '../screens/AuthScreen';
 import { HomeScreen } from '../screens/HomeScreen';
-import { FeedScreen } from '../screens/FeedScreen';
 import { LogWorkoutScreen } from '../screens/LogWorkoutScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
@@ -15,9 +14,8 @@ import { colors } from '../constants/theme';
 
 export type TabParamList = {
   Home: undefined;
-  Feed: undefined;
-  Log: undefined;
   Chat: undefined;
+  Log: undefined;
   ProfileTab: undefined;
 };
 
@@ -31,13 +29,13 @@ const Stack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 const navTheme = {
-  ...DefaultTheme,
+  ...DarkTheme,
   colors: {
-    ...DefaultTheme.colors,
+    ...DarkTheme.colors,
     background: colors.bg,
     card: colors.bgElevated,
     text: colors.text,
-    border: colors.border,
+    border: colors.borderMuted,
     primary: colors.accent,
   },
 };
@@ -46,8 +44,9 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   return (
     <Text
       style={{
-        fontSize: 11,
-        fontWeight: focused ? '800' : '600',
+        fontFamily: 'BebasNeue_400Regular',
+        fontSize: 14,
+        letterSpacing: 1,
         color: focused ? colors.accent : colors.textDim,
       }}
     >
@@ -68,9 +67,10 @@ function ProfileStackScreen() {
         name="History"
         component={HistoryScreen}
         options={{
-          title: 'History',
+          title: 'HISTORIAL',
           headerStyle: { backgroundColor: colors.bgElevated },
           headerTintColor: colors.text,
+          headerTitleStyle: { fontFamily: 'BebasNeue_400Regular' },
         }}
       />
     </ProfileStack.Navigator>
@@ -84,13 +84,19 @@ function MainTabs() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.bgElevated,
-          borderTopColor: colors.border,
+          borderTopColor: colors.borderMuted,
+          borderTopWidth: 3,
           height: 64,
           paddingBottom: 8,
           paddingTop: 8,
         },
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textDim,
+        tabBarLabelStyle: {
+          fontFamily: 'BebasNeue_400Regular',
+          fontSize: 12,
+          letterSpacing: 1,
+        },
       }}
     >
       <Tab.Screen
@@ -101,10 +107,11 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Feed"
-        component={FeedScreen}
+        name="Chat"
+        component={ChatScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="◎" focused={focused} />,
+          title: 'Chat',
+          tabBarIcon: ({ focused }) => <TabIcon label="✎" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -115,17 +122,10 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="✎" focused={focused} />,
-        }}
-      />
-      <Tab.Screen
         name="ProfileTab"
         component={ProfileStackScreen}
         options={{
-          title: 'Profile',
+          title: 'Perfil',
           tabBarIcon: ({ focused }) => <TabIcon label="☺" focused={focused} />,
         }}
       />

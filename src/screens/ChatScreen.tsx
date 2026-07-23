@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Image,
   Linking,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -10,21 +12,44 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Button, EmptyState, Muted, Screen, Title } from '../components/ui';
-import { colors, radii, spacing } from '../constants/theme';
+import {
+  Brand,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Muted,
+  Screen,
+  Title,
+} from '../components/ui';
+import { APP_NAME } from '../constants/challenge';
+import { borderWidth, colors, spacing, typography } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useChallengeData } from '../hooks/useChallengeData';
 import { extractYoutubeUrl, searchGifs, type GifResult } from '../lib/giphy';
+import {
+  addGhostMember,
+  createGroup,
+  inviteLink,
+  joinGroupWithCode,
+  removeMember,
+} from '../lib/groupApi';
 import { supabase } from '../lib/supabase';
 import type { ChatMessage } from '../types';
 
 export function ChatScreen() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
+  const { group, leaderboard, refresh: refreshChallenge } = useChallengeData();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
   const [gifQuery, setGifQuery] = useState('workout');
   const [gifs, setGifs] = useState<GifResult[]>([]);
+  const [showGroup, setShowGroup] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [ghostName, setGhostName] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile?.group_id) {
@@ -36,14 +61,15 @@ export function ChatScreen() {
       .select('*, profiles(display_name, avatar_url)')
       .eq('group_id', profile.group_id)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(120);
     setMessages((data as ChatMessage[]) ?? []);
   }, [profile?.group_id]);
 
   useFocusEffect(
     useCallback(() => {
       void load();
-    }, [load]),
+      void refreshChallenge();
+    }, [load, refreshChallenge]),
   );
 
   useEffect(() => {
@@ -73,7 +99,7 @@ export function ChatScreen() {
       setShowGifs(false);
       await load();
     } catch (e) {
-      console.warn(e);
+      Alert.alert('Error', (e as Error).message);
     } finally {
       setSending(false);
     }
@@ -84,24 +110,70 @@ export function ChatScreen() {
     if (!trimmed) return;
     const yt = extractYoutubeUrl(trimmed);
     if (yt) {
-      await send({
-        body: trimmed,
-        media_type: 'link',
-        link_url: yt,
-      });
+      await send({ body: trimmed, media_type: 'link', link_url: yt });
       return;
     }
     await send({ body: trimmed, media_type: 'text' });
   };
 
+  const onCreateGroup = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      await createGroup(user.id, APP_NAME);
+      await refreshProfile();
+      await refreshChallenge();
+      Alert.alert('Grupo creado', 'Comparte el código de invitación.');
+    } catch (e) {
+      Alert.alert('Error', (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onJoin = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      await joinGroupWithCode(user.id, inviteCode);
+      await refreshProfile();
+      await refreshChallenge();
+      setInviteCode('');
+    } catch (e) {
+      Alert.alert('No se pudo unir', (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!profile?.group_id) {
     return (
       <Screen>
-        <Title>Chat</Title>
-        <EmptyState
-          title="Join a group first"
-          body="Create or join a Fortachones group from Home to unlock chat."
-        />
+        <Brand>{APP_NAME}</Brand>
+        <Title>CHAT</Title>
+        <Card style={{ gap: spacing.md, marginTop: spacing.md }}>
+          <Muted>
+            Crea o únete a un grupo para el feed/chat unificado (logs + mensajes).
+          </Muted>
+          <Button
+            label="Crear grupo (admin)"
+            onPress={() => void onCreateGroup()}
+            loading={busy}
+          />
+          <Field
+            label="Código de invitación"
+            value={inviteCode}
+            onChangeText={setInviteCode}
+            autoCapitalize="characters"
+            placeholder="ABCD1234"
+          />
+          <Button
+            label="Unirme con código"
+            variant="secondary"
+            onPress={() => void onJoin()}
+            loading={busy}
+          />
+        </Card>
       </Screen>
     );
   }
@@ -109,8 +181,13 @@ export function ChatScreen() {
   return (
     <Screen style={{ paddingHorizontal: 0 }}>
       <View style={styles.header}>
-        <Title>Group chat</Title>
-        <Muted>Text, GIFs, photos vibes, YouTube links open natively.</Muted>
+        <View style={{ flex: 1 }}>
+          <Brand>{APP_NAME}</Brand>
+          <Title>CHAT</Title>
+        </View>
+        <Pressable style={styles.groupBtn} onPress={() => setShowGroup(true)}>
+          <Text style={styles.groupBtnText}>GRUPO</Text>
+        </Pressable>
       </View>
 
       <FlatList
@@ -129,17 +206,16 @@ export function ChatScreen() {
             >
               {!mine ? (
                 <Text style={styles.author}>
-                  {item.profiles?.display_name ?? 'Friend'}
+                  {item.profiles?.display_name ?? 'Amigo'}
                 </Text>
               ) : null}
-              {item.media_type === 'gif' && item.media_url ? (
-                <Image source={{ uri: item.media_url }} style={styles.gif} />
+              {item.media_url &&
+              (item.media_type === 'image' || item.media_type === 'gif') ? (
+                <Image source={{ uri: item.media_url }} style={styles.media} />
               ) : null}
               {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
               {item.link_url ? (
-                <Pressable
-                  onPress={() => void Linking.openURL(item.link_url!)}
-                >
+                <Pressable onPress={() => void Linking.openURL(item.link_url!)}>
                   <Text style={styles.link}>{item.link_url}</Text>
                 </Pressable>
               ) : null}
@@ -149,8 +225,8 @@ export function ChatScreen() {
         ListEmptyComponent={
           <View style={{ padding: spacing.md }}>
             <EmptyState
-              title="Say hi"
-              body="Share a GIF, a YouTube class, or roast someone’s form."
+              title="Sin mensajes"
+              body="Manda texto libre o loguea un workout — aparece aquí con foto."
             />
           </View>
         }
@@ -160,7 +236,7 @@ export function ChatScreen() {
         <View style={styles.gifPanel}>
           <TextInput
             style={styles.gifSearch}
-            placeholder="Search GIFs"
+            placeholder="Buscar GIFs"
             placeholderTextColor={colors.textDim}
             value={gifQuery}
             onChangeText={setGifQuery}
@@ -192,14 +268,94 @@ export function ChatScreen() {
         </Pressable>
         <TextInput
           style={styles.input}
-          placeholder="Message…"
+          placeholder="Mensaje libre…"
           placeholderTextColor={colors.textDim}
           value={text}
           onChangeText={setText}
           multiline
         />
-        <Button label="Send" onPress={() => void onSendText()} loading={sending} />
+        <Button label="ENVIAR" onPress={() => void onSendText()} loading={sending} />
       </View>
+
+      <Modal visible={showGroup} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Title>GRUPO</Title>
+            <Muted>
+              {group?.name} · código{' '}
+              <Text style={{ color: colors.text, fontWeight: '700' }}>
+                {group?.invite_code}
+              </Text>
+            </Muted>
+            <Muted>{inviteLink(group?.invite_code ?? '')}</Muted>
+
+            <Text style={styles.section}>MIEMBROS</Text>
+            {leaderboard.map((e) => (
+              <View key={e.profile.id} style={styles.memberRow}>
+                <Text style={styles.memberName}>
+                  {e.profile.display_name}
+                  {e.profile.is_admin ? ' · ADMIN' : ''}
+                </Text>
+                {profile.is_admin && !e.profile.is_admin ? (
+                  <Pressable
+                    onPress={() => {
+                      if (!user) return;
+                      Alert.alert(
+                        '¿Quitar?',
+                        `${e.profile.display_name} saldrá del pot.`,
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          {
+                            text: 'Quitar',
+                            style: 'destructive',
+                            onPress: () => {
+                              void removeMember(user.id, e.profile.id)
+                                .then(() => refreshChallenge())
+                                .catch((err) =>
+                                  Alert.alert('Error', (err as Error).message),
+                                );
+                            },
+                          },
+                        ],
+                      );
+                    }}
+                  >
+                    <Text style={styles.remove}>QUITAR</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ))}
+
+            {profile.is_admin ? (
+              <>
+                <Field
+                  label="Invitar / pending"
+                  value={ghostName}
+                  onChangeText={setGhostName}
+                  placeholder="Apodo"
+                />
+                <Button
+                  label="Nota de invitación"
+                  variant="secondary"
+                  onPress={() => {
+                    if (!user || !ghostName.trim()) return;
+                    void addGhostMember(user.id, ghostName.trim())
+                      .then(() => {
+                        setGhostName('');
+                        return refreshChallenge();
+                      })
+                      .catch((e) => Alert.alert('Error', (e as Error).message));
+                  }}
+                />
+              </>
+            ) : (
+              <Muted>Solo admins agregan o quitan gente.</Muted>
+            )}
+
+            <Button label="CERRAR" onPress={() => setShowGroup(false)} />
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -207,8 +363,23 @@ export function ChatScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.md,
-    gap: 4,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.sm,
     marginBottom: spacing.sm,
+  },
+  groupBtn: {
+    borderWidth: borderWidth.thick,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  groupBtnText: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.text,
+    fontSize: 16,
+    letterSpacing: 1,
   },
   list: {
     paddingHorizontal: spacing.md,
@@ -216,64 +387,84 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   bubble: {
-    maxWidth: '82%',
-    borderRadius: radii.lg,
+    maxWidth: '86%',
     padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 4,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
+    gap: 6,
   },
   bubbleMe: {
     alignSelf: 'flex-end',
     backgroundColor: colors.chatBubbleMe,
+    borderColor: colors.accent,
   },
   bubbleThem: {
     alignSelf: 'flex-start',
     backgroundColor: colors.chatBubbleThem,
   },
-  author: { fontWeight: '700', color: colors.navy, fontSize: 12 },
-  body: { color: colors.text, lineHeight: 20 },
-  link: { color: colors.accent, fontWeight: '700', textDecorationLine: 'underline' },
-  gif: { width: 180, height: 140, borderRadius: radii.sm },
+  author: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.accent,
+    fontSize: 14,
+    letterSpacing: 1,
+  },
+  body: {
+    ...typography.body,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  link: {
+    color: colors.accent,
+    fontFamily: 'Inter_600SemiBold',
+    textDecorationLine: 'underline',
+  },
+  media: {
+    width: 220,
+    height: 180,
+    backgroundColor: colors.surface,
+  },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: spacing.sm,
     padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopWidth: borderWidth.thick,
+    borderTopColor: colors.borderMuted,
     backgroundColor: colors.bgElevated,
   },
   input: {
     flex: 1,
     maxHeight: 100,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
     paddingHorizontal: 12,
     paddingVertical: 10,
     color: colors.text,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
+    fontFamily: 'Inter_400Regular',
   },
   gifBtn: {
     paddingHorizontal: 10,
     paddingVertical: 10,
-    borderRadius: radii.md,
-    backgroundColor: colors.accentSoft,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.accent,
   },
-  gifBtnText: { color: colors.accentDark, fontWeight: '800' },
+  gifBtnText: {
+    color: colors.accent,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 16,
+  },
   gifPanel: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopWidth: borderWidth.thick,
+    borderTopColor: colors.borderMuted,
     padding: spacing.sm,
     gap: spacing.sm,
     backgroundColor: colors.bg,
     maxHeight: 160,
   },
   gifSearch: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
     paddingHorizontal: 12,
     paddingVertical: 8,
     color: colors.text,
@@ -282,8 +473,41 @@ const styles = StyleSheet.create({
   gifThumb: {
     width: 96,
     height: 96,
-    borderRadius: radii.sm,
     marginRight: spacing.sm,
     backgroundColor: colors.surface,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: colors.bgElevated,
+    borderTopWidth: borderWidth.thick,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.md,
+    maxHeight: '85%',
+  },
+  section: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.text,
+    fontSize: 20,
+    letterSpacing: 1,
+    marginTop: spacing.sm,
+  },
+  memberRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderMuted,
+    paddingVertical: 8,
+  },
+  memberName: { ...typography.body, color: colors.text },
+  remove: {
+    color: colors.danger,
+    fontFamily: 'BebasNeue_400Regular',
+    letterSpacing: 1,
   },
 });

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, EmptyState, Muted, Screen, Title } from '../components/ui';
-import { colors, radii, spacing } from '../constants/theme';
+import { borderWidth, colors, spacing, typography } from '../constants/theme';
 import { useChallengeData } from '../hooks/useChallengeData';
 import { formatWeekLabel } from '../lib/dates';
 import type { WeeklySummary, Workout } from '../types';
@@ -20,14 +20,18 @@ function WeekRow({ week }: { week: WeeklySummary }) {
     <Card style={styles.weekCard}>
       <Text style={styles.weekTitle}>{formatWeekLabel(week.weekStart)}</Text>
       <Muted>
-        Closes {week.weekCloseDate}
-        {week.isClosed ? ' · locked' : ' · open'}
+        Cierra {week.weekCloseDate}
+        {week.isClosed ? ' · LOCKED' : ' · OPEN'}
       </Muted>
       <View style={styles.grid}>
-        <Stat label="Days" value={`${week.distinctWorkoutDays}/5`} />
-        <Stat label="Missed" value={String(week.finalMissedDays)} />
-        <Stat label="Owed" value={`$${week.moneyOwedMxn}`} accent={week.moneyOwedMxn > 0} />
-        <Stat label="Bank" value={String(week.bankedCreditsAfterWeek)} />
+        <Stat label="Días" value={`${week.distinctWorkoutDays}/5`} />
+        <Stat label="Miss" value={String(week.finalMissedDays)} />
+        <Stat
+          label="Debes"
+          value={`$${week.moneyOwedMxn}`}
+          danger={week.moneyOwedMxn > 0}
+        />
+        <Stat label="Bank" value={String(week.bankedCreditsAfterWeek)} ok />
       </View>
     </Card>
   );
@@ -36,15 +40,23 @@ function WeekRow({ week }: { week: WeeklySummary }) {
 function Stat({
   label,
   value,
-  accent,
+  danger,
+  ok,
 }: {
   label: string;
   value: string;
-  accent?: boolean;
+  danger?: boolean;
+  ok?: boolean;
 }) {
   return (
     <View style={styles.stat}>
-      <Text style={[styles.statValue, accent && { color: colors.warning }]}>
+      <Text
+        style={[
+          styles.statValue,
+          danger && { color: colors.danger },
+          ok && { color: colors.accent },
+        ]}
+      >
         {value}
       </Text>
       <Muted>{label}</Muted>
@@ -105,34 +117,35 @@ export function HistoryScreen() {
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <Title>My history</Title>
+            <Title>HISTORIAL</Title>
             <Card style={styles.totals}>
-              <Text style={styles.totalsTitle}>Year to date</Text>
+              <Text style={styles.totalsTitle}>YEAR TO DATE</Text>
               <View style={styles.grid}>
                 <Stat
                   label="Missed"
                   value={String(myTotals?.totalMissedDays ?? 0)}
                 />
                 <Stat
-                  label="Owed"
+                  label="Debes"
                   value={`$${myTotals?.totalMoneyOwedMxn ?? 0}`}
-                  accent
+                  danger
                 />
                 <Stat
                   label="Banked"
                   value={String(myTotals?.bankedCredits ?? 0)}
+                  ok
                 />
                 <Stat label="Logs" value={String(myWorkouts.length)} />
               </View>
             </Card>
 
-            <Text style={styles.section}>Weekly breakdown</Text>
+            <Text style={styles.section}>SEMANAS</Text>
             <View style={{ gap: spacing.sm }}>
               {weeksNewestFirst.map((week) => (
                 <WeekRow key={week.weekStart} week={week} />
               ))}
             </View>
-            <Text style={styles.section}>All workouts</Text>
+            <Text style={styles.section}>TODOS LOS WORKOUTS</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -145,8 +158,8 @@ export function HistoryScreen() {
         ListEmptyComponent={
           <View style={{ paddingHorizontal: spacing.md }}>
             <EmptyState
-              title="No workouts yet"
-              body="Log a session — your evidence photo shows up here."
+              title="Sin workouts"
+              body="Loguea una sesión — la foto de evidencia aparece aquí."
             />
           </View>
         }
@@ -163,24 +176,39 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   totals: { gap: spacing.sm },
-  totalsTitle: { color: colors.text, fontWeight: '700', fontSize: 16 },
+  totalsTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.text,
+    fontSize: 20,
+    letterSpacing: 1,
+  },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   stat: {
     width: '47%',
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
+    backgroundColor: colors.bg,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
     padding: spacing.sm,
     gap: 2,
   },
-  statValue: { color: colors.accent, fontWeight: '800', fontSize: 18 },
-  section: {
+  statValue: {
+    fontFamily: 'BebasNeue_400Regular',
     color: colors.text,
-    fontWeight: '700',
-    fontSize: 16,
+    fontSize: 22,
+  },
+  section: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.textMuted,
+    fontSize: 18,
+    letterSpacing: 1.5,
     marginTop: spacing.sm,
   },
   weekCard: { gap: spacing.sm },
-  weekTitle: { color: colors.text, fontWeight: '700' },
+  weekTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.text,
+    fontSize: 18,
+  },
   workoutCard: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -189,12 +217,13 @@ const styles = StyleSheet.create({
   thumb: {
     width: 72,
     height: 72,
-    borderRadius: radii.sm,
     backgroundColor: colors.surface,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
   },
   workoutTitle: {
+    ...typography.subtitle,
     color: colors.text,
-    fontWeight: '700',
     textTransform: 'capitalize',
   },
 });

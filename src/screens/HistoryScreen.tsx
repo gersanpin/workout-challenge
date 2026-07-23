@@ -19,18 +19,16 @@ function WeekRow({ week }: { week: WeeklySummary }) {
   return (
     <Card style={styles.weekCard}>
       <Text style={styles.weekTitle}>{formatWeekLabel(week.weekStart)}</Text>
+      <Muted>
+        Closes {week.weekCloseDate}
+        {week.isClosed ? ' · locked' : ' · open'}
+      </Muted>
       <View style={styles.grid}>
         <Stat label="Days" value={`${week.distinctWorkoutDays}/5`} />
-        <Stat label="Workouts" value={String(week.totalWorkouts)} />
         <Stat label="Missed" value={String(week.finalMissedDays)} />
         <Stat label="Owed" value={`$${week.moneyOwedMxn}`} accent={week.moneyOwedMxn > 0} />
+        <Stat label="Bank" value={String(week.bankedCreditsAfterWeek)} />
       </View>
-      <Muted>
-        {week.hasDoubleDay ? 'Double day · ' : ''}
-        {week.creditEarned ? `+${week.creditEarned} credit earned · ` : ''}
-        {week.creditsUsed ? `${week.creditsUsed} credit used · ` : ''}
-        Bank after: {week.bankedCreditsAfterWeek}
-      </Muted>
     </Card>
   );
 }
@@ -60,9 +58,7 @@ function WorkoutRow({ workout }: { workout: Workout }) {
       <Image source={{ uri: workout.photo_url }} style={styles.thumb} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.workoutTitle}>{workout.exercise_type}</Text>
-        <Muted>
-          {workout.workout_date} · {workout.duration_minutes} min
-        </Muted>
+        <Muted>{workout.workout_date}</Muted>
       </View>
     </Card>
   );
@@ -114,7 +110,7 @@ export function HistoryScreen() {
               <Text style={styles.totalsTitle}>Year to date</Text>
               <View style={styles.grid}>
                 <Stat
-                  label="Missed days"
+                  label="Missed"
                   value={String(myTotals?.totalMissedDays ?? 0)}
                 />
                 <Stat
@@ -132,18 +128,10 @@ export function HistoryScreen() {
 
             <Text style={styles.section}>Weekly breakdown</Text>
             <View style={{ gap: spacing.sm }}>
-              {weeksNewestFirst.length === 0 ? (
-                <EmptyState
-                  title="No weeks yet"
-                  body="Your weekly summaries will show up here."
-                />
-              ) : (
-                weeksNewestFirst.map((week) => (
-                  <WeekRow key={week.weekStart} week={week} />
-                ))
-              )}
+              {weeksNewestFirst.map((week) => (
+                <WeekRow key={week.weekStart} week={week} />
+              ))}
             </View>
-
             <Text style={styles.section}>All workouts</Text>
           </View>
         }
@@ -157,8 +145,8 @@ export function HistoryScreen() {
         ListEmptyComponent={
           <View style={{ paddingHorizontal: spacing.md }}>
             <EmptyState
-              title="No workouts logged"
-              body="Head to Log Workout and add your first session."
+              title="No workouts yet"
+              body="Log a session — your evidence photo shows up here."
             />
           </View>
         }
@@ -176,11 +164,7 @@ const styles = StyleSheet.create({
   },
   totals: { gap: spacing.sm },
   totalsTitle: { color: colors.text, fontWeight: '700', fontSize: 16 },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   stat: {
     width: '47%',
     backgroundColor: colors.surface,
@@ -188,11 +172,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     gap: 2,
   },
-  statValue: {
-    color: colors.accent,
-    fontWeight: '800',
-    fontSize: 18,
-  },
+  statValue: { color: colors.accent, fontWeight: '800', fontSize: 18 },
   section: {
     color: colors.text,
     fontWeight: '700',
@@ -207,8 +187,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   thumb: {
-    width: 64,
-    height: 64,
+    width: 72,
+    height: 72,
     borderRadius: radii.sm,
     backgroundColor: colors.surface,
   },

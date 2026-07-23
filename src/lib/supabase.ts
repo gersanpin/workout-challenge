@@ -59,16 +59,16 @@ export type Database = {
           user_id: string;
           workout_date: string;
           exercise_type: string;
-          duration_minutes: number;
           photo_url: string;
+          media_type: 'photo' | 'video';
           created_at: string;
         };
         Insert: {
           user_id: string;
           workout_date: string;
           exercise_type: string;
-          duration_minutes: number;
           photo_url: string;
+          media_type?: 'photo' | 'video';
         };
       };
     };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -8,6 +9,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { Button, Field, Screen } from '../components/ui';
+import { APP_NAME } from '../constants/challenge';
 import { colors, spacing, typography } from '../constants/theme';
 
 export function AuthScreen() {
@@ -41,9 +43,14 @@ export function AuthScreen() {
         style={styles.inner}
       >
         <View style={styles.hero}>
-          <Text style={styles.brand}>Squad Sweat</Text>
+          <Image
+            source={require('../../assets/fortachones-logo.png')}
+            style={styles.logo}
+          />
+          <Text style={styles.brand}>{APP_NAME}</Text>
           <Text style={styles.tagline}>
-            Log workouts. Bank extra days. Keep each other honest.
+            Log workouts. Bank extra days. Keep the pot honest — and the chat
+            spicy.
           </Text>
         </View>
 
@@ -51,9 +58,8 @@ export function AuthScreen() {
           <View style={styles.banner}>
             <Text style={styles.bannerTitle}>Supabase not configured</Text>
             <Text style={styles.bannerBody}>
-              Copy `.env.example` to `.env`, add your project URL and anon key,
-              then restart Expo. Run `supabase/schema.sql` in your project SQL
-              editor.
+              Copy `.env.example` → `.env`, add your URL and anon key, run
+              `supabase/schema.sql`, then restart Expo.
             </Text>
           </View>
         ) : null}
@@ -65,7 +71,7 @@ export function AuthScreen() {
               value={displayName}
               onChangeText={setDisplayName}
               autoCapitalize="words"
-              placeholder="Alex"
+              placeholder="Gerardo"
             />
           ) : null}
           <Field
@@ -83,9 +89,7 @@ export function AuthScreen() {
             secureTextEntry
             placeholder="••••••••"
           />
-
           {error ? <Text style={styles.error}>{error}</Text> : null}
-
           <Button
             label={mode === 'signin' ? 'Log in' : 'Create account'}
             onPress={() => void onSubmit()}
@@ -111,31 +115,20 @@ export function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    justifyContent: 'center',
-  },
-  inner: {
-    gap: spacing.xl,
-  },
-  hero: {
-    gap: spacing.sm,
-  },
-  brand: {
-    ...typography.brand,
-    color: colors.accent,
-  },
+  screen: { justifyContent: 'center' },
+  inner: { gap: spacing.xl },
+  hero: { alignItems: 'center', gap: spacing.sm },
+  logo: { width: 112, height: 112, borderRadius: 24 },
+  brand: { ...typography.brand, color: colors.accent },
   tagline: {
     ...typography.body,
     color: colors.textMuted,
+    textAlign: 'center',
     lineHeight: 22,
+    paddingHorizontal: spacing.md,
   },
-  form: {
-    gap: spacing.md,
-  },
-  error: {
-    color: colors.danger,
-    fontSize: 14,
-  },
+  form: { gap: spacing.md },
+  error: { color: colors.danger, fontSize: 14 },
   banner: {
     backgroundColor: colors.bgSoft,
     borderRadius: 12,
@@ -144,12 +137,6 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.xs,
   },
-  bannerTitle: {
-    color: colors.warning,
-    fontWeight: '700',
-  },
-  bannerBody: {
-    color: colors.textMuted,
-    lineHeight: 20,
-  },
+  bannerTitle: { color: colors.warning, fontWeight: '700' },
+  bannerBody: { color: colors.textMuted, lineHeight: 20 },
 });

@@ -1,4 +1,6 @@
-/** Date helpers for Monday–Sunday challenge weeks. All dates are local calendar dates as YYYY-MM-DD. */
+/** Date helpers for Monday–Sunday challenge weeks + grace-period lock. */
+
+import { WEEK_CLOSE_GRACE_DAYS } from '../constants/challenge';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -21,19 +23,25 @@ export function todayDateOnly(): string {
 /** Monday of the week containing `dateStr` (Mon–Sun weeks). */
 export function getWeekStart(dateStr: string): string {
   const date = parseDateOnly(dateStr);
-  const day = date.getDay(); // 0=Sun … 6=Sat
+  const day = date.getDay();
   const offsetToMonday = day === 0 ? -6 : 1 - day;
   const monday = new Date(date.getTime() + offsetToMonday * DAY_MS);
   return formatDateOnly(monday);
 }
 
 export function getWeekEnd(weekStart: string): string {
-  const monday = parseDateOnly(weekStart);
-  const sunday = new Date(monday.getTime() + 6 * DAY_MS);
-  return formatDateOnly(sunday);
+  return addDays(weekStart, 6);
 }
 
-/** Inclusive list of Monday week-starts from yearStart through the week of `throughDate`. */
+/** Week locks at end of this date (Sunday + grace days). */
+export function getWeekCloseDate(weekStart: string): string {
+  return addDays(getWeekEnd(weekStart), WEEK_CLOSE_GRACE_DAYS);
+}
+
+export function isWeekClosed(weekStart: string, asOfDate: string): boolean {
+  return getWeekCloseDate(weekStart) < asOfDate;
+}
+
 export function listWeekStartsInRange(
   fromDate: string,
   throughDate: string,
@@ -44,8 +52,7 @@ export function listWeekStartsInRange(
 
   while (cursor <= last) {
     weeks.push(cursor);
-    const next = new Date(parseDateOnly(cursor).getTime() + 7 * DAY_MS);
-    cursor = formatDateOnly(next);
+    cursor = addDays(cursor, 7);
   }
 
   return weeks;
@@ -65,4 +72,30 @@ export function formatWeekLabel(weekStart: string): string {
   const end = parseDateOnly(getWeekEnd(weekStart));
   const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
   return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}`;
+}
+
+/**
+ * Dates the user may pick when logging:
+ * today back through `lookbackDays`, excluding any date whose week is already closed.
+ */
+export function getAllowedLogDates(
+  today: string,
+  lookbackDays: number,
+): { minDate: string; maxDate: string; isAllowed: (date: string) => boolean } {
+  const maxDate = today;
+  const rawMin = addDays(today, -lookbackDays);
+
+  const isAllowed = (date: string) => {
+    if (date > maxDate || date < rawMin) return false;
+    return !isWeekClosed(getWeekStart(date), today);
+  };
+
+  // Find earliest allowed day in the window for the picker minimum.
+  let minDate = maxDate;
+  for (let i = 0; i <= lookbackDays; i++) {
+    const candidate = addDays(today, -i);
+    if (isAllowed(candidate)) minDate = candidate;
+  }
+
+  return { minDate, maxDate, isAllowed };
 }

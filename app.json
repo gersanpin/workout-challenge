@@ -1,32 +1,33 @@
 {
   "expo": {
-    "name": "Squad Sweat",
-    "slug": "squad-sweat",
+    "name": "Fortachones",
+    "slug": "fortachones",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
+    "scheme": "fortachones",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0F1A14"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.squadsweat.app",
+      "bundleIdentifier": "com.fortachones.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Squad Sweat needs the camera to capture workout evidence photos.",
-        "NSPhotoLibraryUsageDescription": "Squad Sweat needs photo library access to attach workout evidence."
+        "NSCameraUsageDescription": "Fortachones needs the camera to capture workout evidence photos.",
+        "NSPhotoLibraryUsageDescription": "Fortachones needs photo library access to attach workout evidence."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0F1A14",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.squadsweat.app",
+      "package": "com.fortachones.app",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES"
@@ -37,11 +38,12 @@
     },
     "plugins": [
       "expo-secure-store",
+      "@react-native-community/datetimepicker",
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Squad Sweat to access your photos for workout evidence.",
-          "cameraPermission": "Allow Squad Sweat to use the camera for workout evidence.",
+          "photosPermission": "Allow Fortachones to access your photos for workout evidence.",
+          "cameraPermission": "Allow Fortachones to use the camera for workout evidence.",
           "microphonePermission": false
         }
       ]

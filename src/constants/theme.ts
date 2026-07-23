@@ -1,18 +1,26 @@
+/**
+ * Fortachones — minimal clean theme
+ * Light surface, spinach green accent, navy text. No purple/glow clutter.
+ */
 export const colors = {
-  bg: '#0F1A14',
-  bgElevated: '#17241C',
-  bgSoft: '#1E3026',
-  surface: '#243A2E',
-  border: '#2F4A3A',
-  text: '#F2F7F3',
-  textMuted: '#A3B8AB',
-  textDim: '#6F8A7A',
-  accent: '#C8F135',
-  accentDark: '#9BC40F',
-  danger: '#FF6B5A',
-  warning: '#F5C542',
+  bg: '#F7F6F2',
+  bgElevated: '#FFFFFF',
+  bgSoft: '#EEF3EC',
+  surface: '#F0F2ED',
+  border: '#D8DFD4',
+  text: '#1A2420',
+  textMuted: '#5C6B63',
+  textDim: '#8A968E',
+  accent: '#2F7D4A',
+  accentSoft: '#D7EBDD',
+  accentDark: '#1F5A34',
+  danger: '#C23B2E',
+  warning: '#C48A12',
+  navy: '#1E3A5F',
   white: '#FFFFFF',
-  overlay: 'rgba(15, 26, 20, 0.72)',
+  overlay: 'rgba(26, 36, 32, 0.45)',
+  chatBubbleMe: '#D7EBDD',
+  chatBubbleThem: '#FFFFFF',
 };
 
 export const spacing = {
@@ -27,15 +35,15 @@ export const spacing = {
 export const radii = {
   sm: 8,
   md: 12,
-  lg: 18,
+  lg: 16,
   pill: 999,
 };
 
 export const typography = {
   brand: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800' as const,
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
   title: {
     fontSize: 22,

@@ -45,7 +45,7 @@ export function ChatScreen() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
-  const [gifQuery, setGifQuery] = useState('workout');
+  const [gifQuery, setGifQuery] = useState('entrenamiento');
   const [gifs, setGifs] = useState<GifResult[]>([]);
   const [showGroup, setShowGroup] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
@@ -154,7 +154,7 @@ export function ChatScreen() {
         <Title>CHAT</Title>
         <Card style={{ gap: spacing.md, marginTop: spacing.md }}>
           <Muted>
-            Crea o únete a un grupo para el feed/chat unificado (logs + mensajes).
+            Crea o únete a un grupo para el feed/chat unificado (registros + mensajes).
           </Muted>
           <Button
             label="Crear grupo (admin)"
@@ -227,7 +227,7 @@ export function ChatScreen() {
           <View style={{ padding: spacing.md }}>
             <EmptyState
               title="Sin mensajes"
-              body="Manda texto libre o loguea un workout — aparece aquí con foto."
+              body="Manda texto libre o registra un entrenamiento — aparece aquí con foto."
             />
           </View>
         }
@@ -352,7 +352,7 @@ export function ChatScreen() {
                       if (!user) return;
                       Alert.alert(
                         '¿Quitar?',
-                        `${e.profile.display_name} saldrá del pot.`,
+                        `${e.profile.display_name} saldrá del pozo.`,
                         [
                           { text: 'Cancelar', style: 'cancel' },
                           {
@@ -379,7 +379,7 @@ export function ChatScreen() {
             {profile.is_admin ? (
               <>
                 <Field
-                  label="Invitar / pending"
+                  label="Invitar / pendiente"
                   value={ghostName}
                   onChangeText={setGhostName}
                   placeholder="Apodo"

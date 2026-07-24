@@ -22,7 +22,7 @@ export function WeeklyPlanCalendar({ plan }: { plan: WeeklyPlanContent }) {
                 {d.short}
               </Text>
               <Text style={[styles.dayMin, on && styles.dayShortOn]}>
-                {d.workout.isRest ? 'REST' : `${d.workout.durationMinutes}m`}
+                {d.workout.isRest ? 'DESCANSO' : `${d.workout.durationMinutes}m`}
               </Text>
             </Pressable>
           );
@@ -52,7 +52,7 @@ export function WeeklyPlanCalendar({ plan }: { plan: WeeklyPlanContent }) {
           <Text style={styles.line}>Comida: {selected.meals.lunch}</Text>
           <Text style={styles.line}>Cena: {selected.meals.dinner}</Text>
           {selected.meals.snack ? (
-            <Text style={styles.line}>Snack: {selected.meals.snack}</Text>
+            <Text style={styles.line}>Colación: {selected.meals.snack}</Text>
           ) : null}
         </View>
       ) : (

@@ -49,7 +49,7 @@ export function LogWorkoutScreen() {
       const uri = await pickWorkoutPhoto(source);
       if (uri) setPhotoUri(uri);
     } catch (e) {
-      Alert.alert('Permission needed', (e as Error).message);
+      Alert.alert('Se necesita permiso', (e as Error).message);
     }
   };
 
@@ -72,15 +72,15 @@ export function LogWorkoutScreen() {
         exerciseType: type,
         workoutDate,
         localPhotoUri: photoUri,
-        displayName: profile?.display_name ?? 'Athlete',
+        displayName: profile?.display_name ?? 'Atleta',
       });
       setPhotoUri(null);
       await refresh();
       Alert.alert(
-        '¡Logged!',
+        '¡Registrado!',
         dayCount + 1 >= 2
-          ? 'Segundo workout del día — double day.'
-          : 'Workout guardado.',
+          ? 'Segundo entrenamiento del día — día doble.'
+          : 'Entrenamiento guardado.',
       );
     } catch (e) {
       Alert.alert('Error', (e as Error).message);
@@ -95,14 +95,14 @@ export function LogWorkoutScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Title>LOG</Title>
+        <Title>REGISTRAR</Title>
         <View style={styles.status}>
           <WeightPlateStack
             daysDone={myDaysDone}
             maxDays={REQUIRED_WORKOUT_DAYS}
           />
           <Muted>
-            {myDaysRemaining} restantes · logs en {workoutDate}: {dayCount}
+            {myDaysRemaining} restantes · registros en {workoutDate}: {dayCount}
           </Muted>
         </View>
 
@@ -128,7 +128,7 @@ export function LogWorkoutScreen() {
 
         {exerciseType === 'other' ? (
           <Field
-            label="Tipo custom"
+            label="Tipo personalizado"
             value={customType}
             onChangeText={setCustomType}
             placeholder="Otro…"
@@ -181,7 +181,7 @@ export function LogWorkoutScreen() {
         </View>
 
         <Button
-          label="GUARDAR WORKOUT"
+          label="GUARDAR ENTRENAMIENTO"
           onPress={() => void onSubmit()}
           loading={loading}
         />

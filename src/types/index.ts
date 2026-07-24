@@ -170,7 +170,7 @@ export interface LeaderboardEntry {
 }
 
 export const EXERCISE_TYPES: { value: ExerciseType; label: string }[] = [
-  { value: 'gym', label: 'Gym' },
+  { value: 'gym', label: 'Gimnasio' },
   { value: 'home', label: 'Ejercicio en casa' },
   { value: 'sports', label: 'Deporte' },
   { value: 'running', label: 'Salir a correr' },

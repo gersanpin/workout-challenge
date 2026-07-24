@@ -15,8 +15,8 @@ export async function pickWorkoutPhoto(
   if (!permission.granted) {
     throw new Error(
       source === 'camera'
-        ? 'Camera permission is required.'
-        : 'Photo library permission is required.',
+        ? 'Se necesita permiso de cámara.'
+        : 'Se necesita permiso de galería.',
     );
   }
 
@@ -70,10 +70,10 @@ export function assertLogDateAllowed(workoutDate: string, today = todayDateOnly(
   const { isAllowed } = getAllowedLogDates(today, LOG_LOOKBACK_DAYS);
   if (!isAllowed(workoutDate)) {
     if (isWeekClosed(getWeekStart(workoutDate), today)) {
-      throw new Error('That week is already closed — records are locked.');
+      throw new Error('Esa semana ya cerró — los registros están bloqueados.');
     }
     throw new Error(
-      `Pick today or up to ${LOG_LOOKBACK_DAYS} days back (still-open weeks only).`,
+      `Elige hoy o hasta ${LOG_LOOKBACK_DAYS} días atrás (solo semanas abiertas).`,
     );
   }
 }
@@ -101,8 +101,8 @@ export async function logWorkout(input: LogWorkoutInput): Promise<string> {
       group_id: input.groupId,
       user_id: input.userId,
       event_type: 'workout',
-      title: `${input.displayName} logged ${input.exerciseType}`,
-      body: `Evidence from ${input.workoutDate}`,
+      title: `${input.displayName} registró ${input.exerciseType}`,
+      body: `Evidencia del ${input.workoutDate}`,
       workout_id: data.id,
     });
 

@@ -3,9 +3,8 @@ import type { LeaderboardEntry } from '../types';
 import { supabase } from './supabase';
 
 /**
- * Post feed notifications when a member finishes the week, banks a credit,
- * or locks in missed days after the grace close. Idempotent enough for client use
- * (title-matched within recent events).
+ * Publica avisos en el feed cuando alguien completa la semana, banca un crédito
+ * o cierra días fallados. Idempotente por título reciente.
  */
 export async function publishWeekActivityShouts(opts: {
   groupId: string;
@@ -28,42 +27,42 @@ export async function publishWeekActivityShouts(opts: {
     const name = entry.profile.display_name;
 
     if (week.distinctWorkoutDays >= REQUIRED_WORKOUT_DAYS) {
-      const title = `${name} hit ${REQUIRED_WORKOUT_DAYS}/${REQUIRED_WORKOUT_DAYS} this week`;
+      const title = `${name} llegó a ${REQUIRED_WORKOUT_DAYS}/${REQUIRED_WORKOUT_DAYS} esta semana`;
       if (!existing.has(title)) {
         await supabase.from('activity_events').insert({
           group_id: groupId,
           user_id: entry.profile.id,
           event_type: 'week_complete',
           title,
-          body: week.hasDoubleDay ? 'Double day in the mix 💪' : null,
+          body: week.hasDoubleDay ? '¡Día doble en la mezcla! 💪' : null,
         });
         existing.add(title);
       }
     }
 
     if (week.creditEarned > 0) {
-      const title = `${name} banked an extra-day credit`;
+      const title = `${name} acumuló un crédito de día extra`;
       if (!existing.has(title)) {
         await supabase.from('activity_events').insert({
           group_id: groupId,
           user_id: entry.profile.id,
           event_type: 'credit_banked',
           title,
-          body: `Week of ${week.weekStart}`,
+          body: `Semana del ${week.weekStart}`,
         });
         existing.add(title);
       }
     }
 
     if (week.isClosed && week.finalMissedDays > 0) {
-      const title = `${name} locked ${week.finalMissedDays} missed day(s) · $${week.moneyOwedMxn} MXN`;
+      const title = `${name} cerró ${week.finalMissedDays} día(s) fallado(s) · $${week.moneyOwedMxn} MXN`;
       if (!existing.has(title)) {
         await supabase.from('activity_events').insert({
           group_id: groupId,
           user_id: entry.profile.id,
           event_type: 'week_missed',
           title,
-          body: `Week closed ${week.weekCloseDate}`,
+          body: `Semana cerrada el ${week.weekCloseDate}`,
         });
         existing.add(title);
       }

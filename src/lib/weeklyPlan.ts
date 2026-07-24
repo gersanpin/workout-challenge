@@ -74,7 +74,7 @@ function buildWorkouts(
 ): DayWorkoutPlan[] {
   if (goal === 'lose_weight') {
     return [
-      w('Full body fuerza', 50, [
+      w('Cuerpo completo fuerza', 50, [
         { name: 'Sentadilla', detail: '4×8' },
         { name: 'Press banca o push-ups', detail: '4×8–12' },
         { name: 'Remo', detail: '4×10' },
@@ -83,22 +83,22 @@ function buildWorkouts(
       w('Cardio zona 2', 40, [
         { name: 'Correr / bici / remo suave', detail: '40 min conversacional' },
       ]),
-      w('Upper + core', 45, [
+      w('Tren superior + core', 45, [
         { name: 'Press hombro', detail: '3×10' },
         { name: 'Dominadas o jalón', detail: '3×8' },
         { name: 'Face pulls', detail: '3×15' },
         { name: 'Dead bug', detail: '3×10/lado' },
       ]),
       w('Intervalos o deporte', 30, [
-        { name: 'Intervals 30/90', detail: '20–25 min' },
-        { name: 'Cool-down caminata', detail: '5 min' },
+        { name: 'Intervalos 30/90', detail: '20–25 min' },
+        { name: 'Enfriamiento caminata', detail: '5 min' },
       ]),
-      w('Lower + walk', 45, [
+      w('Tren inferior + caminata', 45, [
         { name: 'Peso muerto rumano', detail: '3×10' },
         { name: 'Zancadas', detail: '3×10/pierna' },
         { name: 'Caminata', detail: '20 min' },
       ]),
-      w('Double day opcional', 35, [
+      w('Día doble opcional', 35, [
         { name: 'AM: movilidad', detail: '15 min' },
         { name: 'PM: deporte o cardio corto', detail: '20 min' },
       ]),
@@ -126,13 +126,13 @@ function buildWorkouts(
       w('Cardio suave', 25, [
         { name: 'Caminata o bici fácil', detail: '25 min' },
       ]),
-      w('Full body hipertrofia', 55, [
+      w('Cuerpo completo hipertrofia', 55, [
         { name: 'Hack / goblet squat', detail: '3×10' },
         { name: 'Press inclinado', detail: '3×10' },
         { name: 'Remo mancuerna', detail: '3×12' },
         { name: 'Elevaciones laterales', detail: '3×15' },
       ]),
-      w('Double day opcional', 40, [
+      w('Día doble opcional', 40, [
         { name: 'AM: brazos/core', detail: '20 min' },
         { name: 'PM: caminata', detail: '20 min' },
       ]),
@@ -143,7 +143,7 @@ function buildWorkouts(
   if (goal === 'improve_exercise') {
     return [
       w(`Técnica ${exercise}`, 50, [
-        { name: `Drills de ${exercise}`, detail: '25 min' },
+        { name: `Ejercicios técnicos de ${exercise}`, detail: '25 min' },
         { name: 'Volumen fácil', detail: '20 min' },
       ]),
       w('Fuerza de soporte', 45, [
@@ -163,7 +163,7 @@ function buildWorkouts(
         { name: `Bloque principal ${exercise}`, detail: '30 min' },
         { name: 'Antagonistas', detail: '15 min' },
       ]),
-      w('Double day corto', 35, [
+      w('Día doble corto', 35, [
         { name: 'Técnica ligera', detail: '20 min' },
         { name: 'Movilidad', detail: '15 min' },
       ]),
@@ -172,12 +172,12 @@ function buildWorkouts(
   }
 
   return [
-    w('Entrenamiento 1', 45, [{ name: 'Full body' }]),
+    w('Entrenamiento 1', 45, [{ name: 'Cuerpo completo' }]),
     w('Entrenamiento 2', 40, [{ name: 'Cardio' }]),
     w('Entrenamiento 3', 45, [{ name: 'Fuerza' }]),
     w('Entrenamiento 4', 40, [{ name: 'Deporte / intervalos' }]),
-    w('Entrenamiento 5', 45, [{ name: 'Full body' }]),
-    w('Opcional', 30, [{ name: 'Double day corto' }]),
+    w('Entrenamiento 5', 45, [{ name: 'Cuerpo completo' }]),
+    w('Opcional', 30, [{ name: 'Día doble corto' }]),
     rest(),
   ];
 }
@@ -445,7 +445,7 @@ export function formatPlanForDisplay(plan: WeeklyPlanContent): string {
         `  Desayuno: ${d.meals.breakfast}`,
         `  Comida: ${d.meals.lunch}`,
         `  Cena: ${d.meals.dinner}`,
-        d.meals.snack ? `  Snack: ${d.meals.snack}` : '',
+        d.meals.snack ? `  Colación: ${d.meals.snack}` : '',
       ]
         .filter(Boolean)
         .join('\n');

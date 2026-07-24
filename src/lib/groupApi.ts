@@ -41,7 +41,7 @@ export async function joinGroupWithCode(userId: string, code: string) {
     .eq('invite_code', normalized)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!group) throw new Error('Invalid invite code.');
+  if (!group) throw new Error('Código de invitación inválido.');
 
   const { error: profileErr } = await supabase
     .from('profiles')
@@ -58,8 +58,8 @@ export async function removeMember(adminId: string, memberId: string) {
     .select('is_admin, group_id')
     .eq('id', adminId)
     .single();
-  if (!admin?.is_admin) throw new Error('Only admins can remove members.');
-  if (adminId === memberId) throw new Error('Admins cannot remove themselves.');
+  if (!admin?.is_admin) throw new Error('Solo admins pueden quitar miembros.');
+  if (adminId === memberId) throw new Error('Los admins no pueden quitarse a sí mismos.');
 
   const { error } = await supabase
     .from('profiles')
@@ -79,15 +79,15 @@ export async function addGhostMember(
     .eq('id', adminId)
     .single();
   if (!admin?.is_admin || !admin.group_id) {
-    throw new Error('Only admins can manage the group.');
+    throw new Error('Solo admins pueden administrar el grupo.');
   }
 
   await supabase.from('activity_events').insert({
     group_id: admin.group_id,
     user_id: adminId,
     event_type: 'system',
-    title: `Invite pending: ${displayName}`,
-    body: `${admin.display_name} wants to add “${displayName}”. Share the invite code so they can join with a real account.`,
+    title: `Invitación pendiente: ${displayName}`,
+    body: `${admin.display_name} quiere agregar a “${displayName}”. Comparte el código de invitación para que se una con una cuenta real.`,
   });
 }
 

@@ -101,7 +101,7 @@ export function useChallengeData() {
         profilesRes.error?.message ||
           workoutsRes.error?.message ||
           feedRes.error?.message ||
-          'Failed to load',
+          'Error al cargar',
       );
       setLoading(false);
       return;

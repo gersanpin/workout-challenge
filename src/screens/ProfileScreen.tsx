@@ -432,7 +432,7 @@ export function ProfileScreen() {
 
             <Card style={styles.card}>
               <View style={styles.rowBetween}>
-                <Text style={styles.heading}>ENTRENADOR</Text>
+                <Text style={styles.heading}>DON FORTACHÓN</Text>
                 <Pressable onPress={() => setCoachExpanded((e) => !e)}>
                   <Text style={styles.editLink}>
                     {coachExpanded ? 'MINIMIZAR' : 'EXPANDIR'}
@@ -440,8 +440,8 @@ export function ProfileScreen() {
                 </Pressable>
               </View>
               <Muted>
-                Pide cambios al plan: “cambia la cena del martes” o “tengo pollo
-                y arroz, ¿qué preparo?”
+                Pídele a Don Fortachón cambios al plan: “cambia la cena del
+                martes” o “tengo pollo y arroz, ¿qué preparo?”
               </Muted>
 
               {!coachExpanded ? (
@@ -449,11 +449,11 @@ export function ProfileScreen() {
                   <Text style={styles.collapsedHint}>
                     {coachThread.length
                       ? `${coachThread.length} mensajes · expandir para ver historial`
-                      : 'Chat minimizado — escribe abajo sin expandir'}
+                      : 'Chat minimizado — escríbele a Don Fortachón abajo'}
                   </Text>
                   <TextInput
                     style={styles.coachInput}
-                    placeholder="Mensaje rápido al entrenador…"
+                    placeholder="Mensaje rápido a Don Fortachón…"
                     placeholderTextColor={colors.textDim}
                     value={coachInput}
                     onChangeText={setCoachInput}
@@ -476,6 +476,9 @@ export function ProfileScreen() {
                         m.role === 'user' ? styles.coachUser : styles.coachAi,
                       ]}
                     >
+                      {m.role === 'assistant' ? (
+                        <Text style={styles.coachName}>DON FORTACHÓN</Text>
+                      ) : null}
                       <Text style={styles.coachText}>{m.body}</Text>
                     </View>
                   ))}
@@ -488,7 +491,7 @@ export function ProfileScreen() {
                     multiline
                   />
                   <Button
-                    label="ENVIAR AL ENTRENADOR"
+                    label="ENVIAR A DON FORTACHÓN"
                     onPress={() => void onAskCoach()}
                     loading={coachBusy}
                     disabled={!plan}
@@ -580,6 +583,12 @@ const styles = StyleSheet.create({
   },
   coachUser: { backgroundColor: colors.accentSoft, alignSelf: 'flex-end' },
   coachAi: { backgroundColor: colors.bg, alignSelf: 'flex-start' },
+  coachName: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.accent,
+    fontSize: 12,
+    letterSpacing: 1,
+  },
   coachText: { ...typography.body, color: colors.text, lineHeight: 20 },
   coachInput: {
     borderWidth: borderWidth.thick,

@@ -61,9 +61,9 @@ async function askOpenAI(
 
 function buildSystemPrompt(profile: Profile): string {
   return [
-    'Eres el Entrenador Fortachones — experto práctico en deporte y nutrición para un reto de entrenamiento entre amigos.',
-    'Sé conciso, amigable y específico. Prefiere planes semanales y comidas simples de supermercado.',
-    'Responde siempre en español (México).',
+    'Eres Don Fortachón — el entrenador de Fortachones: experto práctico en deporte y nutrición para un reto entre amigos.',
+    'Habla con garra de gym/lucha libre, pero sé conciso, útil y específico. Prefiere planes semanales y comidas simples de supermercado.',
+    'Fírmate mentalmente como Don Fortachón. Responde siempre en español (México).',
     `Atleta: ${profile.display_name}`,
     profile.height_m ? `Altura: ${profile.height_m} m` : '',
     profile.weight_kg ? `Peso: ${profile.weight_kg} kg` : '',
@@ -110,7 +110,7 @@ function localCoachReply(profile: Profile, userMessage: string): string {
   }
 
   return [
-    `¡Hola ${profile.display_name}! Puedo armarte una rutina semanal, un plan de 4 semanas o una dieta sencilla.`,
+    `¡Órale ${profile.display_name}! Soy Don Fortachón. Te armo rutina semanal, plan de 4 semanas o dieta sencilla.`,
     '',
     'Prueba preguntar:',
     '• “Dame los entrenamientos de esta semana”',

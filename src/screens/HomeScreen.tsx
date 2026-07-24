@@ -19,7 +19,8 @@ import {
 } from '../components/ui';
 import { WeightPlateStack } from '../components/WeightPlateStack';
 import { APP_NAME, REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
-import { borderWidth, colors, spacing } from '../constants/theme';
+import { borderWidth, colors, spacing, typography } from '../constants/theme';
+import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
 import { parseDateOnly, todayDateOnly } from '../lib/dates';
 
@@ -30,13 +31,16 @@ function daysBetween(from: string, to: string): number {
 }
 
 export function HomeScreen() {
+  const { user } = useAuth();
   const {
     group,
     groupPot,
     myDaysDone,
     myEntry,
+    myWeek,
     myWorkouts,
     myTotals,
+    leaderboard,
     challengeStartedOn,
     challengeHasStarted,
     loading,
@@ -56,7 +60,11 @@ export function HomeScreen() {
   }, [challengeStartedOn]);
 
   const totalWorkoutDays = useMemo(() => {
-    const set = new Set(myWorkouts.map((w) => w.workout_date));
+    const set = new Set(
+      myWorkouts
+        .filter((w) => w.photo_url?.trim())
+        .map((w) => w.workout_date),
+    );
     return set.size;
   }, [myWorkouts]);
 
@@ -95,19 +103,22 @@ export function HomeScreen() {
                 : require('../../assets/fortachones-logo.png')
             }
             style={styles.photo}
+            resizeMode="cover"
           />
           <Text style={styles.groupName}>
             {(group?.name ?? APP_NAME).toUpperCase()}
           </Text>
-          {challengeHasStarted ? (
-            <Muted>
-              Inicio: {challengeStartedOn} · Pozo: ${groupPot} MXN
-            </Muted>
-          ) : (
-            <Text style={styles.pending}>
-              RETO NO INICIADO — el admin debe tocar COMENZAR RETO en Chat
-            </Text>
-          )}
+          <View style={styles.heroMeta}>
+            {challengeHasStarted ? (
+              <Muted>
+                Inicio: {challengeStartedOn} · Pozo: ${groupPot} MXN
+              </Muted>
+            ) : (
+              <Text style={styles.pending}>
+                RETO NO INICIADO — el admin debe tocar COMENZAR RETO en Chat
+              </Text>
+            )}
+          </View>
         </View>
 
         <Card style={styles.weekCard}>
@@ -116,6 +127,32 @@ export function HomeScreen() {
             daysDone={challengeHasStarted ? myDaysDone : 0}
             maxDays={REQUIRED_WORKOUT_DAYS}
           />
+          {challengeHasStarted && myWeek ? (
+            <View style={styles.weekMeta}>
+              <Text
+                style={[
+                  styles.weekFlag,
+                  myWeek.hasDoubleDay ? styles.weekFlagOn : styles.weekFlagOff,
+                ]}
+              >
+                {myWeek.hasDoubleDay
+                  ? `DÍA DOBLE · ${myWeek.totalWorkouts} entrenos`
+                  : `Sin día doble · ${myWeek.totalWorkouts} entrenos`}
+              </Text>
+              <Text
+                style={[
+                  styles.weekFlag,
+                  myWeek.creditEarned > 0
+                    ? styles.weekFlagOn
+                    : styles.weekFlagOff,
+                ]}
+              >
+                {myWeek.creditEarned > 0
+                  ? `+${myWeek.creditEarned} crédito bancado`
+                  : 'Crédito: pendiente (5 días + doble + 6 entrenos)'}
+              </Text>
+            </View>
+          ) : null}
         </Card>
 
         <View style={styles.statsGrid}>
@@ -135,11 +172,55 @@ export function HomeScreen() {
             color={failedDays > 0 ? colors.danger : colors.accent}
           />
           <Stat
-            label="Días acumulados"
+            label="Créditos bancados"
             value={String(banked)}
             color={colors.accent}
           />
         </View>
+
+        <Card style={styles.leaderCard}>
+          <Text style={styles.label}>LEADERBOARD</Text>
+          <Text style={styles.potLine}>
+            Pozo del grupo: ${groupPot} MXN
+          </Text>
+          <Muted>Quién debe cuánto · ranking por días de ejercicio desde el inicio</Muted>
+
+          {leaderboard.length === 0 ? (
+            <Muted>Sin integrantes aún.</Muted>
+          ) : (
+            leaderboard.map((e, idx) => {
+              const mine = e.profile.id === user?.id;
+              return (
+                <View
+                  key={e.profile.id}
+                  style={[styles.lbRow, mine && styles.lbRowMine]}
+                >
+                  <Text style={styles.lbRank}>#{idx + 1}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.lbName}>
+                      {e.profile.display_name}
+                      {mine ? ' · TÚ' : ''}
+                    </Text>
+                    <Text style={styles.lbMeta}>
+                      {e.totalWorkoutDays} días ejercicio · {e.bankedCredits}{' '}
+                      créditos · {e.totalMissedDays} fallados
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.lbOwes,
+                      e.totalMoneyOwedMxn > 0
+                        ? styles.lbOwesBad
+                        : styles.lbOwesOk,
+                    ]}
+                  >
+                    ${e.totalMoneyOwedMxn}
+                  </Text>
+                </View>
+              );
+            })
+          )}
+        </Card>
       </ScrollView>
     </Screen>
   );
@@ -169,21 +250,25 @@ const styles = StyleSheet.create({
     borderWidth: borderWidth.thick,
     borderColor: colors.border,
     backgroundColor: colors.bgElevated,
-    alignItems: 'center',
-    padding: spacing.md,
-    gap: spacing.sm,
+    overflow: 'hidden',
   },
   photo: {
     width: '100%',
-    height: 180,
+    height: 200,
     backgroundColor: colors.white,
-    resizeMode: 'contain',
   },
   groupName: {
     fontFamily: 'BebasNeue_400Regular',
     fontSize: 28,
     letterSpacing: 1,
     color: colors.text,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  heroMeta: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    paddingTop: spacing.xs,
   },
   pending: {
     fontFamily: 'BebasNeue_400Regular',
@@ -193,6 +278,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   weekCard: { gap: spacing.sm },
+  weekMeta: { gap: 4 },
+  weekFlag: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
+  weekFlagOn: { color: colors.dayDoubleBorder },
+  weekFlagOff: { color: colors.textMuted },
   label: {
     fontFamily: 'BebasNeue_400Regular',
     fontSize: 16,
@@ -209,5 +302,47 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 4,
   },
+  leaderCard: { gap: spacing.sm },
+  potLine: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 28,
+    color: colors.text,
+    letterSpacing: 1,
+  },
+  lbRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderMuted,
+    paddingVertical: spacing.sm,
+  },
+  lbRowMine: {
+    backgroundColor: colors.accentSoft,
+    marginHorizontal: -spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  lbRank: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.accent,
+    fontSize: 22,
+    width: 36,
+  },
+  lbName: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.text,
+    fontSize: 18,
+    letterSpacing: 0.5,
+  },
+  lbMeta: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  lbOwes: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+  },
+  lbOwesBad: { color: colors.danger },
+  lbOwesOk: { color: colors.accent },
   error: { color: colors.danger, fontFamily: 'Inter_400Regular' },
 });

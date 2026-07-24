@@ -78,7 +78,9 @@ export function useChallengeData() {
       supabase
         .from('workouts')
         .select('*')
-        .gte('workout_date', startDate ?? '2099-01-01')
+        // Always load recent rows for log/day-count UX. Scoring still scopes via
+        // challengeStartedOn in calculateLeaderboard.
+        .gte('workout_date', startDate ?? `${year}-01-01`)
         .lte('workout_date', throughDate)
         .order('workout_date', { ascending: true }),
       supabase
@@ -147,12 +149,19 @@ export function useChallengeData() {
       );
       const board = activeProfiles.map((p) => {
         const t = totals.get(p.id);
+        const userWs = scopedWorkouts.filter((w) => w.user_id === p.id);
+        const daySet = new Set(
+          userWs
+            .filter((w) => w.photo_url && w.photo_url.trim())
+            .map((w) => w.workout_date),
+        );
         return {
           profile: p,
           currentWeek: t?.weeks[t.weeks.length - 1] ?? null,
           bankedCredits: t?.bankedCredits ?? 0,
           totalMissedDays: t?.totalMissedDays ?? 0,
           totalMoneyOwedMxn: t?.totalMoneyOwedMxn ?? 0,
+          totalWorkoutDays: daySet.size,
         };
       });
       void publishWeekActivityShouts({
@@ -176,6 +185,7 @@ export function useChallengeData() {
         bankedCredits: 0,
         totalMissedDays: 0,
         totalMoneyOwedMxn: 0,
+        totalWorkoutDays: 0,
       }));
     }
     const totals = calculateLeaderboard(
@@ -189,15 +199,32 @@ export function useChallengeData() {
       .map((p) => {
         const t = totals.get(p.id);
         const currentWeek = t?.weeks[t.weeks.length - 1] ?? null;
+        const daySet = new Set(
+          workouts
+            .filter(
+              (w) =>
+                w.user_id === p.id &&
+                w.photo_url &&
+                w.photo_url.trim() &&
+                w.workout_date >= challengeStartedOn,
+            )
+            .map((w) => w.workout_date),
+        );
         return {
           profile: p,
           currentWeek,
           bankedCredits: t?.bankedCredits ?? 0,
           totalMissedDays: t?.totalMissedDays ?? 0,
           totalMoneyOwedMxn: t?.totalMoneyOwedMxn ?? 0,
+          totalWorkoutDays: daySet.size,
         };
       })
-      .sort((a, b) => a.totalMissedDays - b.totalMissedDays);
+      .sort((a, b) => {
+        if (b.totalWorkoutDays !== a.totalWorkoutDays) {
+          return b.totalWorkoutDays - a.totalWorkoutDays;
+        }
+        return a.totalMissedDays - b.totalMissedDays;
+      });
   }, [profiles, workouts, year, throughDate, challengeStartedOn]);
 
   const groupPot = useMemo(

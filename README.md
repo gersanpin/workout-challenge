@@ -17,3 +17,5 @@ Black `#0B0D0C` / cards `#17191A` / green `#2FA84F` / red `#C81E3A` / bone `#F2F
 1. Run `supabase/schema.sql`
 2. `.env` from `.env.example`
 3. `npm install && npm start` · `npm test`
+
+Pinned to **Expo SDK 54** (Expo Go App Store compatibility). Do not upgrade the SDK unless explicitly requested — see `AGENTS.md`.

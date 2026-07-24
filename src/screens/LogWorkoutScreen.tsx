@@ -21,7 +21,7 @@ import { EXERCISE_TYPES } from '../types';
 
 export function LogWorkoutScreen() {
   const { user, profile } = useAuth();
-  const { myWorkouts, myDaysDone, myDaysRemaining, refresh } =
+  const { myWorkouts, myDaysDone, myDaysRemaining, myWeek, refresh } =
     useChallengeData();
 
   const today = todayDateOnly();
@@ -39,10 +39,16 @@ export function LogWorkoutScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const dayCount = useMemo(
-    () => myWorkouts.filter((w) => w.workout_date === workoutDate).length,
-    [myWorkouts, workoutDate],
-  );
+  const workoutCountsByDate = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const w of myWorkouts) {
+      if (!w.photo_url?.trim()) continue;
+      map[w.workout_date] = (map[w.workout_date] ?? 0) + 1;
+    }
+    return map;
+  }, [myWorkouts]);
+
+  const dayCount = workoutCountsByDate[workoutDate] ?? 0;
 
   const onPick = async (source: 'camera' | 'library') => {
     try {
@@ -76,10 +82,32 @@ export function LogWorkoutScreen() {
       });
       setPhotoUri(null);
       await refresh();
+      const nextCount = dayCount + 1;
+      const willBeDouble = nextCount >= 2;
+      const weekWillHaveDouble = willBeDouble || Boolean(myWeek?.hasDoubleDay);
+      const projectedDays = new Set([
+        ...Object.keys(workoutCountsByDate).filter(
+          (d) => (workoutCountsByDate[d] ?? 0) > 0,
+        ),
+        workoutDate,
+      ]).size;
+      // Approximate distinct days already counted this week via myWeek + this log
+      const distinctAfter = Math.max(
+        myWeek?.distinctWorkoutDays ?? 0,
+        projectedDays,
+      );
+      const totalAfter = (myWeek?.totalWorkouts ?? 0) + 1;
+      const creditReady =
+        weekWillHaveDouble &&
+        distinctAfter >= REQUIRED_WORKOUT_DAYS &&
+        totalAfter >= REQUIRED_WORKOUT_DAYS + 1;
+
       Alert.alert(
         '¡Registrado!',
-        dayCount + 1 >= 2
-          ? 'Segundo entrenamiento del día — día doble.'
+        willBeDouble
+          ? creditReady
+            ? 'Día doble marcado. Cumples la meta semanal — crédito bancado listo (máx. 1/semana).'
+            : 'Día doble marcado. El crédito se banca al completar ≥5 días y ≥6 entrenamientos esta semana (máx. 1 crédito).'
           : 'Entrenamiento guardado.',
       );
     } catch (e) {
@@ -103,7 +131,16 @@ export function LogWorkoutScreen() {
           />
           <Muted>
             {myDaysRemaining} restantes · registros en {workoutDate}: {dayCount}
+            {dayCount >= 2 ? ' · DÍA DOBLE' : ''}
           </Muted>
+          {myWeek?.hasDoubleDay ? (
+            <Text style={styles.doubleBanner}>
+              SEMANA CON DÍA DOBLE
+              {myWeek.creditEarned > 0
+                ? ` · +${myWeek.creditEarned} crédito`
+                : ' · falta completar 5 días / 6 entrenos para el crédito'}
+            </Text>
+          ) : null}
         </View>
 
         <Text style={styles.label}>EJERCICIO</Text>
@@ -147,6 +184,7 @@ export function LogWorkoutScreen() {
             value={workoutDate}
             lookbackDays={LOG_LOOKBACK_DAYS}
             isAllowed={allowed.isAllowed}
+            workoutCountsByDate={workoutCountsByDate}
             onChange={(d) => {
               setWorkoutDate(d);
               setShowCalendar(false);
@@ -198,6 +236,12 @@ const styles = StyleSheet.create({
     borderColor: colors.borderMuted,
     padding: spacing.md,
     gap: spacing.sm,
+  },
+  doubleBanner: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.dayDoubleBorder,
+    fontSize: 14,
+    letterSpacing: 0.5,
   },
   label: {
     fontFamily: 'BebasNeue_400Regular',

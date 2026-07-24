@@ -8,20 +8,25 @@ import {
   todayDateOnly,
 } from '../lib/dates';
 
+export type DayWorkoutStatus = 'none' | 'single' | 'double';
+
 /**
  * Interactive calendar for log date: shows current month grid.
  * Only today and up to `lookbackDays` back are tappable; others disabled.
+ * Colors: none/rest, single workout, double day (2+).
  */
 export function LogDateCalendar({
   value,
   lookbackDays,
   isAllowed,
   onChange,
+  workoutCountsByDate = {},
 }: {
   value: string;
   lookbackDays: number;
   isAllowed: (date: string) => boolean;
   onChange: (date: string) => void;
+  workoutCountsByDate?: Record<string, number>;
 }) {
   const today = todayDateOnly();
   const anchor = parseDateOnly(today);
@@ -54,9 +59,21 @@ export function LogDateCalendar({
     return list;
   }, [today, lookbackDays, isAllowed]);
 
+  const statusOf = (date: string): DayWorkoutStatus => {
+    const n = workoutCountsByDate[date] ?? 0;
+    if (n >= 2) return 'double';
+    if (n === 1) return 'single';
+    return 'none';
+  };
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.month}>{monthLabel}</Text>
+      <View style={styles.legend}>
+        <LegendDot color={colors.dayRestBorder} label="Sin ejercicio" />
+        <LegendDot color={colors.dayWorkoutBorder} label="Ejercicio" />
+        <LegendDot color={colors.dayDoubleBorder} label="Doble" />
+      </View>
       <View style={styles.weekHead}>
         {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => (
           <Text key={d} style={styles.weekHeadText}>
@@ -72,6 +89,7 @@ export function LogDateCalendar({
           const allowed = isAllowed(cell.date);
           const selected = cell.date === value;
           const isToday = cell.date === today;
+          const status = statusOf(cell.date);
           return (
             <Pressable
               key={cell.date}
@@ -80,6 +98,9 @@ export function LogDateCalendar({
               style={[
                 styles.cell,
                 styles.day,
+                status === 'none' && styles.dayNone,
+                status === 'single' && styles.daySingle,
+                status === 'double' && styles.dayDouble,
                 allowed && styles.dayAllowed,
                 selected && styles.daySelected,
                 !allowed && styles.dayDisabled,
@@ -88,6 +109,8 @@ export function LogDateCalendar({
               <Text
                 style={[
                   styles.dayText,
+                  status === 'single' && styles.dayTextSingle,
+                  status === 'double' && styles.dayTextDouble,
                   selected && styles.dayTextSelected,
                   !allowed && styles.dayTextDisabled,
                   isToday && !selected && styles.dayTextToday,
@@ -95,25 +118,50 @@ export function LogDateCalendar({
               >
                 {cell.day}
               </Text>
+              {status === 'double' ? (
+                <Text style={styles.doubleMark}>2×</Text>
+              ) : null}
             </Pressable>
           );
         })}
       </View>
       <View style={styles.quickRow}>
-        {quick.map((d) => (
-          <Pressable
-            key={d}
-            onPress={() => onChange(d)}
-            style={[styles.quickChip, d === value && styles.quickChipOn]}
-          >
-            <Text
-              style={[styles.quickText, d === value && styles.quickTextOn]}
+        {quick.map((d) => {
+          const status = statusOf(d);
+          return (
+            <Pressable
+              key={d}
+              onPress={() => onChange(d)}
+              style={[
+                styles.quickChip,
+                status === 'single' && styles.quickSingle,
+                status === 'double' && styles.quickDouble,
+                d === value && styles.quickChipOn,
+              ]}
             >
-              {d === today ? 'HOY' : d.slice(8)}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={[
+                  styles.quickText,
+                  status === 'double' && styles.quickTextDouble,
+                  d === value && styles.quickTextOn,
+                ]}
+              >
+                {d === today ? 'HOY' : d.slice(8)}
+                {status === 'double' ? ' 2×' : status === 'single' ? ' ✓' : ''}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
+    </View>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={styles.legendItem}>
+      <View style={[styles.legendSwatch, { backgroundColor: color }]} />
+      <Text style={styles.legendText}>{label}</Text>
     </View>
   );
 }
@@ -131,6 +179,18 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 20,
     letterSpacing: 1,
+  },
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendSwatch: { width: 10, height: 10 },
+  legendText: {
+    fontFamily: 'Inter_500Medium',
+    color: colors.textMuted,
+    fontSize: 11,
   },
   weekHead: { flexDirection: 'row' },
   weekHeadText: {
@@ -152,13 +212,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  dayAllowed: {
-    borderColor: colors.borderMuted,
-    backgroundColor: colors.bg,
+  dayNone: {
+    backgroundColor: colors.dayRest,
+    borderColor: colors.dayRestBorder,
   },
+  daySingle: {
+    backgroundColor: colors.dayWorkout,
+    borderColor: colors.dayWorkoutBorder,
+  },
+  dayDouble: {
+    backgroundColor: colors.dayDouble,
+    borderColor: colors.dayDoubleBorder,
+  },
+  dayAllowed: {},
   daySelected: {
     borderColor: colors.accent,
-    backgroundColor: colors.accent,
+    borderWidth: 3,
   },
   dayDisabled: {
     opacity: 0.35,
@@ -168,24 +237,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  dayTextSelected: { color: colors.black },
+  dayTextSingle: { color: colors.accent },
+  dayTextDouble: { color: colors.dayDoubleBorder },
+  dayTextSelected: { color: colors.text },
   dayTextDisabled: { color: colors.textDim },
-  dayTextToday: { color: colors.accent },
+  dayTextToday: { textDecorationLine: 'underline' },
+  doubleMark: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 10,
+    color: colors.dayDoubleBorder,
+    marginTop: -2,
+  },
   quickRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   quickChip: {
     borderWidth: borderWidth.thick,
-    borderColor: colors.borderMuted,
+    borderColor: colors.dayRestBorder,
+    backgroundColor: colors.dayRest,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
+  quickSingle: {
+    borderColor: colors.dayWorkoutBorder,
+    backgroundColor: colors.dayWorkout,
+  },
+  quickDouble: {
+    borderColor: colors.dayDoubleBorder,
+    backgroundColor: colors.dayDouble,
+  },
   quickChipOn: {
     borderColor: colors.accent,
-    backgroundColor: colors.accentSoft,
   },
   quickText: {
     fontFamily: 'BebasNeue_400Regular',
     color: colors.textMuted,
     fontSize: 14,
   },
+  quickTextDouble: { color: colors.dayDoubleBorder },
   quickTextOn: { color: colors.accent },
 });

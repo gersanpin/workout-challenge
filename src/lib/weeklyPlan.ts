@@ -32,7 +32,21 @@ function w(
 }
 
 function rest(): DayWorkoutPlan {
-  return w('Descanso', 0, [{ name: 'Descanso activo / movilidad suave' }], true);
+  return w(
+    'Descanso',
+    20,
+    [
+      {
+        name: 'Caminata suave o estiramientos',
+        detail: '15–20 min opcional',
+      },
+      {
+        name: 'Hidratación y sueño',
+        detail: 'Prioriza recuperación — no cuenta como día de ejercicio del reto',
+      },
+    ],
+    true,
+  );
 }
 
 export function generateWeeklyPlan(profile: Profile): WeeklyPlanContent {
@@ -142,42 +156,72 @@ function buildWorkouts(
 
   if (goal === 'improve_exercise') {
     return [
-      w(`Técnica ${exercise}`, 50, [
-        { name: `Ejercicios técnicos de ${exercise}`, detail: '25 min' },
-        { name: 'Volumen fácil', detail: '20 min' },
+      w(`Técnica ${exercise}`, 55, [
+        { name: `Calentamiento específico ${exercise}`, detail: '8 min movilidad + 2 series vacías' },
+        { name: `Bloque técnico ${exercise}`, detail: '6×3 @ RPE 6–7, descanso 2 min' },
+        { name: 'Accesorios unilaterales', detail: '3×10/lado' },
+        { name: 'Core anti-extensión', detail: '3×40s (dead bug o hollow)' },
       ]),
-      w('Fuerza de soporte', 45, [
-        { name: 'Tirón / empujes', detail: '4 series' },
-        { name: 'Core anti-rotación', detail: '3×10' },
-        { name: 'Movilidad hombros/cadera', detail: '10 min' },
+      w('Fuerza de soporte', 50, [
+        { name: 'Sentadilla goblet o front squat', detail: '4×6' },
+        { name: 'Press banca o push-up lastrado', detail: '4×8' },
+        { name: 'Remo mancuerna', detail: '4×10/brazo' },
+        { name: 'Face pulls', detail: '3×15' },
+        { name: 'Movilidad hombros/cadera', detail: '8 min' },
       ]),
-      w(`Sesión ${exercise}`, 55, [
-        { name: 'Proyectos / calidad', detail: '35 min' },
-        { name: 'Volumen secundario', detail: '15 min' },
+      w(`Sesión calidad ${exercise}`, 60, [
+        { name: `Proyectos / intentos ${exercise}`, detail: '35 min calidad, no fallar a lo bruto' },
+        { name: 'Volumen secundario fácil', detail: '4×8 @ RPE 5' },
+        { name: 'Estiramiento dirigido', detail: '10 min' },
       ]),
-      w('Recuperación activa', 30, [
-        { name: 'Cardio suave', detail: '20 min' },
-        { name: 'Estiramientos', detail: '10 min' },
+      w('Recuperación activa', 35, [
+        { name: 'Cardio zona 2 (caminata/bici)', detail: '20–25 min conversacional' },
+        { name: 'Foam roll + movilidad', detail: '10 min' },
       ]),
-      w(`${exercise} + antagonistas`, 50, [
-        { name: `Bloque principal ${exercise}`, detail: '30 min' },
-        { name: 'Antagonistas', detail: '15 min' },
+      w(`${exercise} + antagonistas`, 55, [
+        { name: `Bloque principal ${exercise}`, detail: '5×4 @ RPE 7' },
+        { name: 'Antagonistas (opuesto al patrón)', detail: '3×12' },
+        { name: 'Isométricos de estabilización', detail: '3×30s' },
       ]),
-      w('Día doble corto', 35, [
-        { name: 'Técnica ligera', detail: '20 min' },
-        { name: 'Movilidad', detail: '15 min' },
+      w('Día doble corto', 40, [
+        { name: 'AM: técnica ligera', detail: '20 min, solo forma' },
+        { name: 'PM: movilidad o caminata', detail: '15–20 min' },
       ]),
       rest(),
     ];
   }
 
   return [
-    w('Entrenamiento 1', 45, [{ name: 'Cuerpo completo' }]),
-    w('Entrenamiento 2', 40, [{ name: 'Cardio' }]),
-    w('Entrenamiento 3', 45, [{ name: 'Fuerza' }]),
-    w('Entrenamiento 4', 40, [{ name: 'Deporte / intervalos' }]),
-    w('Entrenamiento 5', 45, [{ name: 'Cuerpo completo' }]),
-    w('Opcional', 30, [{ name: 'Día doble corto' }]),
+    w('Cuerpo completo fuerza', 50, [
+      { name: 'Sentadilla o goblet squat', detail: '4×8' },
+      { name: 'Press banca / push-ups', detail: '4×8–12' },
+      { name: 'Remo barra o mancuerna', detail: '4×10' },
+      { name: 'Plancha', detail: '3×40s' },
+    ]),
+    w('Cardio zona 2', 40, [
+      { name: 'Correr, bici o remo suave', detail: '35–40 min ritmo conversacional' },
+      { name: 'Estiramientos', detail: '5 min' },
+    ]),
+    w('Tren superior + core', 45, [
+      { name: 'Press hombro mancuernas', detail: '3×10' },
+      { name: 'Dominadas o jalón al pecho', detail: '3×8' },
+      { name: 'Face pulls', detail: '3×15' },
+      { name: 'Dead bug', detail: '3×10/lado' },
+    ]),
+    w('Intervalos o deporte', 35, [
+      { name: 'Intervalos 30s duro / 90s fácil', detail: '20–25 min' },
+      { name: 'Enfriamiento caminata', detail: '5–8 min' },
+    ]),
+    w('Tren inferior + caminata', 50, [
+      { name: 'Peso muerto rumano', detail: '3×10' },
+      { name: 'Zancadas caminando', detail: '3×10/pierna' },
+      { name: 'Elevación de talones', detail: '3×15' },
+      { name: 'Caminata', detail: '15–20 min' },
+    ]),
+    w('Día doble opcional', 40, [
+      { name: 'AM: movilidad completa', detail: '15–20 min' },
+      { name: 'PM: deporte o cardio corto', detail: '20 min' },
+    ]),
     rest(),
   ];
 }

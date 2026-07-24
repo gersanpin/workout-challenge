@@ -1,11 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Muted } from './ui';
 import { borderWidth, colors, spacing, typography } from '../constants/theme';
-import type { DayPlan, WeeklyPlanContent } from '../types';
+import type { DayPlan, WeeklyPlanContent, WeekdayKey } from '../types';
 
 export function WeeklyPlanCalendar({ plan }: { plan: WeeklyPlanContent }) {
-  const [selected, setSelected] = useState<DayPlan | null>(plan.days[0] ?? null);
+  const [selectedKey, setSelectedKey] = useState<WeekdayKey>(
+    plan.days[0]?.key ?? 'mon',
+  );
+
+  // Keep selection in sync when the coach (or regen) replaces the plan.
+  useEffect(() => {
+    setSelectedKey((prev) => {
+      if (plan.days.some((d) => d.key === prev)) return prev;
+      return plan.days[0]?.key ?? 'mon';
+    });
+  }, [plan]);
+
+  const selected: DayPlan | null =
+    plan.days.find((d) => d.key === selectedKey) ?? plan.days[0] ?? null;
 
   return (
     <View style={styles.wrap}>
@@ -16,7 +29,7 @@ export function WeeklyPlanCalendar({ plan }: { plan: WeeklyPlanContent }) {
           return (
             <Pressable
               key={d.key}
-              onPress={() => setSelected(d)}
+              onPress={() => setSelectedKey(d.key)}
               style={[
                 styles.dayBox,
                 rest ? styles.dayBoxRest : styles.dayBoxWork,

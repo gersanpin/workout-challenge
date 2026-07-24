@@ -38,6 +38,7 @@ export function HomeScreen() {
     myDaysDone,
     myEntry,
     myWeek,
+    myOpenPriorWeek,
     myWorkouts,
     myTotals,
     leaderboard,
@@ -130,6 +131,21 @@ export function HomeScreen() {
             favorDays={challengeHasStarted ? favorThisWeek : 0}
           />
         </Card>
+
+        {challengeHasStarted && myOpenPriorWeek ? (
+          <Card style={styles.weekCard}>
+            <Text style={styles.label}>SEMANA ANTERIOR (AÚN ABIERTA)</Text>
+            <WeightPlateStack
+              progressPoints={myOpenPriorWeek.progressPoints}
+              maxDays={REQUIRED_WORKOUT_DAYS}
+              favorDays={myOpenPriorWeek.creditEarned}
+            />
+            <Muted>
+              Registros con fecha de esa semana (p. ej. domingo) cuentan aquí ·{' '}
+              {myOpenPriorWeek.weekStart}
+            </Muted>
+          </Card>
+        ) : null}
 
         <View style={styles.statsGrid}>
           <Stat

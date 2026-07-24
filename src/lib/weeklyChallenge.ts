@@ -30,6 +30,7 @@ import {
   getWeekCloseDate,
   getWeekEnd,
   getWeekStart,
+  isWeekClosed,
   listWeekStartsInRange,
   yearStartDate,
 } from './dates';
@@ -170,8 +171,8 @@ export function calculateYearTotals(input: YearCalculationInput): YearlyTotals {
   let totalMoneyOwedMxn = 0;
 
   for (const weekStart of weekStarts) {
-    const closeDate = getWeekCloseDate(weekStart);
-    const isClosed = closeDate <= input.throughDate;
+    // Match logging grace: week stays open through the close date (not locked until the day after).
+    const isClosed = isWeekClosed(weekStart, input.throughDate);
     const summary = calculateWeekSummary({
       weekStart,
       workouts: input.workouts,
@@ -282,4 +283,25 @@ export function getBankedCreditsBeforeWeek(
 
 export function daysRemainingToGoal(progressPoints: number): number {
   return Math.max(0, REQUIRED_WORKOUT_DAYS - progressPoints);
+}
+
+/** Week summary for the Monday–Sunday week that contains `dateStr`. */
+export function findWeekSummaryForDate(
+  weeks: WeeklySummary[],
+  dateStr: string,
+): WeeklySummary | null {
+  const start = getWeekStart(dateStr);
+  return weeks.find((w) => w.weekStart === start) ?? null;
+}
+
+/** Most recent prior week still open (grace), if any. */
+export function findOpenPriorWeek(
+  weeks: WeeklySummary[],
+  today: string,
+): WeeklySummary | null {
+  const currentStart = getWeekStart(today);
+  const prior = [...weeks]
+    .filter((w) => w.weekStart < currentStart && !w.isClosed)
+    .sort((a, b) => (a.weekStart < b.weekStart ? 1 : -1));
+  return prior[0] ?? null;
 }

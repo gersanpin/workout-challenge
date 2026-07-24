@@ -214,7 +214,7 @@ describe('calculateYearTotals (excess vs prior debt)', () => {
       workouts,
       year: 2026,
       fromDate: '2026-01-05',
-      throughDate: '2026-01-20',
+      throughDate: '2026-01-21',
     });
 
     const weekA = totals.weeks.find((x) => x.weekStart === '2026-01-05');
@@ -245,7 +245,7 @@ describe('calculateYearTotals (excess vs prior debt)', () => {
       workouts,
       year: 2026,
       fromDate: '2026-01-05',
-      throughDate: '2026-01-20',
+      throughDate: '2026-01-21',
     });
 
     const weekB = totals.weeks.find((x) => x.weekStart === '2026-01-12');
@@ -259,6 +259,7 @@ describe('calculateYearTotals (excess vs prior debt)', () => {
   });
 
   it('keeps fees provisional until grace close date', () => {
+    // Week A ends Jan 11, closes Jan 13. On Jan 12 still open.
     const totals = calculateYearTotals({
       userId: 'u1',
       workouts: [w('2026-01-05')],
@@ -269,6 +270,31 @@ describe('calculateYearTotals (excess vs prior debt)', () => {
     const weekA = totals.weeks.find((x) => x.weekStart === '2026-01-05');
     expect(weekA?.isClosed).toBe(false);
     expect(weekA?.moneyOwedMxn).toBe(0);
+  });
+
+  it('stays open on the close date; locks the day after', () => {
+    const openOnClose = calculateYearTotals({
+      userId: 'u1',
+      workouts: [w('2026-01-05')],
+      year: 2026,
+      fromDate: '2026-01-05',
+      throughDate: '2026-01-13',
+    });
+    expect(
+      openOnClose.weeks.find((x) => x.weekStart === '2026-01-05')?.isClosed,
+    ).toBe(false);
+
+    const lockedAfter = calculateYearTotals({
+      userId: 'u1',
+      workouts: [w('2026-01-05')],
+      year: 2026,
+      fromDate: '2026-01-05',
+      throughDate: '2026-01-14',
+    });
+    expect(
+      lockedAfter.weeks.find((x) => x.weekStart === '2026-01-05')?.isClosed,
+    ).toBe(true);
+    expect(lockedAfter.totalMissedDays).toBe(4);
   });
 });
 
@@ -292,6 +318,35 @@ describe('getBankedCreditsBeforeWeek / helpers', () => {
     expect(daysRemainingToGoal(5)).toBe(0);
     expect(daysRemainingToGoal(6)).toBe(0);
   });
+
+  it('attributes lookback logs to the prior week (case B)', () => {
+    // Monday Jan 12: user logs Sunday Jan 11 (previous week, still in grace).
+    const totals = calculateYearTotals({
+      userId: 'u1',
+      workouts: [
+        w('2026-01-05'),
+        w('2026-01-06'),
+        w('2026-01-07'),
+        w('2026-01-08'),
+        w('2026-01-11'),
+        w('2026-01-11'), // double on Sunday of prior week
+      ],
+      year: 2026,
+      fromDate: '2026-01-05',
+      throughDate: '2026-01-12',
+    });
+
+    const weekA = totals.weeks.find((x) => x.weekStart === '2026-01-05');
+    const weekB = totals.weeks.find((x) => x.weekStart === '2026-01-12');
+
+    expect(weekA?.isClosed).toBe(false); // grace through close date
+    expect(weekA?.distinctWorkoutDays).toBe(5);
+    expect(weekA?.hasDoubleDay).toBe(true);
+    expect(weekA?.progressPoints).toBe(6);
+    expect(weekA?.creditEarned).toBe(1);
+    expect(weekB?.progressPoints).toBe(0);
+    expect(totals.bankedCredits).toBe(1);
+  });
 });
 
 describe('dates', () => {
@@ -304,6 +359,13 @@ describe('dates', () => {
     expect(isAllowed('2026-01-14')).toBe(true);
     expect(isAllowed('2026-01-12')).toBe(true);
     expect(isAllowed('2026-01-11')).toBe(false);
+  });
+
+  it('allows prior-week Sunday on Monday during grace', () => {
+    const { isAllowed } = getAllowedLogDates('2026-01-12', 2);
+    expect(isAllowed('2026-01-12')).toBe(true);
+    expect(isAllowed('2026-01-11')).toBe(true); // Sunday prior week
+    expect(isAllowed('2026-01-10')).toBe(true);
   });
 
   it('getWeekStart maps Sunday to Monday', () => {

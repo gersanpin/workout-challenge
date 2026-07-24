@@ -15,14 +15,13 @@ import { LOG_LOOKBACK_DAYS, REQUIRED_WORKOUT_DAYS } from '../constants/challenge
 import { borderWidth, colors, spacing } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
-import { getAllowedLogDates, todayDateOnly } from '../lib/dates';
+import { getAllowedLogDates, getWeekStart, todayDateOnly } from '../lib/dates';
 import { logWorkout, pickWorkoutPhoto } from '../lib/workoutsApi';
 import { EXERCISE_TYPES } from '../types';
 
 export function LogWorkoutScreen() {
   const { user, profile } = useAuth();
-  const { myWorkouts, myDaysDone, myDaysRemaining, myWeek, refresh } =
-    useChallengeData();
+  const { myWorkouts, weekSummaryForDate, refresh } = useChallengeData();
 
   const today = todayDateOnly();
   const allowed = useMemo(
@@ -49,6 +48,12 @@ export function LogWorkoutScreen() {
   }, [myWorkouts]);
 
   const dayCount = workoutCountsByDate[workoutDate] ?? 0;
+
+  // Progress for the week that owns the selected workout_date (not "today"'s week).
+  const targetWeek = weekSummaryForDate(workoutDate);
+  const weekPoints = targetWeek?.progressPoints ?? 0;
+  const weekRemaining = Math.max(0, REQUIRED_WORKOUT_DAYS - weekPoints);
+  const sameWeekAsToday = getWeekStart(workoutDate) === getWeekStart(today);
 
   const onPick = async (source: 'camera' | 'library') => {
     try {
@@ -106,12 +111,14 @@ export function LogWorkoutScreen() {
         <Title>REGISTRAR</Title>
         <View style={styles.status}>
           <WeightPlateStack
-            progressPoints={myDaysDone}
+            progressPoints={weekPoints}
             maxDays={REQUIRED_WORKOUT_DAYS}
-            favorDays={myWeek?.creditEarned ?? 0}
+            favorDays={targetWeek?.creditEarned ?? 0}
           />
           <Muted>
-            {myDaysRemaining} restantes · registros en {workoutDate}: {dayCount}
+            {sameWeekAsToday ? 'Esta semana' : `Semana del ${getWeekStart(workoutDate)}`}
+            {' · '}
+            {weekRemaining} restantes · en {workoutDate}: {dayCount}
             {dayCount >= 2 ? ' · DÍA DOBLE' : ''}
           </Muted>
         </View>

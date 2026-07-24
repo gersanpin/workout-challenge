@@ -24,7 +24,7 @@ export function AuthScreen() {
   const onSubmit = async () => {
     setError(null);
     if (!email.trim() || !password) {
-      setError('Email y password requeridos.');
+      setError('Correo y contraseña requeridos.');
       return;
     }
     setLoading(true);
@@ -49,13 +49,13 @@ export function AuthScreen() {
           />
           <Brand>{APP_NAME}</Brand>
           <Text style={styles.tagline}>
-            Log. Bank. Paga o pelea. El chat del crew vive aquí.
+            Registra. Acumula. Paga o pelea. El chat del grupo vive aquí.
           </Text>
         </View>
 
         {!configured ? (
           <View style={styles.banner}>
-            <Text style={styles.bannerTitle}>SUPABASE OFF</Text>
+            <Text style={styles.bannerTitle}>SUPABASE APAGADO</Text>
             <Text style={styles.bannerBody}>
               Copia `.env.example` → `.env` y corre `supabase/schema.sql`.
             </Text>
@@ -73,15 +73,15 @@ export function AuthScreen() {
             />
           ) : null}
           <Field
-            label="Email"
+            label="Correo"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholder="you@example.com"
+            placeholder="tu@correo.com"
           />
           <Field
-            label="Password"
+            label="Contraseña"
             value={password}
             onChangeText={setPassword}
             secureTextEntry

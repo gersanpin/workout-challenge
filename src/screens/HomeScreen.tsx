@@ -84,7 +84,7 @@ export function HomeScreen() {
         }
       >
         <Brand>{APP_NAME}</Brand>
-        <Title>HOME</Title>
+        <Title>INICIO</Title>
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.heroPhoto}>

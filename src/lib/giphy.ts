@@ -27,7 +27,7 @@ export async function searchGifs(query: string): Promise<GifResult[]> {
     `&q=${encodeURIComponent(q)}&limit=24&rating=pg-13`;
 
   const res = await fetch(url);
-  if (!res.ok) throw new Error('GIF search failed');
+  if (!res.ok) throw new Error('Error al buscar GIFs');
   const json = await res.json();
   return (json.data ?? []).map((g: any) => ({
     id: g.id,
@@ -40,25 +40,25 @@ export async function searchGifs(query: string): Promise<GifResult[]> {
 const FALLBACK_GIFS: GifResult[] = [
   {
     id: '1',
-    title: 'strong',
+    title: 'fuerte',
     url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
     preview: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
   },
   {
     id: '2',
-    title: 'workout',
+    title: 'entrenamiento',
     url: 'https://media.giphy.com/media/3o7TKU8RvQuomFfUUU/giphy.gif',
     preview: 'https://media.giphy.com/media/3o7TKU8RvQuomFfUUU/giphy.gif',
   },
   {
     id: '3',
-    title: 'celebrate',
+    title: 'celebrar',
     url: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif',
     preview: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif',
   },
   {
     id: '4',
-    title: 'spinach power',
+    title: 'poder espinaca',
     url: 'https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif',
     preview: 'https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif',
   },

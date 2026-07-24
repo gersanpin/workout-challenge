@@ -21,17 +21,17 @@ function WeekRow({ week }: { week: WeeklySummary }) {
       <Text style={styles.weekTitle}>{formatWeekLabel(week.weekStart)}</Text>
       <Muted>
         Cierra {week.weekCloseDate}
-        {week.isClosed ? ' · LOCKED' : ' · OPEN'}
+        {week.isClosed ? ' · CERRADA' : ' · ABIERTA'}
       </Muted>
       <View style={styles.grid}>
         <Stat label="Días" value={`${week.distinctWorkoutDays}/5`} />
-        <Stat label="Miss" value={String(week.finalMissedDays)} />
+        <Stat label="Fallados" value={String(week.finalMissedDays)} />
         <Stat
           label="Debes"
           value={`$${week.moneyOwedMxn}`}
           danger={week.moneyOwedMxn > 0}
         />
-        <Stat label="Bank" value={String(week.bankedCreditsAfterWeek)} ok />
+        <Stat label="Acum." value={String(week.bankedCreditsAfterWeek)} ok />
       </View>
     </Card>
   );
@@ -119,10 +119,10 @@ export function HistoryScreen() {
           <View style={styles.header}>
             <Title>HISTORIAL</Title>
             <Card style={styles.totals}>
-              <Text style={styles.totalsTitle}>YEAR TO DATE</Text>
+              <Text style={styles.totalsTitle}>ESTE AÑO</Text>
               <View style={styles.grid}>
                 <Stat
-                  label="Missed"
+                  label="Fallados"
                   value={String(myTotals?.totalMissedDays ?? 0)}
                 />
                 <Stat
@@ -131,11 +131,11 @@ export function HistoryScreen() {
                   danger
                 />
                 <Stat
-                  label="Banked"
+                  label="Acumulados"
                   value={String(myTotals?.bankedCredits ?? 0)}
                   ok
                 />
-                <Stat label="Logs" value={String(myWorkouts.length)} />
+                <Stat label="Registros" value={String(myWorkouts.length)} />
               </View>
             </Card>
 
@@ -145,7 +145,7 @@ export function HistoryScreen() {
                 <WeekRow key={week.weekStart} week={week} />
               ))}
             </View>
-            <Text style={styles.section}>TODOS LOS WORKOUTS</Text>
+            <Text style={styles.section}>TODOS LOS ENTRENAMIENTOS</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -158,8 +158,8 @@ export function HistoryScreen() {
         ListEmptyComponent={
           <View style={{ paddingHorizontal: spacing.md }}>
             <EmptyState
-              title="Sin workouts"
-              body="Loguea una sesión — la foto de evidencia aparece aquí."
+              title="Sin entrenamientos"
+              body="Registra una sesión — la foto de evidencia aparece aquí."
             />
           </View>
         }

@@ -103,6 +103,8 @@ function MainTabs() {
         name="Home"
         component={HomeScreen}
         options={{
+          title: 'Inicio',
+          tabBarLabel: 'Inicio',
           tabBarIcon: ({ focused }) => <TabIcon label="●" focused={focused} />,
         }}
       />
@@ -111,6 +113,7 @@ function MainTabs() {
         component={ChatScreen}
         options={{
           title: 'Chat',
+          tabBarLabel: 'Chat',
           tabBarIcon: ({ focused }) => <TabIcon label="✎" focused={focused} />,
         }}
       />
@@ -118,6 +121,8 @@ function MainTabs() {
         name="Log"
         component={LogWorkoutScreen}
         options={{
+          title: 'Registrar',
+          tabBarLabel: 'Registrar',
           tabBarIcon: ({ focused }) => <TabIcon label="＋" focused={focused} />,
         }}
       />
@@ -126,6 +131,7 @@ function MainTabs() {
         component={ProfileStackScreen}
         options={{
           title: 'Perfil',
+          tabBarLabel: 'Perfil',
           tabBarIcon: ({ focused }) => <TabIcon label="☺" focused={focused} />,
         }}
       />

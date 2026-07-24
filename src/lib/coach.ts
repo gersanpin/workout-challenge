@@ -61,15 +61,16 @@ async function askOpenAI(
 
 function buildSystemPrompt(profile: Profile): string {
   return [
-    'You are Fortachones Coach — a practical sports & nutrition expert for a small friends workout challenge.',
-    'Be concise, friendly, and specific. Prefer weekly plans and grocery-simple meals.',
-    `Athlete: ${profile.display_name}`,
-    profile.height_m ? `Height: ${profile.height_m} m` : '',
-    profile.weight_kg ? `Weight: ${profile.weight_kg} kg` : '',
-    profile.goal_type ? `Goal: ${profile.goal_type}` : '',
-    profile.goal_exercise ? `Focus exercise: ${profile.goal_exercise}` : '',
-    profile.food_preference ? `Food preference: ${profile.food_preference}` : '',
-    'Units are metric (kg, meters). No medical claims.',
+    'Eres el Entrenador Fortachones — experto práctico en deporte y nutrición para un reto de entrenamiento entre amigos.',
+    'Sé conciso, amigable y específico. Prefiere planes semanales y comidas simples de supermercado.',
+    'Responde siempre en español (México).',
+    `Atleta: ${profile.display_name}`,
+    profile.height_m ? `Altura: ${profile.height_m} m` : '',
+    profile.weight_kg ? `Peso: ${profile.weight_kg} kg` : '',
+    profile.goal_type ? `Meta: ${profile.goal_type}` : '',
+    profile.goal_exercise ? `Ejercicio foco: ${profile.goal_exercise}` : '',
+    profile.food_preference ? `Preferencia alimentaria: ${profile.food_preference}` : '',
+    'Unidades métricas (kg, metros). Sin afirmaciones médicas.',
   ]
     .filter(Boolean)
     .join('\n');
@@ -80,125 +81,144 @@ function localCoachReply(profile: Profile, userMessage: string): string {
   const food = (profile.food_preference as FoodPreference | null) ?? 'omnivore';
   const lower = userMessage.toLowerCase();
 
-  if (lower.includes('diet') || lower.includes('meal') || goal === 'gain_weight') {
+  if (
+    lower.includes('dieta') ||
+    lower.includes('comida') ||
+    lower.includes('meal') ||
+    goal === 'gain_weight'
+  ) {
     return dietPlan(food, goal === 'lose_weight' ? 'cut' : 'surplus');
   }
-  if (lower.includes('climb') || profile.goal_exercise?.toLowerCase().includes('climb')) {
+  if (
+    lower.includes('escal') ||
+    lower.includes('climb') ||
+    profile.goal_exercise?.toLowerCase().includes('escal') ||
+    profile.goal_exercise?.toLowerCase().includes('climb')
+  ) {
     return climbingPlan();
   }
-  if (goal === 'lose_weight' || lower.includes('routine') || lower.includes('workout')) {
+  if (
+    goal === 'lose_weight' ||
+    lower.includes('rutina') ||
+    lower.includes('entreno') ||
+    lower.includes('workout')
+  ) {
     return fatLossRoutine();
   }
   if (goal === 'improve_exercise') {
-    return improveExercisePlan(profile.goal_exercise || 'your sport');
+    return improveExercisePlan(profile.goal_exercise || 'tu deporte');
   }
 
   return [
-    `Hey ${profile.display_name}! I can build you a weekly workout, a longer 4-week plan, or a simple diet.`,
+    `¡Hola ${profile.display_name}! Puedo armarte una rutina semanal, un plan de 4 semanas o una dieta sencilla.`,
     '',
-    'Try asking:',
-    '• “Give me this week’s workouts”',
-    '• “4-week plan to gain weight”',
-    '• “Vegetarian meal ideas for cutting”',
-    '• “Climbing finger + pull strength plan”',
+    'Prueba preguntar:',
+    '• “Dame los entrenamientos de esta semana”',
+    '• “Plan de 4 semanas para subir de peso”',
+    '• “Ideas vegetarianas para bajar grasa”',
+    '• “Plan de dedos y jalón para escalar”',
     '',
     profile.goal_type
-      ? `I see your goal is set to ${labelGoal(profile.goal_type)} — say the word and I’ll tailor it.`
-      : 'Set your goal on your profile (gain / lose / improve) so I can tailor plans.',
+      ? `Veo que tu meta es ${labelGoal(profile.goal_type)} — dime y lo adapto.`
+      : 'Configura tu meta en el perfil (subir / bajar / mejorar) para planes a tu medida.',
   ].join('\n');
 }
 
 function labelGoal(g: GoalType): string {
-  if (g === 'gain_weight') return 'gain weight';
-  if (g === 'lose_weight') return 'lose weight';
-  return 'improve at an exercise';
+  if (g === 'gain_weight') return 'subir de peso';
+  if (g === 'lose_weight') return 'bajar de peso';
+  return 'mejorar en un ejercicio';
 }
 
 function dietPlan(food: FoodPreference, mode: 'surplus' | 'cut'): string {
-  const kcal = mode === 'surplus' ? 'small calorie surplus' : 'modest deficit (~300–500 kcal)';
-  const protein = mode === 'surplus' ? '1.6–2.2 g protein / kg' : '1.8–2.4 g protein / kg';
+  const kcal =
+    mode === 'surplus'
+      ? 'superávit calórico moderado'
+      : 'déficit moderado (~300–500 kcal)';
+  const protein =
+    mode === 'surplus' ? '1.6–2.2 g proteína / kg' : '1.8–2.4 g proteína / kg';
 
   const samples: Record<FoodPreference, string[]> = {
     omnivore: [
-      'Breakfast: eggs + oats + fruit',
-      'Lunch: chicken, rice, salad',
-      'Dinner: fish or lean beef + potatoes + veggies',
-      'Snack: Greek yogurt + nuts',
+      'Desayuno: huevos + avena + fruta',
+      'Comida: pollo, arroz, ensalada',
+      'Cena: pescado o res magra + papas + verduras',
+      'Colación: yogurt griego + nueces',
     ],
     vegetarian: [
-      'Breakfast: Greek yogurt bowl + granola',
-      'Lunch: lentil curry + rice',
-      'Dinner: tofu stir-fry + quinoa',
-      'Snack: cottage cheese or protein smoothie',
+      'Desayuno: bowl de yogurt griego + granola',
+      'Comida: curry de lentejas + arroz',
+      'Cena: salteado de tofu + quinoa',
+      'Colación: requesón o batido de proteína',
     ],
     vegan: [
-      'Breakfast: tofu scramble + toast',
-      'Lunch: chickpea bowl + tahini',
-      'Dinner: tempeh + sweet potato + greens',
-      'Snack: peanut butter banana smoothie + pea protein',
+      'Desayuno: tofu revuelto + pan',
+      'Comida: bowl de garbanzos + tahini',
+      'Cena: tempeh + camote + verduras',
+      'Colación: batido de plátano + mantequilla de cacahuate + proteína de chícharo',
     ],
     carnivore: [
-      'Breakfast: eggs + steak',
-      'Lunch: ground beef patties',
-      'Dinner: salmon or ribeye',
-      'Snack: bone broth or leftover meat',
+      'Desayuno: huevos + bistec',
+      'Comida: carne molida',
+      'Cena: salmón o ribeye',
+      'Colación: caldo de huesos o carne sobrante',
     ],
     pescatarian: [
-      'Breakfast: eggs + fruit',
-      'Lunch: tuna salad + potatoes',
-      'Dinner: salmon + rice + broccoli',
-      'Snack: skyr / Greek yogurt',
+      'Desayuno: huevos + fruta',
+      'Comida: ensalada de atún + papas',
+      'Cena: salmón + arroz + brócoli',
+      'Colación: skyr / yogurt griego',
     ],
   };
 
   return [
-    `### ${mode === 'surplus' ? 'Weight-gain' : 'Fat-loss'} diet (${food})`,
-    `Aim for a ${kcal}. Hit ${protein}. Drink water. Keep it boring-consistent 80% of the time.`,
+    `### Dieta ${mode === 'surplus' ? 'para subir peso' : 'para bajar grasa'} (${food})`,
+    `Apunta a un ${kcal}. Busca ${protein}. Toma agua. Manténlo simple el 80% del tiempo.`,
     '',
-    'Sample day:',
+    'Día de ejemplo:',
     ...samples[food].map((s) => `• ${s}`),
     '',
-    'Ask me for a full 7-day menu or grocery list if you want more detail.',
+    'Pídeme un menú de 7 días o lista de súper si quieres más detalle.',
   ].join('\n');
 }
 
 function fatLossRoutine(): string {
   return [
-    '### This week’s fat-loss routine (Fortachones-friendly)',
-    'Do ≥5 training days. Keep sessions 35–55 min.',
+    '### Rutina de la semana para bajar grasa (estilo Fortachones)',
+    'Haz ≥5 días de entreno. Sesiones de 35–55 min.',
     '',
-    '• Day 1 — Full body strength (squat, push, hinge, row)',
-    '• Day 2 — Zone-2 cardio 40 min (run/bike/row)',
-    '• Day 3 — Upper push/pull + core',
-    '• Day 4 — Intervals 20–25 min (or sports/padel/soccer)',
-    '• Day 5 — Lower body + easy walk 20 min',
-    '• Optional Day 6 — Double day: short mobility AM + sport PM (banks a credit)',
+    '• Día 1 — Fuerza cuerpo completo (sentadilla, empuje, bisagra, remo)',
+    '• Día 2 — Cardio zona 2, 40 min (correr/bici/remo)',
+    '• Día 3 — Tren superior empuje/jalón + core',
+    '• Día 4 — Intervalos 20–25 min (o deporte/pádel/fútbol)',
+    '• Día 5 — Pierna + caminata fácil 20 min',
+    '• Día 6 opcional — Día doble: movilidad AM + deporte PM (acumula crédito)',
     '',
-    'Ask for a 4-week progressive plan if you want the long game.',
+    'Pide un plan progresivo de 4 semanas si quieres el largo plazo.',
   ].join('\n');
 }
 
 function climbingPlan(): string {
   return [
-    '### Climbing-focused week',
-    '• 2× hangboard or fingerboard (after warm-up, never cold)',
-    '• 2× climbing sessions (limit projects; volume on easier grades)',
-    '• 1× antagonist + pull strength (rows, push-ups, face pulls)',
-    '• 1× zone-2 aerobic for recovery capacity',
-    '• Optional double day: easy traverse + antagonist',
+    '### Semana enfocada en escalar',
+    '• 2× hangboard o fingerboard (después de calentar, nunca en frío)',
+    '• 2× sesiones de escalada (proyectos límite; volumen en grados fáciles)',
+    '• 1× antagonistas + fuerza de jalón (remos, flexiones, face pulls)',
+    '• 1× aeróbico zona 2 para recuperación',
+    '• Día doble opcional: travesía fácil + antagonistas',
     '',
-    'Sleep and skin care matter as much as finger strength. Want a 4-week peaking plan?',
+    'Dormir y cuidar la piel importan tanto como la fuerza de dedos. ¿Quieres un plan de 4 semanas para pico?',
   ].join('\n');
 }
 
 function improveExercisePlan(exercise: string): string {
   return [
-    `### Improve at ${exercise} — weekly template`,
-    `• 3× focused ${exercise} skill/practice sessions`,
-    '• 2× supporting strength (posterior chain + core + scapular)',
-    '• 1× easy aerobic recovery',
-    '• Film one set weekly and review form',
+    `### Mejorar en ${exercise} — plantilla semanal`,
+    `• 3× sesiones de técnica / práctica de ${exercise}`,
+    '• 2× fuerza de soporte (cadena posterior + core + escápulas)',
+    '• 1× recuperación aeróbica suave',
+    '• Graba una serie a la semana y revisa la forma',
     '',
-    'Tell me your current level and equipment and I’ll sharpen this.',
+    'Cuéntame tu nivel y equipo y lo afino.',
   ].join('\n');
 }

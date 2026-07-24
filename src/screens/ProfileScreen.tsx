@@ -179,7 +179,7 @@ export function ProfileScreen() {
     }
 
     const err = await updateProfile({
-      display_name: name.trim() || 'Athlete',
+      display_name: name.trim() || 'Atleta',
       height_m,
       weight_kg,
       age_years,
@@ -221,7 +221,7 @@ export function ProfileScreen() {
     else {
       await refreshProfile();
       setEditingPersonal(false);
-      Alert.alert('Guardado', 'Datos y weekly plan listos.');
+      Alert.alert('Guardado', 'Datos y plan semanal listos.');
     }
   };
 
@@ -289,13 +289,13 @@ export function ProfileScreen() {
                 </View>
               </View>
               <View style={styles.rowBetween}>
-                <Muted>Fallados YTD</Muted>
+                <Muted>Fallados (año)</Muted>
                 <Text style={styles.valueBad}>
                   {myTotals?.totalMissedDays ?? 0}
                 </Text>
               </View>
               <View style={styles.rowBetween}>
-                <Muted>Banked</Muted>
+                <Muted>Acumulados</Muted>
                 <Text style={styles.valueOk}>
                   {myTotals?.bankedCredits ?? 0}
                 </Text>
@@ -417,7 +417,7 @@ export function ProfileScreen() {
 
             {plan ? (
               <Card style={styles.card}>
-                <Text style={styles.heading}>WEEKLY PLAN</Text>
+                <Text style={styles.heading}>PLAN SEMANAL</Text>
                 <Muted>Semana {planWeek} · se renueva cada lunes</Muted>
                 <WeeklyPlanCalendar plan={plan} />
               </Card>
@@ -425,7 +425,7 @@ export function ProfileScreen() {
 
             <Card style={styles.card}>
               <View style={styles.rowBetween}>
-                <Text style={styles.heading}>COACH</Text>
+                <Text style={styles.heading}>ENTRENADOR</Text>
                 <Pressable onPress={() => setCoachExpanded((e) => !e)}>
                   <Text style={styles.editLink}>
                     {coachExpanded ? 'MINIMIZAR' : 'EXPANDIR'}
@@ -465,7 +465,7 @@ export function ProfileScreen() {
                     multiline
                   />
                   <Button
-                    label="ENVIAR AL COACH"
+                    label="ENVIAR AL ENTRENADOR"
                     onPress={() => void onAskCoach()}
                     loading={coachBusy}
                     disabled={!plan}

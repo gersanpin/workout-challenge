@@ -14,6 +14,8 @@ import {
   addDays,
   formatWeekLabel,
   getWeekEnd,
+  getWeekStart,
+  isWeekClosed,
   parseDateOnly,
   todayDateOnly,
 } from '../lib/dates';
@@ -73,6 +75,7 @@ export function WeekDetailModal({
   workouts,
   initialDate,
   onClose,
+  onDeleteWorkout,
 }: {
   visible: boolean;
   title: string;
@@ -81,12 +84,15 @@ export function WeekDetailModal({
   /** When set, scroll/highlight that day first. */
   initialDate?: string | null;
   onClose: () => void;
+  /** If provided, own workouts in an open week can be removed. */
+  onDeleteWorkout?: (workout: Workout) => void;
 }) {
   const days = useMemo(
     () => buildWeekDays(weekStart, workouts),
     [weekStart, workouts],
   );
   const [focusDate, setFocusDate] = useState<string | null>(initialDate ?? null);
+  const today = todayDateOnly();
 
   useEffect(() => {
     if (visible) setFocusDate(initialDate ?? null);
@@ -131,9 +137,21 @@ export function WeekDetailModal({
 
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
             {focus ? (
-              <DayDetail day={focus} />
+              <DayDetail
+                day={focus}
+                today={today}
+                onDeleteWorkout={onDeleteWorkout}
+              />
             ) : (
-              days.map((d) => <DayDetail key={d.date} day={d} compact />)
+              days.map((d) => (
+                <DayDetail
+                  key={d.date}
+                  day={d}
+                  compact
+                  today={today}
+                  onDeleteWorkout={onDeleteWorkout}
+                />
+              ))
             )}
           </ScrollView>
 
@@ -156,9 +174,13 @@ export function WeekDetailModal({
 function DayDetail({
   day,
   compact,
+  today,
+  onDeleteWorkout,
 }: {
   day: WeekDayInfo;
   compact?: boolean;
+  today: string;
+  onDeleteWorkout?: (workout: Workout) => void;
 }) {
   const n = day.workouts.length;
   const dateLabel = parseDateOnly(day.date).toLocaleDateString('es-MX', {
@@ -166,6 +188,9 @@ function DayDetail({
     month: 'long',
     year: 'numeric',
   });
+  const canDeleteDay =
+    Boolean(onDeleteWorkout) &&
+    !isWeekClosed(getWeekStart(day.date), today);
 
   return (
     <View style={[styles.dayBlock, compact && styles.dayBlockCompact]}>
@@ -195,6 +220,15 @@ function DayDetail({
               </View>
               {w.photo_url ? (
                 <Image source={{ uri: w.photo_url }} style={styles.thumb} />
+              ) : null}
+              {canDeleteDay ? (
+                <Pressable
+                  onPress={() => onDeleteWorkout?.(w)}
+                  hitSlop={8}
+                  style={styles.deleteBtn}
+                >
+                  <Text style={styles.deleteText}>QUITAR</Text>
+                </Pressable>
               ) : null}
             </View>
           ))}
@@ -362,6 +396,18 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     backgroundColor: colors.surface,
+  },
+  deleteBtn: {
+    borderWidth: borderWidth.thick,
+    borderColor: colors.danger,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  deleteText: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.danger,
+    fontSize: 12,
+    letterSpacing: 1,
   },
   footer: { gap: spacing.sm },
   stripWrap: { gap: spacing.sm },

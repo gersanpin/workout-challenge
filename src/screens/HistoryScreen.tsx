@@ -1,8 +1,10 @@
 import React, { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -11,8 +13,10 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, EmptyState, Muted, Screen, Title } from '../components/ui';
 import { borderWidth, colors, spacing, typography } from '../constants/theme';
+import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
-import { formatWeekLabel } from '../lib/dates';
+import { formatWeekLabel, getWeekStart, isWeekClosed, todayDateOnly } from '../lib/dates';
+import { deleteWorkout, exerciseTypeLabel } from '../lib/workoutsApi';
 import type { WeeklySummary, Workout } from '../types';
 
 function WeekRow({ week }: { week: WeeklySummary }) {
@@ -64,20 +68,41 @@ function Stat({
   );
 }
 
-function WorkoutRow({ workout }: { workout: Workout }) {
+function WorkoutRow({
+  workout,
+  canDelete,
+  onDelete,
+}: {
+  workout: Workout;
+  canDelete: boolean;
+  onDelete: (workout: Workout) => void;
+}) {
   return (
     <Card style={styles.workoutCard}>
       <Image source={{ uri: workout.photo_url }} style={styles.thumb} />
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.workoutTitle}>{workout.exercise_type}</Text>
+        <Text style={styles.workoutTitle}>
+          {exerciseTypeLabel(workout.exercise_type)}
+        </Text>
         <Muted>{workout.workout_date}</Muted>
       </View>
+      {canDelete ? (
+        <Pressable
+          onPress={() => onDelete(workout)}
+          hitSlop={8}
+          style={styles.deleteBtn}
+        >
+          <Text style={styles.deleteText}>QUITAR</Text>
+        </Pressable>
+      ) : null}
     </Card>
   );
 }
 
 export function HistoryScreen() {
+  const { user } = useAuth();
   const { myWorkouts, myTotals, loading, refresh } = useChallengeData();
+  const today = todayDateOnly();
 
   useFocusEffect(
     useCallback(() => {
@@ -94,6 +119,31 @@ export function HistoryScreen() {
     () => [...myWorkouts].reverse(),
     [myWorkouts],
   );
+
+  const onDelete = (workout: Workout) => {
+    if (!user) return;
+    Alert.alert(
+      '¿Quitar entrenamiento?',
+      `Se elimina el registro del ${workout.workout_date} y su post en el chat. El progreso semanal se recalcula.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Quitar',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteWorkout(workout.id, user.id);
+                await refresh();
+              } catch (e) {
+                Alert.alert('Error', (e as Error).message);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
 
   if (loading && !myTotals) {
     return (
@@ -118,6 +168,10 @@ export function HistoryScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <Title>HISTORIAL</Title>
+            <Muted>
+              Si te equivocaste, quita el registro mientras la semana siga
+              abierta.
+            </Muted>
             <Card style={styles.totals}>
               <Text style={styles.totalsTitle}>ESTE AÑO</Text>
               <View style={styles.grid}>
@@ -150,7 +204,11 @@ export function HistoryScreen() {
         }
         renderItem={({ item }) => (
           <View style={{ paddingHorizontal: spacing.md }}>
-            <WorkoutRow workout={item} />
+            <WorkoutRow
+              workout={item}
+              canDelete={!isWeekClosed(getWeekStart(item.workout_date), today)}
+              onDelete={onDelete}
+            />
           </View>
         )}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
@@ -225,5 +283,17 @@ const styles = StyleSheet.create({
     ...typography.subtitle,
     color: colors.text,
     textTransform: 'capitalize',
+  },
+  deleteBtn: {
+    borderWidth: borderWidth.thick,
+    borderColor: colors.danger,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  deleteText: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.danger,
+    fontSize: 14,
+    letterSpacing: 1,
   },
 });

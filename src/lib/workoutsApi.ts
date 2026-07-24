@@ -159,6 +159,72 @@ export async function logWorkout(input: LogWorkoutInput): Promise<string> {
   return data.id as string;
 }
 
+/**
+ * Remove a mistaken workout log (own only). Also removes linked chat/activity
+ * posts and best-effort deletes the storage photo. Blocked if that week already locked.
+ */
+export async function deleteWorkout(
+  workoutId: string,
+  userId: string,
+): Promise<void> {
+  const { data: row, error: fetchError } = await supabase
+    .from('workouts')
+    .select('id, user_id, workout_date, photo_url')
+    .eq('id', workoutId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error(fetchError.message);
+  if (!row) throw new Error('Entrenamiento no encontrado.');
+  if (row.user_id !== userId) {
+    throw new Error('Solo puedes quitar tus propios registros.');
+  }
+
+  const today = todayDateOnly();
+  if (isWeekClosed(getWeekStart(row.workout_date), today)) {
+    throw new Error(
+      'Esa semana ya cerró — no se pueden quitar registros bloqueados.',
+    );
+  }
+
+  // Remove chat post so the group stream stays consistent.
+  await supabase
+    .from('chat_messages')
+    .delete()
+    .eq('workout_id', workoutId)
+    .eq('user_id', userId);
+
+  await supabase
+    .from('activity_events')
+    .delete()
+    .eq('workout_id', workoutId);
+
+  const { error: deleteError } = await supabase
+    .from('workouts')
+    .delete()
+    .eq('id', workoutId)
+    .eq('user_id', userId);
+
+  if (deleteError) throw new Error(deleteError.message);
+
+  // Best-effort storage cleanup (public URL → path after bucket name).
+  if (row.photo_url) {
+    try {
+      const marker = '/workout-photos/';
+      const idx = row.photo_url.indexOf(marker);
+      if (idx >= 0) {
+        const path = decodeURIComponent(
+          row.photo_url.slice(idx + marker.length).split('?')[0],
+        );
+        if (path.startsWith(`${userId}/`)) {
+          await supabase.storage.from('workout-photos').remove([path]);
+        }
+      }
+    } catch {
+      /* ignore storage cleanup failures */
+    }
+  }
+}
+
 export async function addWorkoutComment(
   workoutId: string,
   userId: string,

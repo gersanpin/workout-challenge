@@ -348,6 +348,11 @@ create policy "Members can chat"
   on public.chat_messages for insert to authenticated
   with check (group_id = public.my_group_id() and user_id = auth.uid());
 
+drop policy if exists "Members can delete own chat" on public.chat_messages;
+create policy "Members can delete own chat"
+  on public.chat_messages for delete to authenticated
+  using (group_id = public.my_group_id() and user_id = auth.uid());
+
 -- Activity
 drop policy if exists "Activity readable in group" on public.activity_events;
 create policy "Activity readable in group"
@@ -358,6 +363,11 @@ drop policy if exists "Members insert activity" on public.activity_events;
 create policy "Members insert activity"
   on public.activity_events for insert to authenticated
   with check (group_id = public.my_group_id());
+
+drop policy if exists "Members can delete own activity" on public.activity_events;
+create policy "Members can delete own activity"
+  on public.activity_events for delete to authenticated
+  using (group_id = public.my_group_id() and user_id = auth.uid());
 
 -- Weight
 drop policy if exists "Own weight readable" on public.weight_entries;

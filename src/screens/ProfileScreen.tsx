@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { KeyboardAvoid } from '../components/KeyboardAvoid';
 import {
   Button,
   Card,
@@ -101,6 +102,13 @@ export function ProfileScreen() {
   const [coachInput, setCoachInput] = useState('');
   const [coachBusy, setCoachBusy] = useState(false);
   const [coachThread, setCoachThread] = useState<CoachMessage[]>([]);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const scrollComposerIntoView = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 80);
+  };
 
   const challengeDays = useMemo(() => {
     if (!challengeStartedOn) return 0;
@@ -270,13 +278,14 @@ export function ProfileScreen() {
     GOAL_OPTIONS.find((g) => g.value === profile?.goal_type)?.label ?? '—';
 
   return (
-    <Screen>
-      <FlatList
-        data={[]}
-        keyExtractor={() => 'x'}
-        renderItem={null}
-        ListHeaderComponent={
-          <View style={styles.content}>
+    <Screen style={{ paddingBottom: 0 }}>
+      <KeyboardAvoid>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
             <Title>PERFIL</Title>
             <Muted>{user?.email}</Muted>
 
@@ -458,6 +467,8 @@ export function ProfileScreen() {
                     value={coachInput}
                     onChangeText={setCoachInput}
                     multiline
+                    textAlignVertical="top"
+                    onFocus={scrollComposerIntoView}
                   />
                   <Button
                     label="ENVIAR"
@@ -489,6 +500,8 @@ export function ProfileScreen() {
                     value={coachInput}
                     onChangeText={setCoachInput}
                     multiline
+                    textAlignVertical="top"
+                    onFocus={scrollComposerIntoView}
                   />
                   <Button
                     label="ENVIAR A DON FORTACHÓN"
@@ -510,9 +523,8 @@ export function ProfileScreen() {
               variant="danger"
               onPress={() => void signOut()}
             />
-          </View>
-        }
-      />
+      </ScrollView>
+      </KeyboardAvoid>
     </Screen>
   );
 }

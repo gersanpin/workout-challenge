@@ -3,6 +3,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -42,6 +43,11 @@ export function AuthScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.inner}
       >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.hero}>
           <Image
             source={require('../../assets/fortachones-logo.png')}
@@ -105,6 +111,7 @@ export function AuthScreen() {
             }}
           />
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -112,7 +119,13 @@ export function AuthScreen() {
 
 const styles = StyleSheet.create({
   screen: { justifyContent: 'center' },
-  inner: { gap: spacing.xl },
+  inner: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    gap: spacing.xl,
+    paddingVertical: spacing.lg,
+  },
   hero: { alignItems: 'center', gap: spacing.sm },
   logo: {
     width: 120,

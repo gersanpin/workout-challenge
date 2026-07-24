@@ -28,10 +28,14 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.fortachones.app",
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES"
       ]
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#0B0D0C"
     },
     "web": {
       "favicon": "./assets/favicon.png"

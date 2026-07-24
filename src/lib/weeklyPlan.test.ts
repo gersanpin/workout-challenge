@@ -39,4 +39,34 @@ describe('localHeuristicPatch', () => {
     expect(patched.days[1].meals.dinner).not.toBe(plan.days[1].meals.dinner);
     expect(patched.days[0].meals.dinner).toBe(beforeMon);
   });
+
+  it('converts rest day (sunday) into a training day when asked', () => {
+    const plan = generateWeeklyPlan(baseProfile);
+    expect(plan.days[6].workout.isRest).toBe(true);
+    const patched = localHeuristicPatch(
+      plan,
+      'cambia el domingo, quiero entrenar en vez de descanso',
+    );
+    expect(patched.days[6].workout.isRest).toBe(false);
+    expect(patched.days[6].workout.exercises.length).toBeGreaterThan(1);
+    expect(patched.days[6].workout.durationMinutes).toBeGreaterThan(0);
+  });
+
+  it('marks a training day as rest when requested', () => {
+    const plan = generateWeeklyPlan(baseProfile);
+    expect(plan.days[0].workout.isRest).toBeFalsy();
+    const patched = localHeuristicPatch(plan, 'pon descanso el lunes');
+    expect(patched.days[0].workout.isRest).toBe(true);
+    expect(patched.days[0].workout.title).toMatch(/descanso/i);
+  });
+
+  it('moves rest day to another weekday', () => {
+    const plan = generateWeeklyPlan(baseProfile);
+    const patched = localHeuristicPatch(
+      plan,
+      'pasa el descanso al miércoles',
+    );
+    expect(patched.days[6].workout.isRest).toBe(false);
+    expect(patched.days[2].workout.isRest).toBe(true);
+  });
 });

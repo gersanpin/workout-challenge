@@ -29,6 +29,7 @@ interface AuthContextValue {
     avatar_url: string | null;
     height_m: number | null;
     weight_kg: number | null;
+    age_years: number | null;
     goal_type: GoalType | null;
     goal_exercise: string | null;
     food_preference: FoodPreference | null;

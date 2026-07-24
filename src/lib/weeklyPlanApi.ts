@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { getWeekStart, todayDateOnly } from './dates';
 import {
+  ensureStructuredPlan,
   generateWeeklyPlan,
   type WeeklyPlanContent,
 } from './weeklyPlan';
@@ -18,12 +19,18 @@ export async function fetchOrCreateWeeklyPlan(
     .maybeSingle();
 
   if (data) {
-    return {
-      id: data.id,
-      weekStart,
-      goalSection: data.goal_section,
-      foodSection: data.food_section,
-    };
+    const structured = ensureStructuredPlan(
+      data.plan_json ?? {
+        goalSection: data.goal_section,
+        foodSection: data.food_section,
+      },
+      profile,
+    );
+    // If legacy row without plan_json days, persist structured version once
+    if (!data.plan_json?.days) {
+      await saveWeeklyPlan(profile.id, weekStart, structured);
+    }
+    return { id: data.id, weekStart, ...structured };
   }
 
   const generated = generateWeeklyPlan(profile);
@@ -31,25 +38,8 @@ export async function fetchOrCreateWeeklyPlan(
     return { weekStart, ...generated };
   }
 
-  const { data: inserted } = await supabase
-    .from('weekly_plans')
-    .upsert(
-      {
-        user_id: profile.id,
-        week_start: weekStart,
-        goal_section: generated.goalSection,
-        food_section: generated.foodSection,
-      },
-      { onConflict: 'user_id,week_start' },
-    )
-    .select('*')
-    .maybeSingle();
-
-  return {
-    id: inserted?.id,
-    weekStart,
-    ...generated,
-  };
+  await saveWeeklyPlan(profile.id, weekStart, generated);
+  return { weekStart, ...generated };
 }
 
 export async function saveWeeklyPlan(
@@ -63,6 +53,7 @@ export async function saveWeeklyPlan(
       week_start: weekStart,
       goal_section: plan.goalSection,
       food_section: plan.foodSection,
+      plan_json: plan,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id,week_start' },

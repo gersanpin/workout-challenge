@@ -8,6 +8,7 @@ create table if not exists public.challenge_groups (
   id uuid primary key default gen_random_uuid(),
   name text not null default 'Fortachones',
   invite_code text not null unique,
+  photo_url text,
   created_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now()
 );
@@ -21,6 +22,7 @@ create table if not exists public.profiles (
   avatar_url text,
   height_m numeric(4,2),
   weight_kg numeric(5,2),
+  age_years integer,
   goal_type text check (goal_type in ('gain_weight', 'lose_weight', 'improve_exercise')),
   goal_exercise text,
   food_preference text check (food_preference in ('omnivore', 'vegetarian', 'vegan', 'carnivore', 'pescatarian')),
@@ -34,7 +36,9 @@ create table if not exists public.profiles (
 -- Soft-add columns if upgrading from earlier schema
 alter table public.profiles add column if not exists height_m numeric(4,2);
 alter table public.profiles add column if not exists weight_kg numeric(5,2);
+alter table public.profiles add column if not exists age_years integer;
 alter table public.profiles add column if not exists goal_type text;
+alter table public.challenge_groups add column if not exists photo_url text;
 alter table public.profiles add column if not exists goal_exercise text;
 alter table public.profiles add column if not exists food_preference text;
 alter table public.profiles add column if not exists is_admin boolean not null default false;
@@ -134,9 +138,12 @@ create table if not exists public.weekly_plans (
   week_start date not null,
   goal_section text not null,
   food_section text not null,
+  plan_json jsonb,
   updated_at timestamptz not null default now(),
   unique (user_id, week_start)
 );
+
+alter table public.weekly_plans add column if not exists plan_json jsonb;
 
 alter table public.chat_messages add column if not exists workout_id uuid references public.workouts (id) on delete set null;
 

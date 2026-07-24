@@ -19,6 +19,7 @@ import {
   Screen,
   Title,
 } from '../components/ui';
+import { WeeklyPlanCalendar } from '../components/WeeklyPlanCalendar';
 import { CHALLENGE_START_DATE } from '../constants/challenge';
 import { borderWidth, colors, spacing, typography } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
@@ -49,18 +50,40 @@ function daysBetween(from: string, to: string): number {
   return Math.max(0, Math.floor((b - a) / (24 * 60 * 60 * 1000)) + 1);
 }
 
+function hasPersonalBasics(p: {
+  height_m: number | null;
+  weight_kg: number | null;
+  age_years: number | null;
+  goal_type: GoalType | null;
+  food_preference: FoodPreference | null;
+}): boolean {
+  return Boolean(
+    p.height_m &&
+      p.weight_kg &&
+      p.age_years &&
+      p.goal_type &&
+      p.food_preference,
+  );
+}
+
 export function ProfileScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const { user, profile, signOut, updateProfile, refreshProfile } = useAuth();
   const { myTotals, myWorkouts } = useChallengeData();
 
+  const [editingPersonal, setEditingPersonal] = useState(
+    !profile || !hasPersonalBasics(profile),
+  );
   const [name, setName] = useState(profile?.display_name ?? '');
   const [height, setHeight] = useState(
     profile?.height_m != null ? String(profile.height_m) : '',
   );
   const [weight, setWeight] = useState(
     profile?.weight_kg != null ? String(profile.weight_kg) : '',
+  );
+  const [age, setAge] = useState(
+    profile?.age_years != null ? String(profile.age_years) : '',
   );
   const [goalType, setGoalType] = useState<GoalType | null>(
     profile?.goal_type ?? null,
@@ -72,13 +95,10 @@ export function ProfileScreen() {
     profile?.food_preference ?? null,
   );
   const [saving, setSaving] = useState(false);
-  const [weightHistory, setWeightHistory] = useState<
-    { id: string; weight_kg: number; recorded_on: string }[]
-  >([]);
 
   const [plan, setPlan] = useState<WeeklyPlanContent | null>(null);
   const [planWeek, setPlanWeek] = useState('');
-  const [coachOpen, setCoachOpen] = useState(false);
+  const [coachExpanded, setCoachExpanded] = useState(false);
   const [coachInput, setCoachInput] = useState('');
   const [coachBusy, setCoachBusy] = useState(false);
   const [coachThread, setCoachThread] = useState<CoachMessage[]>([]);
@@ -87,32 +107,26 @@ export function ProfileScreen() {
     () => daysBetween(CHALLENGE_START_DATE, todayDateOnly()),
     [],
   );
-
   const totalWorkoutDays = useMemo(() => {
     const set = new Set(myWorkouts.map((w) => w.workout_date));
     return set.size;
   }, [myWorkouts]);
 
   useEffect(() => {
-    if (profile?.display_name) setName(profile.display_name);
-    if (profile?.height_m != null) setHeight(String(profile.height_m));
-    if (profile?.weight_kg != null) setWeight(String(profile.weight_kg));
-    setGoalType(profile?.goal_type ?? null);
-    setGoalExercise(profile?.goal_exercise ?? '');
-    setFood(profile?.food_preference ?? null);
+    if (!profile) return;
+    setName(profile.display_name ?? '');
+    if (profile.height_m != null) setHeight(String(profile.height_m));
+    if (profile.weight_kg != null) setWeight(String(profile.weight_kg));
+    if (profile.age_years != null) setAge(String(profile.age_years));
+    setGoalType(profile.goal_type ?? null);
+    setGoalExercise(profile.goal_exercise ?? '');
+    setFood(profile.food_preference ?? null);
+    setEditingPersonal(!hasPersonalBasics(profile));
   }, [profile]);
 
   useEffect(() => {
     if (!user || !profile) return;
     void (async () => {
-      const { data } = await supabase
-        .from('weight_entries')
-        .select('id, weight_kg, recorded_on')
-        .eq('user_id', user.id)
-        .order('recorded_on', { ascending: false })
-        .limit(12);
-      setWeightHistory((data as typeof weightHistory) ?? []);
-
       const { data: msgs } = await supabase
         .from('coach_messages')
         .select('role, body')
@@ -123,24 +137,45 @@ export function ProfileScreen() {
 
       if (profile.goal_type && profile.food_preference) {
         const p = await fetchOrCreateWeeklyPlan(profile);
-        setPlan({ goalSection: p.goalSection, foodSection: p.foodSection });
+        setPlan({
+          days: p.days,
+          goalSection: p.goalSection,
+          foodSection: p.foodSection,
+        });
         setPlanWeek(p.weekStart);
       }
     })();
   }, [user, profile]);
 
-  const onSave = async () => {
+  const onSavePersonal = async () => {
     setSaving(true);
     const height_m = height.trim() ? Number(height) : null;
     const weight_kg = weight.trim() ? Number(weight) : null;
-    if (height_m != null && (!Number.isFinite(height_m) || height_m <= 0)) {
+    const age_years = age.trim() ? Number(age) : null;
+
+    if (!height_m || height_m <= 0) {
       setSaving(false);
-      Alert.alert('Altura inválida', 'Usa metros, ej. 1.75');
+      Alert.alert('Altura', 'Usa metros, ej. 1.75');
       return;
     }
-    if (weight_kg != null && (!Number.isFinite(weight_kg) || weight_kg <= 0)) {
+    if (!weight_kg || weight_kg <= 0) {
       setSaving(false);
-      Alert.alert('Peso inválido', 'Usa kg, ej. 78.5');
+      Alert.alert('Peso', 'Usa kg, ej. 78.5');
+      return;
+    }
+    if (!age_years || age_years < 10 || age_years > 100) {
+      setSaving(false);
+      Alert.alert('Edad', 'Ingresa una edad válida');
+      return;
+    }
+    if (!goalType || !food) {
+      setSaving(false);
+      Alert.alert('Meta y dieta', 'Elige meta y preferencia de comida');
+      return;
+    }
+    if (goalType === 'improve_exercise' && !goalExercise.trim()) {
+      setSaving(false);
+      Alert.alert('Ejercicio', 'Especifica el ejercicio a mejorar');
       return;
     }
 
@@ -148,30 +183,26 @@ export function ProfileScreen() {
       display_name: name.trim() || 'Athlete',
       height_m,
       weight_kg,
+      age_years,
       goal_type: goalType,
-      goal_exercise: goalType === 'improve_exercise' ? goalExercise.trim() : null,
+      goal_exercise:
+        goalType === 'improve_exercise' ? goalExercise.trim() : null,
       food_preference: food,
     });
 
-    if (!err && user && weight_kg != null) {
-      const last = weightHistory[0];
+    if (!err && user) {
       const today = todayDateOnly();
-      const shouldLog =
-        !last ||
-        last.recorded_on.slice(0, 7) !== today.slice(0, 7) ||
-        Number(last.weight_kg) !== weight_kg;
-      if (shouldLog) {
-        await supabase.from('weight_entries').insert({
-          user_id: user.id,
-          weight_kg,
-          recorded_on: today,
-        });
-      }
-    }
+      await supabase.from('weight_entries').insert({
+        user_id: user.id,
+        weight_kg,
+        recorded_on: today,
+      });
 
-    if (!err && profile && goalType && food) {
       const updated = {
-        ...profile,
+        ...profile!,
+        height_m,
+        weight_kg,
+        age_years,
         goal_type: goalType,
         goal_exercise:
           goalType === 'improve_exercise' ? goalExercise.trim() : null,
@@ -179,6 +210,7 @@ export function ProfileScreen() {
       };
       const regenerated = await regenerateWeeklyPlan(updated);
       setPlan({
+        days: regenerated.days,
         goalSection: regenerated.goalSection,
         foodSection: regenerated.foodSection,
       });
@@ -189,7 +221,8 @@ export function ProfileScreen() {
     if (err) Alert.alert('Error', err);
     else {
       await refreshProfile();
-      Alert.alert('Guardado', 'Perfil y plan semanal actualizados.');
+      setEditingPersonal(false);
+      Alert.alert('Guardado', 'Datos y weekly plan listos.');
     }
   };
 
@@ -198,7 +231,10 @@ export function ProfileScreen() {
     const message = coachInput.trim();
     setCoachInput('');
     setCoachBusy(true);
-    const nextHistory = [...coachThread, { role: 'user' as const, body: message }];
+    const nextHistory = [
+      ...coachThread,
+      { role: 'user' as const, body: message },
+    ];
     setCoachThread(nextHistory);
     await supabase.from('coach_messages').insert({
       user_id: user.id,
@@ -213,9 +249,8 @@ export function ProfileScreen() {
       message,
     );
     setPlan(nextPlan);
-    if (planWeek) {
-      await saveWeeklyPlan(user.id, planWeek, nextPlan);
-    }
+    if (planWeek) await saveWeeklyPlan(user.id, planWeek, nextPlan);
+
     setCoachThread([...nextHistory, { role: 'assistant', body: reply }]);
     await supabase.from('coach_messages').insert({
       user_id: user.id,
@@ -224,6 +259,12 @@ export function ProfileScreen() {
     });
     setCoachBusy(false);
   };
+
+  const foodLabel =
+    FOOD_OPTIONS.find((f) => f.value === profile?.food_preference)?.label ??
+    '—';
+  const goalLabel =
+    GOAL_OPTIONS.find((g) => g.value === profile?.goal_type)?.label ?? '—';
 
   return (
     <Screen>
@@ -245,13 +286,13 @@ export function ProfileScreen() {
                 </View>
                 <View style={styles.statBox}>
                   <Display color={colors.accent}>{totalWorkoutDays}</Display>
-                  <Muted>días con ejercicio</Muted>
+                  <Muted>días ejercicio</Muted>
                 </View>
               </View>
               <View style={styles.rowBetween}>
-                <Muted>Debes YTD</Muted>
-                <Text style={styles.value}>
-                  ${myTotals?.totalMoneyOwedMxn ?? 0} MXN
+                <Muted>Fallados YTD</Muted>
+                <Text style={styles.valueBad}>
+                  {myTotals?.totalMissedDays ?? 0}
                 </Text>
               </View>
               <View style={styles.rowBetween}>
@@ -262,124 +303,150 @@ export function ProfileScreen() {
               </View>
             </Card>
 
-            <Card style={styles.card}>
-              <Field
-                label="Nombre"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
-              <Field
-                label="Altura (m)"
-                value={height}
-                onChangeText={setHeight}
-                keyboardType="decimal-pad"
-                placeholder="1.75"
-              />
-              <Field
-                label="Peso (kg)"
-                value={weight}
-                onChangeText={setWeight}
-                keyboardType="decimal-pad"
-                placeholder="78.5"
-              />
-              <Button
-                label="GUARDAR PERFIL"
-                onPress={() => void onSave()}
-                loading={saving}
-              />
-            </Card>
-
-            {weightHistory.length ? (
+            {editingPersonal ? (
               <Card style={styles.card}>
-                <Text style={styles.heading}>HISTORIAL DE PESO</Text>
-                {weightHistory.map((w) => (
-                  <View key={w.id} style={styles.rowBetween}>
-                    <Muted>{w.recorded_on}</Muted>
-                    <Text style={styles.value}>{w.weight_kg} kg</Text>
-                  </View>
-                ))}
-              </Card>
-            ) : null}
-
-            <Card style={styles.card}>
-              <Text style={styles.heading}>METAS</Text>
-              <View style={styles.chips}>
-                {GOAL_OPTIONS.map((g) => {
-                  const selected = goalType === g.value;
-                  return (
-                    <Pressable
-                      key={g.value}
-                      onPress={() => setGoalType(g.value)}
-                      style={[styles.chip, selected && styles.chipOn]}
-                    >
-                      <Text
-                        style={[styles.chipText, selected && styles.chipTextOn]}
-                      >
-                        {g.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {goalType === 'improve_exercise' ? (
+                <Text style={styles.heading}>DATOS PERSONALES</Text>
                 <Field
-                  label="¿Qué ejercicio?"
-                  value={goalExercise}
-                  onChangeText={setGoalExercise}
-                  placeholder="Climbing, padel…"
+                  label="Nombre"
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
                 />
-              ) : null}
+                <Field
+                  label="Altura (m)"
+                  value={height}
+                  onChangeText={setHeight}
+                  keyboardType="decimal-pad"
+                  placeholder="1.75"
+                />
+                <Field
+                  label="Peso (kg)"
+                  value={weight}
+                  onChangeText={setWeight}
+                  keyboardType="decimal-pad"
+                  placeholder="78.5"
+                />
+                <Field
+                  label="Edad"
+                  value={age}
+                  onChangeText={setAge}
+                  keyboardType="number-pad"
+                  placeholder="28"
+                />
 
-              <Text style={styles.subheading}>PREFERENCIA DE COMIDA</Text>
-              <View style={styles.chips}>
-                {FOOD_OPTIONS.map((f) => {
-                  const selected = food === f.value;
-                  return (
-                    <Pressable
-                      key={f.value}
-                      onPress={() => setFood(f.value)}
-                      style={[styles.chip, selected && styles.chipOn]}
-                    >
-                      <Text
-                        style={[styles.chipText, selected && styles.chipTextOn]}
+                <Text style={styles.subheading}>META</Text>
+                <View style={styles.chips}>
+                  {GOAL_OPTIONS.map((g) => {
+                    const selected = goalType === g.value;
+                    return (
+                      <Pressable
+                        key={g.value}
+                        onPress={() => setGoalType(g.value)}
+                        style={[styles.chip, selected && styles.chipOn]}
                       >
-                        {f.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <Muted>
-                Al guardar meta + comida se genera el weekly plan automáticamente.
-              </Muted>
-            </Card>
+                        <Text
+                          style={[
+                            styles.chipText,
+                            selected && styles.chipTextOn,
+                          ]}
+                        >
+                          {g.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {goalType === 'improve_exercise' ? (
+                  <Field
+                    label="¿Qué ejercicio?"
+                    value={goalExercise}
+                    onChangeText={setGoalExercise}
+                    placeholder="Escalar, pádel…"
+                  />
+                ) : null}
+
+                <Text style={styles.subheading}>DIETA</Text>
+                <View style={styles.chips}>
+                  {FOOD_OPTIONS.map((f) => {
+                    const selected = food === f.value;
+                    return (
+                      <Pressable
+                        key={f.value}
+                        onPress={() => setFood(f.value)}
+                        style={[styles.chip, selected && styles.chipOn]}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            selected && styles.chipTextOn,
+                          ]}
+                        >
+                          {f.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Button
+                  label="GUARDAR"
+                  onPress={() => void onSavePersonal()}
+                  loading={saving}
+                />
+              </Card>
+            ) : (
+              <Card style={styles.card}>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.heading}>RESUMEN</Text>
+                  <Pressable onPress={() => setEditingPersonal(true)}>
+                    <Text style={styles.editLink}>EDITAR</Text>
+                  </Pressable>
+                </View>
+                <Text style={styles.summaryLine}>
+                  {profile?.display_name} · {profile?.age_years} años
+                </Text>
+                <Text style={styles.summaryLine}>
+                  {profile?.height_m} m · {profile?.weight_kg} kg
+                </Text>
+                <Text style={styles.summaryLine}>
+                  Meta: {goalLabel}
+                  {profile?.goal_exercise ? ` (${profile.goal_exercise})` : ''}
+                </Text>
+                <Text style={styles.summaryLine}>Dieta: {foodLabel}</Text>
+              </Card>
+            )}
 
             {plan ? (
               <Card style={styles.card}>
                 <Text style={styles.heading}>WEEKLY PLAN</Text>
-                <Muted>Semana {planWeek}</Muted>
-                <Text style={styles.planTitle}>META</Text>
-                <Text style={styles.planBody}>{plan.goalSection}</Text>
-                <Text style={styles.planTitle}>COMIDA</Text>
-                <Text style={styles.planBody}>{plan.foodSection}</Text>
+                <Muted>Semana {planWeek} · se renueva cada lunes</Muted>
+                <WeeklyPlanCalendar plan={plan} />
               </Card>
             ) : null}
 
             <Card style={styles.card}>
-              <Text style={styles.heading}>COACH</Text>
+              <View style={styles.rowBetween}>
+                <Text style={styles.heading}>COACH</Text>
+                <Pressable onPress={() => setCoachExpanded((e) => !e)}>
+                  <Text style={styles.editLink}>
+                    {coachExpanded ? 'MINIMIZAR' : 'EXPANDIR'}
+                  </Text>
+                </Pressable>
+              </View>
               <Muted>
-                Habla con el coach para cambiar el weekly plan (“no me gusta
-                esto”, “tengo estos ingredientes…”).
+                Pide cambios al plan: “cambia la cena del martes” o “tengo pollo
+                y arroz, ¿qué preparo?”
               </Muted>
-              <Button
-                label={coachOpen ? 'CERRAR COACH' : 'ABRIR COACH'}
-                variant="secondary"
-                onPress={() => setCoachOpen((o) => !o)}
-              />
-              {coachOpen ? (
+
+              {!coachExpanded ? (
+                <Text style={styles.collapsedHint}>
+                  {coachThread.length
+                    ? `${coachThread.length} mensajes · toca expandir`
+                    : 'Chat minimizado'}
+                </Text>
+              ) : (
                 <View style={styles.coachBox}>
-                  {coachThread.slice(-8).map((m, i) => (
+                  {coachThread.slice(-10).map((m, i) => (
                     <View
                       key={`${m.role}-${i}`}
                       style={[
@@ -392,7 +459,7 @@ export function ProfileScreen() {
                   ))}
                   <TextInput
                     style={styles.coachInput}
-                    placeholder="Ej. cámbame la cena del martes…"
+                    placeholder="Modifica comida o rutina de esta semana…"
                     placeholderTextColor={colors.textDim}
                     value={coachInput}
                     onChangeText={setCoachInput}
@@ -405,7 +472,7 @@ export function ProfileScreen() {
                     disabled={!plan}
                   />
                 </View>
-              ) : null}
+              )}
             </Card>
 
             <Button
@@ -413,7 +480,11 @@ export function ProfileScreen() {
               variant="secondary"
               onPress={() => navigation.navigate('History')}
             />
-            <Button label="CERRAR SESIÓN" variant="danger" onPress={() => void signOut()} />
+            <Button
+              label="CERRAR SESIÓN"
+              variant="danger"
+              onPress={() => void signOut()}
+            />
           </View>
         }
       />
@@ -443,7 +514,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  value: {
+  valueBad: {
     fontFamily: 'BebasNeue_400Regular',
     color: colors.danger,
     fontSize: 20,
@@ -464,16 +535,19 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
   chipText: { color: colors.text, fontFamily: 'Inter_600SemiBold' },
   chipTextOn: { color: colors.black },
-  planTitle: {
+  editLink: {
     fontFamily: 'BebasNeue_400Regular',
     color: colors.accent,
-    fontSize: 18,
+    fontSize: 16,
     letterSpacing: 1,
   },
-  planBody: {
+  summaryLine: {
     ...typography.body,
     color: colors.text,
-    lineHeight: 22,
+  },
+  collapsedHint: {
+    ...typography.caption,
+    color: colors.textDim,
   },
   coachBox: { gap: spacing.sm },
   coachBubble: {

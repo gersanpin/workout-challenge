@@ -1,23 +1,21 @@
-# Agent instructions — Fortachones
+# Agent instructions — Arquitecta
 
-## Expo SDK pin (required)
+## Product
 
-This project is **permanently pinned to Expo SDK 54** so it works with the Expo Go build currently on the App Store (newer SDKs are not supported there yet).
+Web SaaS (Next.js) for architects to create CV + portfolio. **Not** a native/Expo app.
 
-**Never** do any of the following unless the user explicitly asks:
+## Dependency stability (required)
 
-- `npx expo install expo@latest`
-- `npx expo upgrade` / `expo upgrade`
-- Bumping `expo` (or the Expo SDK) past **54.x**
-- Aligning dependencies to SDK 55+ / “latest” Expo docs
+- Pin exact versions in `package.json` (no `latest`, avoid loose `^` ranges on core deps).
+- **Do not** upgrade Next.js, React, Supabase, Tailwind, or other majors unless the user explicitly asks.
+- Preview = open a browser to `npm run dev` (`localhost:3000`) or a deploy URL. No Expo Go, QR codes, or mobile client apps.
 
-Any dependency install or fix (`npx expo install`, `npx expo install --fix`, adding packages, etc.) **must stay compatible with Expo SDK 54**.
+## Stack pin
 
-Use the SDK 54 docs only: https://docs.expo.dev/versions/v54.0.0/
+- `next`: `15.1.12`
+- `react` / `react-dom`: `19.0.0`
+- Supabase via `@supabase/supabase-js` + `@supabase/ssr`
+- PDF: `@react-pdf/renderer`
+- AI: OpenAI API (server-side only)
 
-Current targets for this pin:
-
-- `expo`: `~54.0.0`
-- `react-native`: `0.81.x`
-- `react` / `react-dom`: `19.1.0`
-- Keep `react-dom` and `react-native-web` as direct dependencies (web: `npm start` + `w`)
+Docs: use Next.js 15 App Router patterns. Keep `react-dom` as a direct dependency for web.

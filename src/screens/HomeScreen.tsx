@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   RefreshControl,
@@ -25,6 +26,8 @@ import { borderWidth, colors, spacing, typography } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
 import { getWeekStart, parseDateOnly, todayDateOnly } from '../lib/dates';
+import { deleteWorkout } from '../lib/workoutsApi';
+import type { Workout } from '../types';
 
 function daysBetween(from: string, to: string): number {
   const a = parseDateOnly(from).getTime();
@@ -101,6 +104,31 @@ export function HomeScreen() {
       title: 'SEMANA ANTERIOR',
       focusDate,
     });
+  };
+
+  const onDeleteWorkout = (workout: Workout) => {
+    if (!user) return;
+    Alert.alert(
+      '¿Quitar entrenamiento?',
+      `Se elimina el registro del ${workout.workout_date} y su post en el chat.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Quitar',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteWorkout(workout.id, user.id);
+                await refresh();
+              } catch (e) {
+                Alert.alert('Error', (e as Error).message);
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   if (loading && !myEntry && myWorkouts.length === 0) {
@@ -306,6 +334,7 @@ export function HomeScreen() {
           workouts={myWorkouts}
           initialDate={weekModal.focusDate}
           onClose={() => setWeekModal(null)}
+          onDeleteWorkout={onDeleteWorkout}
         />
       ) : null}
     </Screen>

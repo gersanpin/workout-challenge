@@ -36,6 +36,7 @@ import {
   startGroupChallenge,
 } from '../lib/groupApi';
 import { supabase } from '../lib/supabase';
+import { deleteWorkout } from '../lib/workoutsApi';
 import type { ChatMessage } from '../types';
 
 export function ChatScreen() {
@@ -130,6 +131,32 @@ export function ChatScreen() {
     await send({ body: trimmed, media_type: 'text' });
   };
 
+  const onDeleteWorkoutPost = (item: ChatMessage) => {
+    if (!user || !item.workout_id || item.user_id !== user.id) return;
+    Alert.alert(
+      '¿Quitar este entrenamiento?',
+      'Se elimina el registro y este mensaje del chat. El progreso semanal se recalcula.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Quitar',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteWorkout(item.workout_id!, user.id);
+                await load();
+                await refreshChallenge();
+              } catch (e) {
+                Alert.alert('Error', (e as Error).message);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   const onCreateGroup = async () => {
     if (!user) return;
     setBusy(true);
@@ -211,6 +238,7 @@ export function ChatScreen() {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => {
           const mine = item.user_id === user?.id;
+          const isWorkoutPost = Boolean(item.workout_id) && item.media_type === 'image';
           return (
             <View
               style={[
@@ -236,6 +264,14 @@ export function ChatScreen() {
               {item.link_url ? (
                 <Pressable onPress={() => void Linking.openURL(item.link_url!)}>
                   <Text style={styles.link}>{item.link_url}</Text>
+                </Pressable>
+              ) : null}
+              {mine && isWorkoutPost ? (
+                <Pressable
+                  onPress={() => onDeleteWorkoutPost(item)}
+                  hitSlop={8}
+                >
+                  <Text style={styles.deletePost}>QUITAR REGISTRO</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -498,6 +534,13 @@ const styles = StyleSheet.create({
     width: 220,
     height: 180,
     backgroundColor: colors.surface,
+  },
+  deletePost: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.danger,
+    fontSize: 13,
+    letterSpacing: 1,
+    marginTop: 4,
   },
   composer: {
     flexDirection: 'row',

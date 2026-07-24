@@ -18,11 +18,7 @@ import {
   Title,
 } from '../components/ui';
 import { WeightPlateStack } from '../components/WeightPlateStack';
-import {
-  APP_NAME,
-  CHALLENGE_START_DATE,
-  REQUIRED_WORKOUT_DAYS,
-} from '../constants/challenge';
+import { APP_NAME, REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
 import { borderWidth, colors, spacing } from '../constants/theme';
 import { useChallengeData } from '../hooks/useChallengeData';
 import { parseDateOnly, todayDateOnly } from '../lib/dates';
@@ -41,6 +37,8 @@ export function HomeScreen() {
     myEntry,
     myWorkouts,
     myTotals,
+    challengeStartedOn,
+    challengeHasStarted,
     loading,
     error,
     refresh,
@@ -52,10 +50,10 @@ export function HomeScreen() {
     }, [refresh]),
   );
 
-  const challengeDays = useMemo(
-    () => daysBetween(CHALLENGE_START_DATE, todayDateOnly()),
-    [],
-  );
+  const challengeDays = useMemo(() => {
+    if (!challengeStartedOn) return 0;
+    return daysBetween(challengeStartedOn, todayDateOnly());
+  }, [challengeStartedOn]);
 
   const totalWorkoutDays = useMemo(() => {
     const set = new Set(myWorkouts.map((w) => w.workout_date));
@@ -101,13 +99,21 @@ export function HomeScreen() {
           <Text style={styles.groupName}>
             {(group?.name ?? APP_NAME).toUpperCase()}
           </Text>
-          <Muted>Pozo: ${groupPot} MXN</Muted>
+          {challengeHasStarted ? (
+            <Muted>
+              Inicio: {challengeStartedOn} · Pozo: ${groupPot} MXN
+            </Muted>
+          ) : (
+            <Text style={styles.pending}>
+              RETO NO INICIADO — el admin debe tocar COMENZAR RETO en Chat
+            </Text>
+          )}
         </View>
 
         <Card style={styles.weekCard}>
           <Text style={styles.label}>ESTA SEMANA</Text>
           <WeightPlateStack
-            daysDone={myDaysDone}
+            daysDone={challengeHasStarted ? myDaysDone : 0}
             maxDays={REQUIRED_WORKOUT_DAYS}
           />
         </Card>
@@ -178,6 +184,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     letterSpacing: 1,
     color: colors.text,
+  },
+  pending: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.danger,
+    fontSize: 14,
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
   weekCard: { gap: spacing.sm },
   label: {

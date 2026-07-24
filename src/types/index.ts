@@ -41,6 +41,8 @@ export interface ChallengeGroup {
   name: string;
   invite_code: string;
   photo_url: string | null;
+  /** YYYY-MM-DD when admin started the challenge for everyone. Null = not started. */
+  challenge_started_on: string | null;
   created_by: string | null;
   created_at: string;
 }

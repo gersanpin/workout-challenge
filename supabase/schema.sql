@@ -9,6 +9,7 @@ create table if not exists public.challenge_groups (
   name text not null default 'Fortachones',
   invite_code text not null unique,
   photo_url text,
+  challenge_started_on date,
   created_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now()
 );
@@ -39,6 +40,7 @@ alter table public.profiles add column if not exists weight_kg numeric(5,2);
 alter table public.profiles add column if not exists age_years integer;
 alter table public.profiles add column if not exists goal_type text;
 alter table public.challenge_groups add column if not exists photo_url text;
+alter table public.challenge_groups add column if not exists challenge_started_on date;
 alter table public.profiles add column if not exists goal_exercise text;
 alter table public.profiles add column if not exists food_preference text;
 alter table public.profiles add column if not exists is_admin boolean not null default false;

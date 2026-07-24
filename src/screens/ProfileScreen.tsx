@@ -20,7 +20,6 @@ import {
   Title,
 } from '../components/ui';
 import { WeeklyPlanCalendar } from '../components/WeeklyPlanCalendar';
-import { CHALLENGE_START_DATE } from '../constants/challenge';
 import { borderWidth, colors, spacing, typography } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
@@ -70,7 +69,7 @@ export function ProfileScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const { user, profile, signOut, updateProfile, refreshProfile } = useAuth();
-  const { myTotals, myWorkouts } = useChallengeData();
+  const { myTotals, myWorkouts, challengeStartedOn } = useChallengeData();
 
   const [editingPersonal, setEditingPersonal] = useState(
     !profile || !hasPersonalBasics(profile),
@@ -103,10 +102,10 @@ export function ProfileScreen() {
   const [coachBusy, setCoachBusy] = useState(false);
   const [coachThread, setCoachThread] = useState<CoachMessage[]>([]);
 
-  const challengeDays = useMemo(
-    () => daysBetween(CHALLENGE_START_DATE, todayDateOnly()),
-    [],
-  );
+  const challengeDays = useMemo(() => {
+    if (!challengeStartedOn) return 0;
+    return daysBetween(challengeStartedOn, todayDateOnly());
+  }, [challengeStartedOn]);
   const totalWorkoutDays = useMemo(() => {
     const set = new Set(myWorkouts.map((w) => w.workout_date));
     return set.size;

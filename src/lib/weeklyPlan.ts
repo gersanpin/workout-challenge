@@ -482,8 +482,8 @@ export function formatPlanForDisplay(plan: WeeklyPlanContent): string {
         .map((e) => `  - ${e.name}${e.detail ? ` (${e.detail})` : ''}`)
         .join('\n');
       return [
-        `${d.label.toUpperCase()}`,
-        `META: ${d.workout.title} · ${d.workout.durationMinutes} min`,
+        `${d.label.toUpperCase()}${d.workout.isRest ? ' · DESCANSO' : ''}`,
+        `META: ${d.workout.title} · ${d.workout.durationMinutes} min · isRest=${Boolean(d.workout.isRest)}`,
         ex,
         `COMIDA:`,
         `  Desayuno: ${d.meals.breakfast}`,
@@ -525,22 +525,28 @@ export async function coachRevisePlan(
     userMessage,
     '',
     'Eres Don Fortachón, el coach de Fortachones. Actualiza SOLO lo pedido del plan semanal (comida o ejercicio de días específicos).',
+    'SÍ puedes editar días de DESCANSO: convertirlos a entrenamiento (isRest: false) o marcar otro día como descanso (isRest: true, title "Descanso").',
+    'Si piden entrenar el domingo/día de descanso, quita isRest y pon una rutina concreta con series/reps.',
+    'Si piden descanso en un día de carga, pon isRest: true y movilidad suave.',
     'No regeneres la semana completa salvo que lo pidan.',
-    'Plan actual:',
+    'Plan actual (DESC = descanso):',
     formatPlanForDisplay(current),
     '',
     'Responde consejo breve, luego el JSON completo del plan entre marcadores:',
     '<<<PLAN_JSON>>>',
-    '{ "days": [ ...7 días con key,label,short,workout,meals ] }',
+    '{ "days": [ ...7 días con key,label,short,workout:{title,durationMinutes,exercises,isRest},meals ] }',
     '<<<FIN>>>',
   ].join('\n');
 
   const reply = await askCoach(profile, history, contextMessage);
   const fromJson = parsePlanJsonFromReply(reply, current);
   const jsonChanged =
-    JSON.stringify(fromJson.days) !== JSON.stringify(current.days);
+    JSON.stringify(normalizeDaysForCompare(fromJson.days)) !==
+    JSON.stringify(normalizeDaysForCompare(current.days));
   const patched = syncTextSections(
-    jsonChanged ? fromJson : localHeuristicPatch(current, userMessage),
+    jsonChanged
+      ? { ...fromJson, days: normalizePlanDays(fromJson.days, current.days) }
+      : localHeuristicPatch(current, userMessage),
   );
   // Always return a fresh object so React re-renders the calendar.
   const nextPlan: WeeklyPlanContent = {
@@ -548,6 +554,7 @@ export async function coachRevisePlan(
       ...d,
       workout: {
         ...d.workout,
+        isRest: Boolean(d.workout.isRest),
         exercises: d.workout.exercises.map((e) => ({ ...e })),
       },
       meals: { ...d.meals },
@@ -560,12 +567,64 @@ export async function coachRevisePlan(
     .replace(/<<<PLAN>>>[\s\S]*?<<<FIN>>>/g, '')
     .trim();
 
+  const restTouched = nextPlan.days.some(
+    (d, i) => Boolean(d.workout.isRest) !== Boolean(current.days[i]?.workout.isRest),
+  );
+
   return {
     reply:
       cleanReply ||
-      'Listo — actualicé el plan de esta semana según lo que pediste.',
+      (restTouched
+        ? 'Listo — ajusté el día de descanso / entrenamiento en el calendario.'
+        : 'Listo — actualicé el plan de esta semana según lo que pediste.'),
     plan: nextPlan,
   };
+}
+
+function normalizeDaysForCompare(days: DayPlan[]) {
+  return days.map((d) => ({
+    key: d.key,
+    isRest: Boolean(d.workout?.isRest),
+    title: d.workout?.title,
+    durationMinutes: d.workout?.durationMinutes,
+    exercises: d.workout?.exercises,
+    meals: d.meals,
+  }));
+}
+
+/** Ensure AI JSON keeps a valid isRest flag and workout shape per day. */
+export function normalizePlanDays(
+  incoming: DayPlan[],
+  fallback: DayPlan[],
+): DayPlan[] {
+  return WEEKDAY_ORDER.map((key, i) => {
+    const src = incoming[i] ?? fallback[i];
+    const prev = fallback[i];
+    const workout = src.workout ?? prev.workout;
+    const isRest =
+      typeof workout.isRest === 'boolean'
+        ? workout.isRest
+        : /descanso/i.test(workout.title ?? '') || Boolean(prev.workout.isRest);
+    return {
+      key,
+      label: src.label || prev.label,
+      short: src.short || prev.short,
+      workout: {
+        title: workout.title || (isRest ? 'Descanso' : prev.workout.title),
+        durationMinutes: isRest
+          ? workout.durationMinutes ?? 20
+          : workout.durationMinutes || prev.workout.durationMinutes || 40,
+        exercises:
+          workout.exercises?.length > 0
+            ? workout.exercises
+            : isRest
+              ? rest().exercises
+              : prev.workout.exercises,
+        isRest,
+      },
+      meals: src.meals ?? prev.meals,
+    };
+  });
 }
 
 export function parsePlanJsonFromReply(
@@ -578,7 +637,7 @@ export function parsePlanJsonFromReply(
     const json = JSON.parse(block[1].trim());
     if (json?.days?.length === 7) {
       return {
-        days: json.days,
+        days: normalizePlanDays(json.days, fallback.days),
         goalSection: fallback.goalSection,
         foodSection: fallback.foodSection,
       };
@@ -605,39 +664,63 @@ export function localHeuristicPatch(
   }));
 
   const dayIdx = detectDayIndex(lower);
+  const restDayIdx = days.findIndex((d) => d.workout.isRest);
 
-  if (
-    (lower.includes('comida') ||
-      lower.includes('cena') ||
-      lower.includes('desayuno') ||
-      lower.includes('dieta') ||
-      lower.includes('platillo') ||
-      lower.includes('menú') ||
-      lower.includes('menu') ||
-      lower.includes('no me gusta') ||
-      lower.includes('cambia') ||
-      lower.includes('cámbiame') ||
-      lower.includes('cambiame') ||
-      lower.includes('otra cosa') ||
-      lower.includes('sugiere') ||
-      lower.includes('suger') ||
-      lower.includes('ingrediente')) &&
-    dayIdx != null
-  ) {
+  // --- Rest day edits (must run before generic "cambia" → meals) ---
+  if (wantsTrainOnRest(lower) || wantsChangeRestDay(lower)) {
+    const target =
+      dayIdx != null
+        ? dayIdx
+        : restDayIdx >= 0
+          ? restDayIdx
+          : days.findIndex((d) => d.workout.isRest);
+    if (target >= 0) {
+      days[target].workout = trainingFromRest(days[target].workout, lower);
+      return syncTextSections({ ...current, days });
+    }
+  }
+
+  if (wantsMakeRest(lower) && dayIdx != null) {
+    days[dayIdx].workout = {
+      ...rest(),
+      title: 'Descanso',
+    };
+    return syncTextSections({ ...current, days });
+  }
+
+  // Move rest day: "pasa el descanso al lunes" / "descanso el martes en vez del domingo"
+  if (wantsMoveRest(lower) && dayIdx != null && restDayIdx >= 0 && dayIdx !== restDayIdx) {
+    const previousRest = days[restDayIdx].workout;
+    days[restDayIdx].workout = trainingFromRest(previousRest, lower);
+    days[dayIdx].workout = { ...rest(), title: 'Descanso' };
+    return syncTextSections({ ...current, days });
+  }
+
+  const mealIntent =
+    lower.includes('comida') ||
+    lower.includes('cena') ||
+    lower.includes('desayuno') ||
+    lower.includes('dieta') ||
+    lower.includes('platillo') ||
+    lower.includes('menú') ||
+    lower.includes('menu') ||
+    lower.includes('ingrediente');
+
+  const workoutIntent =
+    lower.includes('ejercicio') ||
+    lower.includes('rutina') ||
+    lower.includes('entreno') ||
+    lower.includes('entrenar') ||
+    lower.includes('workout') ||
+    lower.includes('gym') ||
+    lower.includes('series');
+
+  if (mealIntent && dayIdx != null) {
     days[dayIdx].meals = swapMeal(days[dayIdx].meals, lower);
     return syncTextSections({ ...current, days });
   }
 
-  if (
-    (lower.includes('comida') ||
-      lower.includes('cena') ||
-      lower.includes('dieta') ||
-      lower.includes('no me gusta') ||
-      lower.includes('cambia') ||
-      lower.includes('otra cosa') ||
-      lower.includes('sugiere')) &&
-    dayIdx == null
-  ) {
+  if (mealIntent && dayIdx == null) {
     for (let i = 0; i < days.length; i++) {
       if (i % 2 === 0) days[i].meals = swapMeal(days[i].meals, lower);
     }
@@ -645,51 +728,49 @@ export function localHeuristicPatch(
   }
 
   if (
-    (lower.includes('ejercicio') ||
-      lower.includes('rutina') ||
-      lower.includes('entreno') ||
-      lower.includes('workout') ||
+    (workoutIntent ||
       lower.includes('cambia') ||
       lower.includes('cámbiame') ||
       lower.includes('cambiame') ||
       lower.includes('otra cosa') ||
-      lower.includes('sugiere')) &&
+      lower.includes('sugiere') ||
+      lower.includes('no me gusta')) &&
     dayIdx != null
   ) {
-    days[dayIdx].workout = {
-      ...days[dayIdx].workout,
-      title: `${days[dayIdx].workout.title} (ajustado)`,
-      isRest: false,
-      durationMinutes: Math.max(30, days[dayIdx].workout.durationMinutes || 40),
-      exercises: [
-        ...days[dayIdx].workout.exercises.slice(0, 2),
-        {
-          name: 'Bloque alternativo pedido',
-          detail: '3×10 — según tu mensaje al coach',
-        },
-      ],
-    };
+    // Always allow editing the selected day, including rest → train.
+    days[dayIdx].workout = trainingFromRest(days[dayIdx].workout, lower);
+    if (!workoutIntent && mealIntent === false && lower.includes('cena')) {
+      days[dayIdx].meals = swapMeal(days[dayIdx].meals, lower);
+    }
     return syncTextSections({ ...current, days });
   }
 
-  // Generic "cámbiame este día / no me gusta" without clear meal vs workout → tweak both for today-ish day or first training day
+  // Generic "cámbiame / no me gusta" without day → prefer rest day if they mentioned descanso, else first training day
   if (
     lower.includes('no me gusta') ||
     lower.includes('cámbiame') ||
     lower.includes('cambiame') ||
     lower.includes('cambia este') ||
-    lower.includes('otra cosa')
+    lower.includes('otra cosa') ||
+    lower.includes('descanso')
   ) {
-    const idx = dayIdx ?? days.findIndex((d) => !d.workout.isRest);
+    const idx =
+      dayIdx ??
+      (lower.includes('descanso') && restDayIdx >= 0
+        ? restDayIdx
+        : days.findIndex((d) => !d.workout.isRest));
     const target = idx >= 0 ? idx : 0;
-    days[target].meals = swapMeal(days[target].meals, lower);
-    if (!days[target].workout.isRest) {
+    if (lower.includes('descanso') || days[target].workout.isRest) {
+      days[target].workout = trainingFromRest(days[target].workout, lower);
+    } else {
+      days[target].meals = swapMeal(days[target].meals, lower);
       days[target].workout = {
         ...days[target].workout,
         title: `${days[target].workout.title} (ajustado)`,
+        isRest: false,
         exercises: [
           ...days[target].workout.exercises.slice(0, 2),
-          { name: 'Variación del coach', detail: '3×12' },
+          { name: 'Variación de Don Fortachón', detail: '3×12' },
         ],
       };
     }
@@ -697,6 +778,103 @@ export function localHeuristicPatch(
   }
 
   return syncTextSections(current);
+}
+
+function wantsTrainOnRest(lower: string): boolean {
+  return (
+    (lower.includes('descanso') &&
+      (lower.includes('entren') ||
+        lower.includes('quita') ||
+        lower.includes('sacar') ||
+        lower.includes('cambia') ||
+        lower.includes('cámbiame') ||
+        lower.includes('cambiame') ||
+        lower.includes('no quiero') ||
+        lower.includes('en vez') ||
+        lower.includes('ejercicio') ||
+        lower.includes('rutina') ||
+        lower.includes('gym'))) ||
+    lower.includes('entrenar el domingo') ||
+    lower.includes('entreno el domingo') ||
+    lower.includes('no descanso') ||
+    lower.includes('sin descanso')
+  );
+}
+
+function wantsChangeRestDay(lower: string): boolean {
+  return (
+    lower.includes('día de descanso') ||
+    lower.includes('dia de descanso') ||
+    (lower.includes('descanso') &&
+      (lower.includes('cambia') ||
+        lower.includes('cámbiame') ||
+        lower.includes('cambiame') ||
+        lower.includes('edita') ||
+        lower.includes('modifica') ||
+        lower.includes('ajusta')))
+  );
+}
+
+function wantsMakeRest(lower: string): boolean {
+  return (
+    (lower.includes('descanso') ||
+      lower.includes('rest day') ||
+      lower.includes('día off') ||
+      lower.includes('dia off')) &&
+    (lower.includes('pon') ||
+      lower.includes('haz') ||
+      lower.includes('quiero') ||
+      lower.includes('marca') ||
+      lower.includes('deja') ||
+      lower.includes('necesito'))
+  );
+}
+
+function wantsMoveRest(lower: string): boolean {
+  return (
+    lower.includes('descanso') &&
+    (lower.includes('pasa') ||
+      lower.includes('mueve') ||
+      lower.includes('cambia al') ||
+      lower.includes('en vez') ||
+      lower.includes('mejor el'))
+  );
+}
+
+function trainingFromRest(
+  previous: DayWorkoutPlan,
+  lower: string,
+): DayWorkoutPlan {
+  if (previous.isRest) {
+    return {
+      title: lower.includes('casa')
+        ? 'Entrenamiento en casa'
+        : lower.includes('correr') || lower.includes('cardio')
+          ? 'Cardio / correr'
+          : 'Entrenamiento (ex-descanso)',
+      durationMinutes: 40,
+      isRest: false,
+      exercises: [
+        { name: 'Calentamiento', detail: '5–8 min movilidad' },
+        { name: 'Bloque fuerza cuerpo completo', detail: '4×8–10' },
+        { name: 'Core', detail: '3×40s plancha' },
+        { name: 'Enfriamiento', detail: '5 min estiramientos' },
+      ],
+    };
+  }
+  return {
+    ...previous,
+    title: `${previous.title} (ajustado)`,
+    isRest: false,
+    durationMinutes: Math.max(30, previous.durationMinutes || 40),
+    exercises: [
+      ...previous.exercises.slice(0, 2),
+      {
+        name: 'Bloque alternativo de Don Fortachón',
+        detail: '3×10 — según tu pedido',
+      },
+    ],
+  };
 }
 
 function detectDayIndex(lower: string): number | null {
@@ -746,7 +924,7 @@ function syncTextSections(plan: WeeklyPlanContent): WeeklyPlanContent {
     goalSection: plan.days
       .map(
         (d) =>
-          `${d.short} — ${d.workout.title} (${d.workout.durationMinutes} min)`,
+          `${d.short} — ${d.workout.isRest ? 'DESCANSO' : d.workout.title} (${d.workout.durationMinutes} min)`,
       )
       .join('\n'),
     foodSection: plan.days

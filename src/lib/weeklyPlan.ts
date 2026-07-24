@@ -524,7 +524,7 @@ export async function coachRevisePlan(
   const contextMessage = [
     userMessage,
     '',
-    'Eres el coach de Fortachones. Actualiza SOLO lo pedido del plan semanal (comida o ejercicio de días específicos).',
+    'Eres Don Fortachón, el coach de Fortachones. Actualiza SOLO lo pedido del plan semanal (comida o ejercicio de días específicos).',
     'No regeneres la semana completa salvo que lo pidan.',
     'Plan actual:',
     formatPlanForDisplay(current),

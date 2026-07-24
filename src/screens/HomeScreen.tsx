@@ -222,7 +222,8 @@ export function HomeScreen() {
             Guardadito del grupo: ${groupPot} MXN
           </Text>
           <Muted>
-            Quién debe cuánto · ranking por días de ejercicio desde el inicio
+            Del más fortachón al más huevón · por días de ejercicio desde el
+            inicio
           </Muted>
 
           {leaderboard.length === 0 ? (
@@ -230,13 +231,47 @@ export function HomeScreen() {
           ) : (
             leaderboard.map((e, idx) => {
               const mine = e.profile.id === user?.id;
+              const isFirst = idx === 0;
+              const isLast =
+                leaderboard.length > 1 && idx === leaderboard.length - 1;
+              const title = isFirst
+                ? 'EL MÁS FORTACHÓN'
+                : isLast
+                  ? 'EL MÁS HUEVÓN'
+                  : null;
               return (
                 <View
                   key={e.profile.id}
-                  style={[styles.lbRow, mine && styles.lbRowMine]}
+                  style={[
+                    styles.lbRow,
+                    mine && styles.lbRowMine,
+                    isFirst && styles.lbRowFirst,
+                    isLast && styles.lbRowLast,
+                  ]}
                 >
-                  <Text style={styles.lbRank}>#{idx + 1}</Text>
+                  <View style={styles.lbRankCol}>
+                    <Text
+                      style={[
+                        styles.lbRank,
+                        isFirst && styles.lbRankFirst,
+                        isLast && styles.lbRankLast,
+                      ]}
+                    >
+                      #{idx + 1}
+                    </Text>
+                  </View>
                   <View style={{ flex: 1 }}>
+                    {title ? (
+                      <Text
+                        style={[
+                          styles.lbTitle,
+                          isFirst && styles.lbTitleFirst,
+                          isLast && styles.lbTitleLast,
+                        ]}
+                      >
+                        {title}
+                      </Text>
+                    ) : null}
                     <Text style={styles.lbName}>
                       {e.profile.display_name}
                       {mine ? ' · TÚ' : ''}
@@ -365,12 +400,30 @@ const styles = StyleSheet.create({
     marginHorizontal: -spacing.md,
     paddingHorizontal: spacing.md,
   },
+  lbRowFirst: {
+    borderTopWidth: borderWidth.thick,
+    borderTopColor: colors.accent,
+  },
+  lbRowLast: {
+    borderBottomWidth: borderWidth.thick,
+    borderBottomColor: colors.danger,
+  },
+  lbRankCol: { width: 40 },
   lbRank: {
     fontFamily: 'BebasNeue_400Regular',
     color: colors.accent,
     fontSize: 22,
-    width: 36,
   },
+  lbRankFirst: { color: colors.accent },
+  lbRankLast: { color: colors.danger },
+  lbTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 12,
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  lbTitleFirst: { color: colors.accent },
+  lbTitleLast: { color: colors.danger },
   lbName: {
     fontFamily: 'BebasNeue_400Regular',
     color: colors.text,

@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Linking,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -12,6 +14,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
+import { KeyboardAvoid } from '../components/KeyboardAvoid';
 import {
   Brand,
   Button,
@@ -190,37 +193,41 @@ export function ChatScreen() {
   if (!profile?.group_id) {
     return (
       <Screen>
-        <Brand>{APP_NAME}</Brand>
-        <Title>CHAT</Title>
-        <Card style={{ gap: spacing.md, marginTop: spacing.md }}>
-          <Muted>
-            Crea o únete a un grupo para el feed/chat unificado (registros + mensajes).
-          </Muted>
-          <Button
-            label="Crear grupo (admin)"
-            onPress={() => void onCreateGroup()}
-            loading={busy}
-          />
-          <Field
-            label="Código de invitación"
-            value={inviteCode}
-            onChangeText={setInviteCode}
-            autoCapitalize="characters"
-            placeholder="ABCD1234"
-          />
-          <Button
-            label="Unirme con código"
-            variant="secondary"
-            onPress={() => void onJoin()}
-            loading={busy}
-          />
-        </Card>
+        <KeyboardAvoid>
+          <Brand>{APP_NAME}</Brand>
+          <Title>CHAT</Title>
+          <Card style={{ gap: spacing.md, marginTop: spacing.md }}>
+            <Muted>
+              Crea o únete a un grupo para el feed/chat unificado (registros +
+              mensajes).
+            </Muted>
+            <Button
+              label="Crear grupo (admin)"
+              onPress={() => void onCreateGroup()}
+              loading={busy}
+            />
+            <Field
+              label="Código de invitación"
+              value={inviteCode}
+              onChangeText={setInviteCode}
+              autoCapitalize="characters"
+              placeholder="ABCD1234"
+            />
+            <Button
+              label="Unirme con código"
+              variant="secondary"
+              onPress={() => void onJoin()}
+              loading={busy}
+            />
+          </Card>
+        </KeyboardAvoid>
       </Screen>
     );
   }
 
   return (
-    <Screen style={{ paddingHorizontal: 0 }}>
+    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
+      <KeyboardAvoid>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Brand>{APP_NAME}</Brand>
@@ -235,7 +242,10 @@ export function ChatScreen() {
         inverted
         data={messages}
         keyExtractor={(m) => m.id}
+        style={styles.listFlex}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         renderItem={({ item }) => {
           const mine = item.user_id === user?.id;
           const isWorkoutPost = Boolean(item.workout_id) && item.media_type === 'image';
@@ -336,12 +346,17 @@ export function ChatScreen() {
           value={text}
           onChangeText={setText}
           multiline
+          textAlignVertical="top"
         />
         <Button label="ENVIAR" onPress={() => void onSendText()} loading={sending} />
       </View>
+      </KeyboardAvoid>
 
       <Modal visible={showGroup} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={styles.modalCard}>
             <Title>GRUPO</Title>
             <Muted>
@@ -466,7 +481,7 @@ export function ChatScreen() {
 
             <Button label="CERRAR" onPress={() => setShowGroup(false)} />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </Screen>
   );
@@ -493,6 +508,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 1,
   },
+  listFlex: { flex: 1 },
   list: {
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,

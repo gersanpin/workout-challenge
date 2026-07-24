@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { KeyboardAvoid } from '../components/KeyboardAvoid';
 import { Button, Field, Muted, Screen, Title } from '../components/ui';
 import { LogDateCalendar } from '../components/LogDateCalendar';
 import { WeightPlateStack } from '../components/WeightPlateStack';
@@ -142,10 +143,12 @@ export function LogWorkoutScreen() {
   };
 
   return (
-    <Screen>
+    <Screen style={{ paddingBottom: 0 }}>
+      <KeyboardAvoid>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         <Title>REGISTRAR</Title>
         <View style={styles.status}>
@@ -276,6 +279,7 @@ export function LogWorkoutScreen() {
           loading={loading}
         />
       </ScrollView>
+      </KeyboardAvoid>
     </Screen>
   );
 }

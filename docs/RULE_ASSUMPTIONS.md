@@ -17,7 +17,7 @@
 8. Group money pool is called **guardadito** (not “pozo”).
 
 ## Grace period / timezones
-Weeks stay **open for 2 days after Sunday** (close on Tuesday). Logging/adjustments allowed for today or up to 2 days back, but never into a locked week. This buffers timezone differences across the crew.
+Weeks stay **open through the close date** (Sunday + 2 days, typically Tuesday). Fees lock the **day after** that close date. Logging/adjustments allowed for today or up to 2 days back, but never into a locked week. A Sunday logged on Monday (lookback) counts toward **Sunday’s week**, not Monday’s.
 
 ## Groups
 - Admins create the group and share an **invite code / deep link**.

@@ -247,7 +247,11 @@ export function ProfileScreen() {
       coachThread,
       message,
     );
-    setPlan(nextPlan);
+    setPlan({
+      days: nextPlan.days,
+      goalSection: nextPlan.goalSection,
+      foodSection: nextPlan.foodSection,
+    });
     if (planWeek) await saveWeeklyPlan(user.id, planWeek, nextPlan);
 
     setCoachThread([...nextHistory, { role: 'assistant', body: reply }]);
@@ -419,7 +423,10 @@ export function ProfileScreen() {
               <Card style={styles.card}>
                 <Text style={styles.heading}>PLAN SEMANAL</Text>
                 <Muted>Semana {planWeek} · se renueva cada lunes</Muted>
-                <WeeklyPlanCalendar plan={plan} />
+                <WeeklyPlanCalendar
+                  key={`${planWeek}-${plan.goalSection.length}-${plan.foodSection.length}-${plan.days.map((d) => d.workout.title).join('|')}`}
+                  plan={plan}
+                />
               </Card>
             ) : null}
 

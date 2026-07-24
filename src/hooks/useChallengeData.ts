@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CHALLENGE_YEAR, REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
 import { useAuth } from '../context/AuthContext';
 import { todayDateOnly } from '../lib/dates';
-import { calculateLeaderboard, daysRemainingToGoal } from '../lib/weeklyChallenge';
+import {
+  calculateLeaderboard,
+  daysRemainingToGoal,
+  findOpenPriorWeek,
+  findWeekSummaryForDate,
+} from '../lib/weeklyChallenge';
 import { publishWeekActivityShouts } from '../lib/activityShouts';
 import { supabase } from '../lib/supabase';
 import type {
@@ -13,6 +18,7 @@ import type {
   Workout,
   WorkoutComment,
   WorkoutWithProfile,
+  WeeklySummary,
   YearlyTotals,
 } from '../types';
 
@@ -266,6 +272,19 @@ export function useChallengeData() {
   const myWeek = myEntry?.currentWeek ?? null;
   const myDaysDone = myWeek?.progressPoints ?? 0;
   const myDaysRemaining = daysRemainingToGoal(myDaysDone);
+  const myWeeks: WeeklySummary[] = useMemo(
+    () => myTotals?.weeks ?? [],
+    [myTotals],
+  );
+  const myOpenPriorWeek = useMemo(
+    () => findOpenPriorWeek(myWeeks, throughDate),
+    [myWeeks, throughDate],
+  );
+
+  const weekSummaryForDate = useCallback(
+    (dateStr: string) => findWeekSummaryForDate(myWeeks, dateStr),
+    [myWeeks],
+  );
 
   return {
     profiles,
@@ -282,6 +301,9 @@ export function useChallengeData() {
     myTotals,
     myEntry,
     myWeek,
+    myWeeks,
+    myOpenPriorWeek,
+    weekSummaryForDate,
     myDaysDone,
     myDaysRemaining,
     requiredDays: REQUIRED_WORKOUT_DAYS,

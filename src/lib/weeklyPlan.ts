@@ -537,10 +537,24 @@ export async function coachRevisePlan(
 
   const reply = await askCoach(profile, history, contextMessage);
   const fromJson = parsePlanJsonFromReply(reply, current);
-  const hasJsonUpdate = fromJson.days !== current.days;
-  const patched = hasJsonUpdate
-    ? syncTextSections(fromJson)
-    : localHeuristicPatch(current, userMessage);
+  const jsonChanged =
+    JSON.stringify(fromJson.days) !== JSON.stringify(current.days);
+  const patched = syncTextSections(
+    jsonChanged ? fromJson : localHeuristicPatch(current, userMessage),
+  );
+  // Always return a fresh object so React re-renders the calendar.
+  const nextPlan: WeeklyPlanContent = {
+    days: patched.days.map((d) => ({
+      ...d,
+      workout: {
+        ...d.workout,
+        exercises: d.workout.exercises.map((e) => ({ ...e })),
+      },
+      meals: { ...d.meals },
+    })),
+    goalSection: patched.goalSection,
+    foodSection: patched.foodSection,
+  };
   const cleanReply = reply
     .replace(/<<<PLAN_JSON>>>[\s\S]*?<<<FIN>>>/g, '')
     .replace(/<<<PLAN>>>[\s\S]*?<<<FIN>>>/g, '')
@@ -550,7 +564,7 @@ export async function coachRevisePlan(
     reply:
       cleanReply ||
       'Listo — actualicé el plan de esta semana según lo que pediste.',
-    plan: patched,
+    plan: nextPlan,
   };
 }
 
@@ -596,6 +610,17 @@ export function localHeuristicPatch(
     (lower.includes('comida') ||
       lower.includes('cena') ||
       lower.includes('desayuno') ||
+      lower.includes('dieta') ||
+      lower.includes('platillo') ||
+      lower.includes('menú') ||
+      lower.includes('menu') ||
+      lower.includes('no me gusta') ||
+      lower.includes('cambia') ||
+      lower.includes('cámbiame') ||
+      lower.includes('cambiame') ||
+      lower.includes('otra cosa') ||
+      lower.includes('sugiere') ||
+      lower.includes('suger') ||
       lower.includes('ingrediente')) &&
     dayIdx != null
   ) {
@@ -607,7 +632,10 @@ export function localHeuristicPatch(
     (lower.includes('comida') ||
       lower.includes('cena') ||
       lower.includes('dieta') ||
-      lower.includes('no me gusta')) &&
+      lower.includes('no me gusta') ||
+      lower.includes('cambia') ||
+      lower.includes('otra cosa') ||
+      lower.includes('sugiere')) &&
     dayIdx == null
   ) {
     for (let i = 0; i < days.length; i++) {
@@ -620,17 +648,51 @@ export function localHeuristicPatch(
     (lower.includes('ejercicio') ||
       lower.includes('rutina') ||
       lower.includes('entreno') ||
-      lower.includes('workout')) &&
+      lower.includes('workout') ||
+      lower.includes('cambia') ||
+      lower.includes('cámbiame') ||
+      lower.includes('cambiame') ||
+      lower.includes('otra cosa') ||
+      lower.includes('sugiere')) &&
     dayIdx != null
   ) {
     days[dayIdx].workout = {
       ...days[dayIdx].workout,
       title: `${days[dayIdx].workout.title} (ajustado)`,
+      isRest: false,
+      durationMinutes: Math.max(30, days[dayIdx].workout.durationMinutes || 40),
       exercises: [
         ...days[dayIdx].workout.exercises.slice(0, 2),
-        { name: 'Bloque alternativo pedido', detail: 'según tu mensaje' },
+        {
+          name: 'Bloque alternativo pedido',
+          detail: '3×10 — según tu mensaje al coach',
+        },
       ],
     };
+    return syncTextSections({ ...current, days });
+  }
+
+  // Generic "cámbiame este día / no me gusta" without clear meal vs workout → tweak both for today-ish day or first training day
+  if (
+    lower.includes('no me gusta') ||
+    lower.includes('cámbiame') ||
+    lower.includes('cambiame') ||
+    lower.includes('cambia este') ||
+    lower.includes('otra cosa')
+  ) {
+    const idx = dayIdx ?? days.findIndex((d) => !d.workout.isRest);
+    const target = idx >= 0 ? idx : 0;
+    days[target].meals = swapMeal(days[target].meals, lower);
+    if (!days[target].workout.isRest) {
+      days[target].workout = {
+        ...days[target].workout,
+        title: `${days[target].workout.title} (ajustado)`,
+        exercises: [
+          ...days[target].workout.exercises.slice(0, 2),
+          { name: 'Variación del coach', detail: '3×12' },
+        ],
+      };
+    }
     return syncTextSections({ ...current, days });
   }
 

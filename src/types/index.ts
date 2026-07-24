@@ -141,7 +141,14 @@ export interface WeeklySummary {
   distinctWorkoutDays: number;
   totalWorkouts: number;
   hasDoubleDay: boolean;
+  /** distinct days + at most one double-day bonus (can be > 5). */
+  progressPoints: number;
+  /** max(0, progressPoints - 5); typically 0 or 1. */
+  excessPoints: number;
+  /** Banked as "día a favor" when excess and no prior failed days. */
   creditEarned: number;
+  /** Excess applied to clear prior unpaid missed days. */
+  priorMissedDaysCleared: number;
   rawMissedDays: number;
   creditsUsed: number;
   finalMissedDays: number;

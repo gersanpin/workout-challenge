@@ -5,7 +5,7 @@ Expo app for a friends workout challenge — lucha libre gym aesthetic, unified 
 ## Tabs
 | Tab | Purpose |
 | --- | --- |
-| Home | Your week (weight-plate stack), pot, crew summary |
+| Home | Your week (weight-plate stack), guardadito, leaderboard |
 | Chat | Unified WhatsApp-style stream (workout photos + free text + GIFs). Group invite/remove lives here |
 | Log | Exercise + calendar (today…−2 days) + required photo |
 | Profile | Challenge days, workout days, goals, food pref, auto weekly plan (Meta + Comida), coach |

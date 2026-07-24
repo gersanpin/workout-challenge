@@ -264,7 +264,7 @@ export function useChallengeData() {
   ]);
 
   const myWeek = myEntry?.currentWeek ?? null;
-  const myDaysDone = myWeek?.distinctWorkoutDays ?? 0;
+  const myDaysDone = myWeek?.progressPoints ?? 0;
   const myDaysRemaining = daysRemainingToGoal(myDaysDone);
 
   return {

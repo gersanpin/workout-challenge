@@ -24,14 +24,14 @@ function WeekRow({ week }: { week: WeeklySummary }) {
         {week.isClosed ? ' · CERRADA' : ' · ABIERTA'}
       </Muted>
       <View style={styles.grid}>
-        <Stat label="Días" value={`${week.distinctWorkoutDays}/5`} />
+        <Stat label="Pts" value={`${week.progressPoints}/5`} />
         <Stat label="Fallados" value={String(week.finalMissedDays)} />
         <Stat
           label="Debes"
           value={`$${week.moneyOwedMxn}`}
           danger={week.moneyOwedMxn > 0}
         />
-        <Stat label="Acum." value={String(week.bankedCreditsAfterWeek)} ok />
+        <Stat label="A favor" value={String(week.bankedCreditsAfterWeek)} ok />
       </View>
     </Card>
   );
@@ -131,7 +131,7 @@ export function HistoryScreen() {
                   danger
                 />
                 <Stat
-                  label="Acumulados"
+                  label="A favor"
                   value={String(myTotals?.bankedCredits ?? 0)}
                   ok
                 />

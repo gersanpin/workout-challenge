@@ -110,7 +110,7 @@ function localCoachReply(profile: Profile, userMessage: string): string {
   }
 
   return [
-    `¡Hola ${profile.display_name}! Puedo armarte una rutina semanal, un plan de 4 semanas o una dieta sencilla.`,
+    `¡Órale ${profile.display_name}! Soy Don Fortachón. Te armo rutina semanal, plan de 4 semanas o dieta sencilla.`,
     '',
     'Prueba preguntar:',
     '• “Dame los entrenamientos de esta semana”',

@@ -1,7 +1,8 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -17,18 +18,25 @@ import {
   Screen,
   Title,
 } from '../components/ui';
+import { WeekDayStrip, WeekDetailModal } from '../components/WeekDetailModal';
 import { WeightPlateStack } from '../components/WeightPlateStack';
 import { APP_NAME, REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
 import { borderWidth, colors, spacing, typography } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
-import { parseDateOnly, todayDateOnly } from '../lib/dates';
+import { getWeekStart, parseDateOnly, todayDateOnly } from '../lib/dates';
 
 function daysBetween(from: string, to: string): number {
   const a = parseDateOnly(from).getTime();
   const b = parseDateOnly(to).getTime();
   return Math.max(0, Math.floor((b - a) / (24 * 60 * 60 * 1000)) + 1);
 }
+
+type WeekModalState = {
+  weekStart: string;
+  title: string;
+  focusDate: string | null;
+} | null;
 
 export function HomeScreen() {
   const { user } = useAuth();
@@ -49,16 +57,21 @@ export function HomeScreen() {
     refresh,
   } = useChallengeData();
 
+  const [weekModal, setWeekModal] = useState<WeekModalState>(null);
+
   useFocusEffect(
     useCallback(() => {
       void refresh();
     }, [refresh]),
   );
 
+  const today = todayDateOnly();
+  const thisWeekStart = getWeekStart(today);
+
   const challengeDays = useMemo(() => {
     if (!challengeStartedOn) return 0;
-    return daysBetween(challengeStartedOn, todayDateOnly());
-  }, [challengeStartedOn]);
+    return daysBetween(challengeStartedOn, today);
+  }, [challengeStartedOn, today]);
 
   const totalWorkoutDays = useMemo(() => {
     const set = new Set(
@@ -72,6 +85,23 @@ export function HomeScreen() {
   const failedDays = myTotals?.totalMissedDays ?? 0;
   const banked = myEntry?.bankedCredits ?? myTotals?.bankedCredits ?? 0;
   const favorThisWeek = myWeek?.creditEarned ?? 0;
+
+  const openThisWeek = (focusDate: string | null = null) => {
+    setWeekModal({
+      weekStart: thisWeekStart,
+      title: 'ESTA SEMANA',
+      focusDate,
+    });
+  };
+
+  const openPriorWeek = (focusDate: string | null = null) => {
+    if (!myOpenPriorWeek) return;
+    setWeekModal({
+      weekStart: myOpenPriorWeek.weekStart,
+      title: 'SEMANA ANTERIOR',
+      focusDate,
+    });
+  };
 
   if (loading && !myEntry && myWorkouts.length === 0) {
     return (
@@ -124,26 +154,42 @@ export function HomeScreen() {
         </View>
 
         <Card style={styles.weekCard}>
-          <Text style={styles.label}>ESTA SEMANA</Text>
-          <WeightPlateStack
-            progressPoints={challengeHasStarted ? myDaysDone : 0}
-            maxDays={REQUIRED_WORKOUT_DAYS}
-            favorDays={challengeHasStarted ? favorThisWeek : 0}
-          />
+          <Pressable onPress={() => openThisWeek(null)}>
+            <Text style={styles.label}>ESTA SEMANA</Text>
+            <WeightPlateStack
+              progressPoints={challengeHasStarted ? myDaysDone : 0}
+              maxDays={REQUIRED_WORKOUT_DAYS}
+              favorDays={challengeHasStarted ? favorThisWeek : 0}
+            />
+          </Pressable>
+          {challengeHasStarted ? (
+            <WeekDayStrip
+              weekStart={thisWeekStart}
+              workouts={myWorkouts}
+              onPressWeek={() => openThisWeek(null)}
+              onPressDay={(date) => openThisWeek(date)}
+            />
+          ) : (
+            <Muted>Inicia el reto para ver el detalle diario.</Muted>
+          )}
         </Card>
 
         {challengeHasStarted && myOpenPriorWeek ? (
           <Card style={styles.weekCard}>
-            <Text style={styles.label}>SEMANA ANTERIOR (AÚN ABIERTA)</Text>
-            <WeightPlateStack
-              progressPoints={myOpenPriorWeek.progressPoints}
-              maxDays={REQUIRED_WORKOUT_DAYS}
-              favorDays={myOpenPriorWeek.creditEarned}
+            <Pressable onPress={() => openPriorWeek(null)}>
+              <Text style={styles.label}>SEMANA ANTERIOR (AÚN ABIERTA)</Text>
+              <WeightPlateStack
+                progressPoints={myOpenPriorWeek.progressPoints}
+                maxDays={REQUIRED_WORKOUT_DAYS}
+                favorDays={myOpenPriorWeek.creditEarned}
+              />
+            </Pressable>
+            <WeekDayStrip
+              weekStart={myOpenPriorWeek.weekStart}
+              workouts={myWorkouts}
+              onPressWeek={() => openPriorWeek(null)}
+              onPressDay={(date) => openPriorWeek(date)}
             />
-            <Muted>
-              Registros con fecha de esa semana (p. ej. domingo) cuentan aquí ·{' '}
-              {myOpenPriorWeek.weekStart}
-            </Muted>
           </Card>
         ) : null}
 
@@ -216,6 +262,17 @@ export function HomeScreen() {
           )}
         </Card>
       </ScrollView>
+
+      {weekModal ? (
+        <WeekDetailModal
+          visible
+          title={weekModal.title}
+          weekStart={weekModal.weekStart}
+          workouts={myWorkouts}
+          initialDate={weekModal.focusDate}
+          onClose={() => setWeekModal(null)}
+        />
+      ) : null}
     </Screen>
   );
 }

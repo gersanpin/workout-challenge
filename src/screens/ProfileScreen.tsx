@@ -438,11 +438,27 @@ export function ProfileScreen() {
               </Muted>
 
               {!coachExpanded ? (
-                <Text style={styles.collapsedHint}>
-                  {coachThread.length
-                    ? `${coachThread.length} mensajes · toca expandir`
-                    : 'Chat minimizado'}
-                </Text>
+                <View style={styles.coachMini}>
+                  <Text style={styles.collapsedHint}>
+                    {coachThread.length
+                      ? `${coachThread.length} mensajes · expandir para ver historial`
+                      : 'Chat minimizado — escribe abajo sin expandir'}
+                  </Text>
+                  <TextInput
+                    style={styles.coachInput}
+                    placeholder="Mensaje rápido al entrenador…"
+                    placeholderTextColor={colors.textDim}
+                    value={coachInput}
+                    onChangeText={setCoachInput}
+                    multiline
+                  />
+                  <Button
+                    label="ENVIAR"
+                    onPress={() => void onAskCoach()}
+                    loading={coachBusy}
+                    disabled={!plan}
+                  />
+                </View>
               ) : (
                 <View style={styles.coachBox}>
                   {coachThread.slice(-10).map((m, i) => (
@@ -548,6 +564,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textDim,
   },
+  coachMini: { gap: spacing.sm },
   coachBox: { gap: spacing.sm },
   coachBubble: {
     padding: spacing.sm,

@@ -3,9 +3,6 @@ export type ExerciseType =
   | 'home'
   | 'sports'
   | 'running'
-  | 'climbing'
-  | 'soccer'
-  | 'padel'
   | 'other';
 
 export type GoalType = 'gain_weight' | 'lose_weight' | 'improve_exercise';
@@ -167,16 +164,15 @@ export interface LeaderboardEntry {
   bankedCredits: number;
   totalMissedDays: number;
   totalMoneyOwedMxn: number;
+  /** Distinct calendar days with ≥1 valid workout since challenge start. */
+  totalWorkoutDays: number;
 }
 
 export const EXERCISE_TYPES: { value: ExerciseType; label: string }[] = [
-  { value: 'gym', label: 'Gimnasio' },
+  { value: 'gym', label: 'Gym' },
   { value: 'home', label: 'Ejercicio en casa' },
   { value: 'sports', label: 'Deporte' },
-  { value: 'running', label: 'Salir a correr' },
-  { value: 'climbing', label: 'Escalar' },
-  { value: 'soccer', label: 'Fútbol' },
-  { value: 'padel', label: 'Pádel' },
+  { value: 'running', label: 'Correr' },
   { value: 'other', label: 'Otro' },
 ];
 

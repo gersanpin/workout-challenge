@@ -12,17 +12,34 @@ export function WeeklyPlanCalendar({ plan }: { plan: WeeklyPlanContent }) {
       <View style={styles.row}>
         {plan.days.map((d) => {
           const on = selected?.key === d.key;
+          const rest = Boolean(d.workout.isRest);
           return (
             <Pressable
               key={d.key}
               onPress={() => setSelected(d)}
-              style={[styles.dayBox, on && styles.dayBoxOn]}
+              style={[
+                styles.dayBox,
+                rest ? styles.dayBoxRest : styles.dayBoxWork,
+                on && (rest ? styles.dayBoxRestOn : styles.dayBoxOn),
+              ]}
             >
-              <Text style={[styles.dayShort, on && styles.dayShortOn]}>
+              <Text
+                style={[
+                  styles.dayShort,
+                  rest && styles.dayShortRest,
+                  on && styles.dayShortOn,
+                ]}
+              >
                 {d.short}
               </Text>
-              <Text style={[styles.dayMin, on && styles.dayShortOn]}>
-                {d.workout.isRest ? 'DESCANSO' : `${d.workout.durationMinutes}m`}
+              <Text
+                style={[
+                  styles.dayMin,
+                  rest && styles.dayMinRest,
+                  on && styles.dayShortOn,
+                ]}
+              >
+                {rest ? 'DESC' : `${d.workout.durationMinutes}m`}
               </Text>
             </Pressable>
           );
@@ -68,15 +85,25 @@ const styles = StyleSheet.create({
   dayBox: {
     flex: 1,
     borderWidth: borderWidth.thick,
-    borderColor: colors.borderMuted,
-    backgroundColor: colors.bg,
     paddingVertical: 10,
     alignItems: 'center',
     gap: 2,
   },
+  dayBoxWork: {
+    borderColor: colors.dayWorkoutBorder,
+    backgroundColor: colors.dayWorkout,
+  },
+  dayBoxRest: {
+    borderColor: colors.dayRestBorder,
+    backgroundColor: colors.dayRest,
+  },
   dayBoxOn: {
     borderColor: colors.accent,
     backgroundColor: colors.accentSoft,
+  },
+  dayBoxRestOn: {
+    borderColor: colors.textMuted,
+    backgroundColor: '#25282A',
   },
   dayShort: {
     fontFamily: 'BebasNeue_400Regular',
@@ -84,11 +111,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 0.5,
   },
+  dayShortRest: { color: colors.textMuted },
   dayShortOn: { color: colors.accent },
   dayMin: {
     fontFamily: 'Inter_500Medium',
-    color: colors.textMuted,
+    color: colors.accent,
     fontSize: 10,
+  },
+  dayMinRest: {
+    color: colors.textDim,
   },
   detail: {
     borderWidth: borderWidth.thick,

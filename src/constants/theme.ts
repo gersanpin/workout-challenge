@@ -24,6 +24,13 @@ export const colors = {
   plate: '#F2F0EA',
   plateAccent: '#2FA84F',
   plateMiss: '#C81E3A',
+  /** Calendar day status */
+  dayRest: '#2A2E30',
+  dayWorkout: '#163822',
+  dayDouble: '#3A2A12',
+  dayRestBorder: '#6E6B64',
+  dayWorkoutBorder: '#2FA84F',
+  dayDoubleBorder: '#E8A838',
 };
 
 export const spacing = {

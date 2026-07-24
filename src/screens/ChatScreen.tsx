@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
-  Image,
   Linking,
   Modal,
   Pressable,
@@ -11,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Brand,
@@ -75,7 +75,20 @@ export function ChatScreen() {
 
   useEffect(() => {
     if (!showGifs) return;
-    void searchGifs(gifQuery).then(setGifs).catch(() => setGifs([]));
+    let cancelled = false;
+    const handle = setTimeout(() => {
+      void searchGifs(gifQuery)
+        .then((rows) => {
+          if (!cancelled) setGifs(rows);
+        })
+        .catch(() => {
+          if (!cancelled) setGifs([]);
+        });
+    }, 280);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
   }, [showGifs, gifQuery]);
 
   const send = async (payload: {
@@ -212,7 +225,12 @@ export function ChatScreen() {
               ) : null}
               {item.media_url &&
               (item.media_type === 'image' || item.media_type === 'gif') ? (
-                <Image source={{ uri: item.media_url }} style={styles.media} />
+                <Image
+                  source={{ uri: item.media_url }}
+                  style={styles.media}
+                  contentFit="cover"
+                  recyclingKey={item.id}
+                />
               ) : null}
               {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
               {item.link_url ? (
@@ -246,17 +264,25 @@ export function ChatScreen() {
             horizontal
             data={gifs}
             keyExtractor={(g) => g.id}
+            ListEmptyComponent={
+              <Muted>No hay GIFs — prueba otra búsqueda.</Muted>
+            }
             renderItem={({ item }) => (
               <Pressable
+                disabled={sending}
                 onPress={() =>
                   void send({
                     media_url: item.url,
                     media_type: 'gif',
-                    body: item.title,
+                    body: item.title || 'GIF',
                   })
                 }
               >
-                <Image source={{ uri: item.preview }} style={styles.gifThumb} />
+                <Image
+                  source={{ uri: item.preview || item.url }}
+                  style={styles.gifThumb}
+                  contentFit="cover"
+                />
               </Pressable>
             )}
           />

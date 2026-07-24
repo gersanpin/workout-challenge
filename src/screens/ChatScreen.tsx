@@ -33,6 +33,7 @@ import {
   inviteLink,
   joinGroupWithCode,
   removeMember,
+  startGroupChallenge,
 } from '../lib/groupApi';
 import { supabase } from '../lib/supabase';
 import type { ChatMessage } from '../types';
@@ -288,6 +289,55 @@ export function ChatScreen() {
               </Text>
             </Muted>
             <Muted>{inviteLink(group?.invite_code ?? '')}</Muted>
+
+            {profile.is_admin ? (
+              group?.challenge_started_on ? (
+                <Card style={{ gap: 4 }}>
+                  <Text style={styles.section}>RETO EN CURSO</Text>
+                  <Muted>Inicio grupal: {group.challenge_started_on}</Muted>
+                </Card>
+              ) : (
+                <Button
+                  label="COMENZAR RETO"
+                  onPress={() => {
+                    if (!user) return;
+                    Alert.alert(
+                      '¿Comenzar el reto?',
+                      'Hoy será la fecha de inicio para TODO el grupo. No se puede deshacer.',
+                      [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                          text: 'Comenzar',
+                          style: 'default',
+                          onPress: () => {
+                            void (async () => {
+                              try {
+                                const start = await startGroupChallenge(user.id);
+                                await refreshChallenge();
+                                await load();
+                                Alert.alert(
+                                  '¡Reto iniciado!',
+                                  `Fecha de inicio para todos: ${start}`,
+                                );
+                              } catch (e) {
+                                Alert.alert('Error', (e as Error).message);
+                              }
+                            })();
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                />
+              )
+            ) : group?.challenge_started_on ? (
+              <Muted>Reto iniciado el {group.challenge_started_on}</Muted>
+            ) : (
+              <Muted>
+                Esperando a que un admin toque COMENZAR RETO para fijar la fecha
+                de inicio del grupo.
+              </Muted>
+            )}
 
             <Text style={styles.section}>MIEMBROS</Text>
             {leaderboard.map((e) => (

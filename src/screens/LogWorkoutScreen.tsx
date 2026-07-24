@@ -2,26 +2,20 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button, Field, Muted, Screen, Title } from '../components/ui';
+import { LogDateCalendar } from '../components/LogDateCalendar';
 import { WeightPlateStack } from '../components/WeightPlateStack';
 import { LOG_LOOKBACK_DAYS, REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
-import { borderWidth, colors, spacing, typography } from '../constants/theme';
+import { borderWidth, colors, spacing } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
-import {
-  formatDateOnly,
-  getAllowedLogDates,
-  parseDateOnly,
-  todayDateOnly,
-} from '../lib/dates';
+import { getAllowedLogDates, todayDateOnly } from '../lib/dates';
 import { logWorkout, pickWorkoutPhoto } from '../lib/workoutsApi';
 import { EXERCISE_TYPES } from '../types';
 
@@ -41,7 +35,7 @@ export function LogWorkoutScreen() {
   const [workoutDate, setWorkoutDate] = useState(
     allowed.isAllowed(today) ? today : allowed.minDate,
   );
-  const [showPicker, setShowPicker] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -57,16 +51,6 @@ export function LogWorkoutScreen() {
     } catch (e) {
       Alert.alert('Permission needed', (e as Error).message);
     }
-  };
-
-  const onChangeDate = (_event: unknown, selected?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowPicker(false);
-    }
-    if (!selected) return;
-    const next = formatDateOnly(selected);
-    if (!allowed.isAllowed(next)) return;
-    setWorkoutDate(next);
   };
 
   const onSubmit = async () => {
@@ -113,7 +97,10 @@ export function LogWorkoutScreen() {
       >
         <Title>LOG</Title>
         <View style={styles.status}>
-          <WeightPlateStack daysDone={myDaysDone} maxDays={REQUIRED_WORKOUT_DAYS} />
+          <WeightPlateStack
+            daysDone={myDaysDone}
+            maxDays={REQUIRED_WORKOUT_DAYS}
+          />
           <Muted>
             {myDaysRemaining} restantes · logs en {workoutDate}: {dayCount}
           </Muted>
@@ -144,34 +131,27 @@ export function LogWorkoutScreen() {
             label="Tipo custom"
             value={customType}
             onChangeText={setCustomType}
-            placeholder="CrossFit, hiking…"
+            placeholder="Otro…"
           />
         ) : null}
 
         <Text style={styles.label}>FECHA</Text>
         <Pressable
           style={styles.dateBtn}
-          onPress={() => setShowPicker((v) => !v)}
+          onPress={() => setShowCalendar((v) => !v)}
         >
           <Text style={styles.dateText}>{workoutDate}</Text>
         </Pressable>
-        {showPicker ? (
-          <View style={styles.calendarBox}>
-            <DateTimePicker
-              value={parseDateOnly(workoutDate)}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
-              minimumDate={parseDateOnly(allowed.minDate)}
-              maximumDate={parseDateOnly(allowed.maxDate)}
-              onChange={onChangeDate}
-              themeVariant="dark"
-              accentColor={colors.accent}
-              style={styles.picker}
-            />
-            {Platform.OS === 'ios' ? (
-              <Button label="LISTO" variant="secondary" onPress={() => setShowPicker(false)} />
-            ) : null}
-          </View>
+        {showCalendar ? (
+          <LogDateCalendar
+            value={workoutDate}
+            lookbackDays={LOG_LOOKBACK_DAYS}
+            isAllowed={allowed.isAllowed}
+            onChange={(d) => {
+              setWorkoutDate(d);
+              setShowCalendar(false);
+            }}
+          />
         ) : null}
 
         <Text style={styles.label}>EVIDENCIA</Text>
@@ -253,16 +233,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 24,
     letterSpacing: 1,
-  },
-  calendarBox: {
-    backgroundColor: colors.bgElevated,
-    borderWidth: borderWidth.thick,
-    borderColor: colors.borderMuted,
-    padding: spacing.sm,
-    gap: spacing.sm,
-  },
-  picker: {
-    alignSelf: 'stretch',
   },
   preview: {
     width: '100%',

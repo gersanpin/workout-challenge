@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CHALLENGE_START_DATE, CHALLENGE_YEAR, REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
+import { CHALLENGE_YEAR, REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
 import { useAuth } from '../context/AuthContext';
 import { todayDateOnly } from '../lib/dates';
 import { calculateLeaderboard, daysRemainingToGoal } from '../lib/weeklyChallenge';
@@ -13,7 +13,18 @@ import type {
   Workout,
   WorkoutComment,
   WorkoutWithProfile,
+  YearlyTotals,
 } from '../types';
+
+function emptyTotals(userId: string): YearlyTotals {
+  return {
+    userId,
+    bankedCredits: 0,
+    totalMissedDays: 0,
+    totalMoneyOwedMxn: 0,
+    weeks: [],
+  };
+}
 
 export function useChallengeData() {
   const { user, profile, configured } = useAuth();
@@ -28,6 +39,8 @@ export function useChallengeData() {
 
   const year = CHALLENGE_YEAR;
   const throughDate = todayDateOnly();
+  const challengeStartedOn = group?.challenge_started_on ?? null;
+  const challengeHasStarted = Boolean(challengeStartedOn);
 
   const refresh = useCallback(async () => {
     if (!configured) {
@@ -51,23 +64,21 @@ export function useChallengeData() {
       setGroup(null);
     }
 
-    const profilesQuery = profile?.group_id
-      ? supabase
-          .from('profiles')
-          .select('*')
-          .eq('group_id', profile.group_id)
-          .is('removed_at', null)
-          .order('display_name')
-      : supabase.from('profiles').select('*').eq('id', user?.id ?? '').maybeSingle();
+    const startDate = groupData?.challenge_started_on ?? null;
 
     const [profilesRes, workoutsRes, feedRes, activityRes] = await Promise.all([
       profile?.group_id
-        ? profilesQuery
+        ? supabase
+            .from('profiles')
+            .select('*')
+            .eq('group_id', profile.group_id)
+            .is('removed_at', null)
+            .order('display_name')
         : supabase.from('profiles').select('*').eq('id', user?.id ?? ''),
       supabase
         .from('workouts')
         .select('*')
-        .gte('workout_date', CHALLENGE_START_DATE)
+        .gte('workout_date', startDate ?? '2099-01-01')
         .lte('workout_date', throughDate)
         .order('workout_date', { ascending: true }),
       supabase
@@ -126,14 +137,13 @@ export function useChallengeData() {
       setComments([]);
     }
 
-    // Public feed shouts for week complete / banked / missed (best-effort)
-    if (profile?.group_id && activeProfiles.length) {
+    if (profile?.group_id && activeProfiles.length && startDate) {
       const totals = calculateLeaderboard(
         activeProfiles,
         scopedWorkouts,
         year,
         throughDate,
-        CHALLENGE_START_DATE,
+        startDate,
       );
       const board = activeProfiles.map((p) => {
         const t = totals.get(p.id);
@@ -159,12 +169,21 @@ export function useChallengeData() {
   }, [refresh]);
 
   const leaderboard: LeaderboardEntry[] = useMemo(() => {
+    if (!challengeStartedOn) {
+      return profiles.map((p) => ({
+        profile: p,
+        currentWeek: null,
+        bankedCredits: 0,
+        totalMissedDays: 0,
+        totalMoneyOwedMxn: 0,
+      }));
+    }
     const totals = calculateLeaderboard(
       profiles,
       workouts,
       year,
       throughDate,
-      CHALLENGE_START_DATE,
+      challengeStartedOn,
     );
     return profiles
       .map((p) => {
@@ -179,7 +198,7 @@ export function useChallengeData() {
         };
       })
       .sort((a, b) => a.totalMissedDays - b.totalMissedDays);
-  }, [profiles, workouts, year, throughDate]);
+  }, [profiles, workouts, year, throughDate, challengeStartedOn]);
 
   const groupPot = useMemo(
     () => leaderboard.reduce((s, e) => s + e.totalMoneyOwedMxn, 0),
@@ -198,16 +217,24 @@ export function useChallengeData() {
 
   const myTotals = useMemo(() => {
     if (!user) return null;
+    if (!challengeStartedOn) return emptyTotals(user.id);
     return (
       calculateLeaderboard(
         [{ id: user.id, created_at: profile?.created_at }],
         myWorkouts,
         year,
         throughDate,
-        CHALLENGE_START_DATE,
-      ).get(user.id) ?? null
+        challengeStartedOn,
+      ).get(user.id) ?? emptyTotals(user.id)
     );
-  }, [user, profile?.created_at, myWorkouts, year, throughDate]);
+  }, [
+    user,
+    profile?.created_at,
+    myWorkouts,
+    year,
+    throughDate,
+    challengeStartedOn,
+  ]);
 
   const myWeek = myEntry?.currentWeek ?? null;
   const myDaysDone = myWeek?.distinctWorkoutDays ?? 0;
@@ -220,6 +247,8 @@ export function useChallengeData() {
     comments,
     activity,
     group,
+    challengeStartedOn,
+    challengeHasStarted,
     leaderboard,
     groupPot,
     myWorkouts,

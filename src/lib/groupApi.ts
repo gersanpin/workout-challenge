@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { todayDateOnly } from './dates';
 
 function randomInviteCode(): string {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -24,7 +25,12 @@ export async function createGroup(userId: string, name = 'Fortachones') {
     .eq('id', userId);
   if (profileErr) throw new Error(profileErr.message);
 
-  return data as { id: string; name: string; invite_code: string };
+  return data as {
+    id: string;
+    name: string;
+    invite_code: string;
+    challenge_started_on: string | null;
+  };
 }
 
 export async function joinGroupWithCode(userId: string, code: string) {
@@ -67,8 +73,6 @@ export async function addGhostMember(
   adminId: string,
   displayName: string,
 ): Promise<void> {
-  // Ghosts need an auth user in real Supabase; for now we store a note activity.
-  // Full ghost accounts require a service-role invite — surface clear messaging.
   const { data: admin } = await supabase
     .from('profiles')
     .select('is_admin, group_id, display_name')
@@ -85,6 +89,55 @@ export async function addGhostMember(
     title: `Invite pending: ${displayName}`,
     body: `${admin.display_name} wants to add “${displayName}”. Share the invite code so they can join with a real account.`,
   });
+}
+
+/**
+ * Admin starts the challenge for the whole group.
+ * Sets challenge_started_on = today; everyone shares that start date.
+ */
+export async function startGroupChallenge(adminId: string): Promise<string> {
+  const { data: admin } = await supabase
+    .from('profiles')
+    .select('is_admin, group_id, display_name')
+    .eq('id', adminId)
+    .single();
+  if (!admin?.is_admin || !admin.group_id) {
+    throw new Error('Solo un admin puede comenzar el reto.');
+  }
+
+  const { data: group } = await supabase
+    .from('challenge_groups')
+    .select('challenge_started_on, name')
+    .eq('id', admin.group_id)
+    .single();
+
+  if (group?.challenge_started_on) {
+    throw new Error(`El reto ya empezó el ${group.challenge_started_on}.`);
+  }
+
+  const start = todayDateOnly();
+  const { error } = await supabase
+    .from('challenge_groups')
+    .update({ challenge_started_on: start })
+    .eq('id', admin.group_id);
+  if (error) throw new Error(error.message);
+
+  await supabase.from('activity_events').insert({
+    group_id: admin.group_id,
+    user_id: adminId,
+    event_type: 'system',
+    title: '¡El reto Fortachones ha comenzado!',
+    body: `${admin.display_name} dio el pistoletazo. Fecha de inicio para todo el grupo: ${start}.`,
+  });
+
+  await supabase.from('chat_messages').insert({
+    group_id: admin.group_id,
+    user_id: adminId,
+    body: `🏁 COMENZAR RETO — ${admin.display_name} inició el reto para todos. Fecha de inicio: ${start}. ¡A entrenar!`,
+    media_type: 'text',
+  });
+
+  return start;
 }
 
 export function inviteLink(inviteCode: string): string {

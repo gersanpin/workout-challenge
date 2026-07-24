@@ -2,8 +2,10 @@
  * Challenge calendar knobs for Fortachones.
  * Weeks: Mon–Sun. Grace: week stays open for WEEK_CLOSE_GRACE_DAYS after Sunday
  * so people in different timezones can still adjust recent days.
+ *
+ * Group start date lives on challenge_groups.challenge_started_on
+ * (set when an admin taps COMENZAR RETO in Chat).
  */
-export const CHALLENGE_START_DATE = '2026-01-05';
 export const CHALLENGE_YEAR = 2026;
 
 /** Days after Sunday before a week locks (timezone / late-log buffer). */

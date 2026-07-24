@@ -1,10 +1,8 @@
 export type ExerciseType =
-  | 'running'
   | 'gym'
-  | 'yoga'
+  | 'home'
   | 'sports'
-  | 'cycling'
-  | 'swimming'
+  | 'running'
   | 'climbing'
   | 'soccer'
   | 'padel'
@@ -19,12 +17,15 @@ export type FoodPreference =
   | 'carnivore'
   | 'pescatarian';
 
+export type WeekdayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
 export interface Profile {
   id: string;
   display_name: string;
   avatar_url: string | null;
   height_m: number | null;
   weight_kg: number | null;
+  age_years: number | null;
   goal_type: GoalType | null;
   goal_exercise: string | null;
   food_preference: FoodPreference | null;
@@ -39,6 +40,9 @@ export interface ChallengeGroup {
   id: string;
   name: string;
   invite_code: string;
+  photo_url: string | null;
+  /** YYYY-MM-DD when admin started the challenge for everyone. Null = not started. */
+  challenge_started_on: string | null;
   created_by: string | null;
   created_at: string;
 }
@@ -99,6 +103,40 @@ export interface WeightEntry {
   created_at: string;
 }
 
+export interface PlanExercise {
+  name: string;
+  detail?: string;
+}
+
+export interface DayMeals {
+  breakfast: string;
+  lunch: string;
+  dinner: string;
+  snack?: string;
+}
+
+export interface DayWorkoutPlan {
+  title: string;
+  durationMinutes: number;
+  exercises: PlanExercise[];
+  isRest?: boolean;
+}
+
+export interface DayPlan {
+  key: WeekdayKey;
+  label: string; // Lunes, Martes…
+  short: string; // LUN
+  workout: DayWorkoutPlan;
+  meals: DayMeals;
+}
+
+export interface WeeklyPlanContent {
+  days: DayPlan[];
+  /** Legacy text mirrors for older rows / coach context */
+  goalSection: string;
+  foodSection: string;
+}
+
 export interface WeeklySummary {
   weekStart: string;
   weekEnd: string;
@@ -132,28 +170,36 @@ export interface LeaderboardEntry {
 }
 
 export const EXERCISE_TYPES: { value: ExerciseType; label: string }[] = [
-  { value: 'running', label: 'Running' },
   { value: 'gym', label: 'Gym' },
-  { value: 'yoga', label: 'Yoga' },
-  { value: 'sports', label: 'Sports' },
-  { value: 'cycling', label: 'Cycling' },
-  { value: 'swimming', label: 'Swimming' },
-  { value: 'climbing', label: 'Climbing' },
-  { value: 'soccer', label: 'Soccer' },
-  { value: 'padel', label: 'Padel' },
-  { value: 'other', label: 'Other' },
+  { value: 'home', label: 'Ejercicio en casa' },
+  { value: 'sports', label: 'Deporte' },
+  { value: 'running', label: 'Salir a correr' },
+  { value: 'climbing', label: 'Escalar' },
+  { value: 'soccer', label: 'Fútbol' },
+  { value: 'padel', label: 'Pádel' },
+  { value: 'other', label: 'Otro' },
 ];
 
 export const GOAL_OPTIONS: { value: GoalType; label: string }[] = [
-  { value: 'gain_weight', label: 'Gain weight' },
-  { value: 'lose_weight', label: 'Lose weight' },
-  { value: 'improve_exercise', label: 'Improve at an exercise' },
+  { value: 'gain_weight', label: 'Subir de peso' },
+  { value: 'lose_weight', label: 'Bajar de peso' },
+  { value: 'improve_exercise', label: 'Mejorar en un ejercicio' },
 ];
 
 export const FOOD_OPTIONS: { value: FoodPreference; label: string }[] = [
-  { value: 'omnivore', label: 'Omnivore' },
-  { value: 'vegetarian', label: 'Vegetarian' },
-  { value: 'vegan', label: 'Vegan' },
-  { value: 'carnivore', label: 'Carnivore' },
-  { value: 'pescatarian', label: 'Pescatarian' },
+  { value: 'omnivore', label: 'Omnívoro' },
+  { value: 'vegetarian', label: 'Vegetariano' },
+  { value: 'vegan', label: 'Vegano' },
+  { value: 'carnivore', label: 'Carnívoro' },
+  { value: 'pescatarian', label: 'Pescetariano' },
+];
+
+export const WEEKDAY_ORDER: WeekdayKey[] = [
+  'mon',
+  'tue',
+  'wed',
+  'thu',
+  'fri',
+  'sat',
+  'sun',
 ];

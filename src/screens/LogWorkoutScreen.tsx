@@ -16,8 +16,14 @@ import { borderWidth, colors, spacing } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useChallengeData } from '../hooks/useChallengeData';
 import { getAllowedLogDates, getWeekStart, todayDateOnly } from '../lib/dates';
-import { logWorkout, pickWorkoutPhoto } from '../lib/workoutsApi';
+import {
+  deleteWorkout,
+  exerciseTypeLabel,
+  logWorkout,
+  pickWorkoutPhoto,
+} from '../lib/workoutsApi';
 import { EXERCISE_TYPES } from '../types';
+import type { Workout } from '../types';
 
 export function LogWorkoutScreen() {
   const { user, profile } = useAuth();
@@ -49,11 +55,44 @@ export function LogWorkoutScreen() {
 
   const dayCount = workoutCountsByDate[workoutDate] ?? 0;
 
+  const workoutsThisDay = useMemo(
+    () =>
+      myWorkouts
+        .filter((w) => w.workout_date === workoutDate && w.photo_url?.trim())
+        .sort((a, b) => (a.created_at < b.created_at ? -1 : 1)),
+    [myWorkouts, workoutDate],
+  );
+
   // Progress for the week that owns the selected workout_date (not "today"'s week).
   const targetWeek = weekSummaryForDate(workoutDate);
   const weekPoints = targetWeek?.progressPoints ?? 0;
   const weekRemaining = Math.max(0, REQUIRED_WORKOUT_DAYS - weekPoints);
   const sameWeekAsToday = getWeekStart(workoutDate) === getWeekStart(today);
+
+  const onDelete = (workout: Workout) => {
+    if (!user) return;
+    Alert.alert(
+      '¿Quitar este entrenamiento?',
+      'Si pusiste uno de más, se elimina el registro y su post en el chat. El progreso se recalcula.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Quitar',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteWorkout(workout.id, user.id);
+                await refresh();
+              } catch (e) {
+                Alert.alert('Error', (e as Error).message);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
 
   const onPick = async (source: 'camera' | 'library') => {
     try {
@@ -172,6 +211,39 @@ export function LogWorkoutScreen() {
           />
         ) : null}
 
+        {workoutsThisDay.length > 0 ? (
+          <View style={styles.existing}>
+            <Text style={styles.label}>
+              REGISTROS DE ESTE DÍA ({workoutsThisDay.length})
+            </Text>
+            <Muted>Si metiste uno de más, quítalo aquí.</Muted>
+            {workoutsThisDay.map((w, i) => (
+              <View key={w.id} style={styles.existingRow}>
+                <Image source={{ uri: w.photo_url }} style={styles.existingThumb} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.existingType}>
+                    {workoutsThisDay.length > 1 ? `#${i + 1} · ` : ''}
+                    {exerciseTypeLabel(w.exercise_type)}
+                  </Text>
+                  <Muted>
+                    {new Date(w.created_at).toLocaleTimeString('es-MX', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Muted>
+                </View>
+                <Pressable
+                  onPress={() => onDelete(w)}
+                  hitSlop={8}
+                  style={styles.deleteBtn}
+                >
+                  <Text style={styles.deleteText}>QUITAR</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
         <Text style={styles.label}>EVIDENCIA</Text>
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.preview} />
@@ -266,4 +338,42 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgElevated,
   },
   row: { flexDirection: 'row', gap: spacing.sm },
+  existing: {
+    gap: spacing.sm,
+    backgroundColor: colors.bgElevated,
+    borderWidth: borderWidth.thick,
+    borderColor: colors.borderMuted,
+    padding: spacing.md,
+  },
+  existingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderMuted,
+    paddingTop: spacing.sm,
+  },
+  existingThumb: {
+    width: 48,
+    height: 48,
+    backgroundColor: colors.surface,
+  },
+  existingType: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.text,
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
+  deleteBtn: {
+    borderWidth: borderWidth.thick,
+    borderColor: colors.danger,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  deleteText: {
+    fontFamily: 'BebasNeue_400Regular',
+    color: colors.danger,
+    fontSize: 14,
+    letterSpacing: 1,
+  },
 });

@@ -84,30 +84,10 @@ export function LogWorkoutScreen() {
       await refresh();
       const nextCount = dayCount + 1;
       const willBeDouble = nextCount >= 2;
-      const weekWillHaveDouble = willBeDouble || Boolean(myWeek?.hasDoubleDay);
-      const projectedDays = new Set([
-        ...Object.keys(workoutCountsByDate).filter(
-          (d) => (workoutCountsByDate[d] ?? 0) > 0,
-        ),
-        workoutDate,
-      ]).size;
-      // Approximate distinct days already counted this week via myWeek + this log
-      const distinctAfter = Math.max(
-        myWeek?.distinctWorkoutDays ?? 0,
-        projectedDays,
-      );
-      const totalAfter = (myWeek?.totalWorkouts ?? 0) + 1;
-      const creditReady =
-        weekWillHaveDouble &&
-        distinctAfter >= REQUIRED_WORKOUT_DAYS &&
-        totalAfter >= REQUIRED_WORKOUT_DAYS + 1;
-
       Alert.alert(
         '¡Registrado!',
         willBeDouble
-          ? creditReady
-            ? 'Día doble marcado. Cumples la meta semanal — crédito bancado listo (máx. 1/semana).'
-            : 'Día doble marcado. El crédito se banca al completar ≥5 días y ≥6 entrenamientos esta semana (máx. 1 crédito).'
+          ? 'Día doble: este día cuenta como 2 puntos hacia la meta de 5 (máx. un doble por semana).'
           : 'Entrenamiento guardado.',
       );
     } catch (e) {
@@ -126,21 +106,14 @@ export function LogWorkoutScreen() {
         <Title>REGISTRAR</Title>
         <View style={styles.status}>
           <WeightPlateStack
-            daysDone={myDaysDone}
+            progressPoints={myDaysDone}
             maxDays={REQUIRED_WORKOUT_DAYS}
+            favorDays={myWeek?.creditEarned ?? 0}
           />
           <Muted>
             {myDaysRemaining} restantes · registros en {workoutDate}: {dayCount}
             {dayCount >= 2 ? ' · DÍA DOBLE' : ''}
           </Muted>
-          {myWeek?.hasDoubleDay ? (
-            <Text style={styles.doubleBanner}>
-              SEMANA CON DÍA DOBLE
-              {myWeek.creditEarned > 0
-                ? ` · +${myWeek.creditEarned} crédito`
-                : ' · falta completar 5 días / 6 entrenos para el crédito'}
-            </Text>
-          ) : null}
         </View>
 
         <Text style={styles.label}>EJERCICIO</Text>
@@ -236,12 +209,6 @@ const styles = StyleSheet.create({
     borderColor: colors.borderMuted,
     padding: spacing.md,
     gap: spacing.sm,
-  },
-  doubleBanner: {
-    fontFamily: 'BebasNeue_400Regular',
-    color: colors.dayDoubleBorder,
-    fontSize: 14,
-    letterSpacing: 0.5,
   },
   label: {
     fontFamily: 'BebasNeue_400Regular',

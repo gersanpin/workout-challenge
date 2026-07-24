@@ -378,7 +378,7 @@ export function ChatScreen() {
                       if (!user) return;
                       Alert.alert(
                         '¿Quitar?',
-                        `${e.profile.display_name} saldrá del pozo.`,
+                        `${e.profile.display_name} saldrá del guardadito.`,
                         [
                           { text: 'Cancelar', style: 'cancel' },
                           {

@@ -4,18 +4,23 @@ import { colors, spacing, typography } from '../constants/theme';
 import { REQUIRED_WORKOUT_DAYS } from '../constants/challenge';
 
 /**
- * Stacked weight plates — one plate per completed workout day this week.
- * Filled plates = done (green rim). Empty slots = remaining (bone outline).
+ * Stacked weight plates — progress points toward the weekly goal of 5.
+ * Double-day bonus is included in `progressPoints` (can exceed 5).
  */
 export function WeightPlateStack({
-  daysDone,
+  progressPoints,
   maxDays = REQUIRED_WORKOUT_DAYS,
+  favorDays = 0,
 }: {
-  daysDone: number;
+  /** Weekly progress (distinct days + at most one double bonus). */
+  progressPoints: number;
   maxDays?: number;
+  /** Extra "días a favor" from this week (excess beyond maxDays). */
+  favorDays?: number;
 }) {
-  const done = Math.max(0, Math.min(daysDone, maxDays));
-  const plates = Array.from({ length: maxDays }, (_, i) => i < done);
+  const filledCount = Math.max(0, Math.min(progressPoints, maxDays));
+  const plates = Array.from({ length: maxDays }, (_, i) => i < filledCount);
+  const favor = Math.max(favorDays, Math.max(0, progressPoints - maxDays));
 
   return (
     <View style={styles.wrap}>
@@ -34,7 +39,8 @@ export function WeightPlateStack({
         ))}
       </View>
       <Text style={styles.label}>
-        {done}/{maxDays} DÍAS
+        {progressPoints}/{maxDays}
+        {favor > 0 ? ` · +${favor} A FAVOR` : ''}
       </Text>
     </View>
   );

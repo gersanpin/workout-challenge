@@ -41,7 +41,7 @@ export async function publishWeekActivityShouts(opts: {
     }
 
     if (week.creditEarned > 0) {
-      const title = `${name} acumuló un crédito de día extra`;
+      const title = `${name} acumuló un día a favor`;
       if (!existing.has(title)) {
         await supabase.from('activity_events').insert({
           group_id: groupId,

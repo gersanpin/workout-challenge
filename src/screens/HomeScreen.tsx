@@ -70,6 +70,7 @@ export function HomeScreen() {
 
   const failedDays = myTotals?.totalMissedDays ?? 0;
   const banked = myEntry?.bankedCredits ?? myTotals?.bankedCredits ?? 0;
+  const favorThisWeek = myWeek?.creditEarned ?? 0;
 
   if (loading && !myEntry && myWorkouts.length === 0) {
     return (
@@ -111,7 +112,7 @@ export function HomeScreen() {
           <View style={styles.heroMeta}>
             {challengeHasStarted ? (
               <Muted>
-                Inicio: {challengeStartedOn} · Pozo: ${groupPot} MXN
+                Inicio: {challengeStartedOn} · Guardadito: ${groupPot} MXN
               </Muted>
             ) : (
               <Text style={styles.pending}>
@@ -124,35 +125,10 @@ export function HomeScreen() {
         <Card style={styles.weekCard}>
           <Text style={styles.label}>ESTA SEMANA</Text>
           <WeightPlateStack
-            daysDone={challengeHasStarted ? myDaysDone : 0}
+            progressPoints={challengeHasStarted ? myDaysDone : 0}
             maxDays={REQUIRED_WORKOUT_DAYS}
+            favorDays={challengeHasStarted ? favorThisWeek : 0}
           />
-          {challengeHasStarted && myWeek ? (
-            <View style={styles.weekMeta}>
-              <Text
-                style={[
-                  styles.weekFlag,
-                  myWeek.hasDoubleDay ? styles.weekFlagOn : styles.weekFlagOff,
-                ]}
-              >
-                {myWeek.hasDoubleDay
-                  ? `DÍA DOBLE · ${myWeek.totalWorkouts} entrenos`
-                  : `Sin día doble · ${myWeek.totalWorkouts} entrenos`}
-              </Text>
-              <Text
-                style={[
-                  styles.weekFlag,
-                  myWeek.creditEarned > 0
-                    ? styles.weekFlagOn
-                    : styles.weekFlagOff,
-                ]}
-              >
-                {myWeek.creditEarned > 0
-                  ? `+${myWeek.creditEarned} crédito bancado`
-                  : 'Crédito: pendiente (5 días + doble + 6 entrenos)'}
-              </Text>
-            </View>
-          ) : null}
         </Card>
 
         <View style={styles.statsGrid}>
@@ -172,7 +148,7 @@ export function HomeScreen() {
             color={failedDays > 0 ? colors.danger : colors.accent}
           />
           <Stat
-            label="Créditos bancados"
+            label="Días a favor"
             value={String(banked)}
             color={colors.accent}
           />
@@ -181,9 +157,11 @@ export function HomeScreen() {
         <Card style={styles.leaderCard}>
           <Text style={styles.label}>LEADERBOARD</Text>
           <Text style={styles.potLine}>
-            Pozo del grupo: ${groupPot} MXN
+            Guardadito del grupo: ${groupPot} MXN
           </Text>
-          <Muted>Quién debe cuánto · ranking por días de ejercicio desde el inicio</Muted>
+          <Muted>
+            Quién debe cuánto · ranking por días de ejercicio desde el inicio
+          </Muted>
 
           {leaderboard.length === 0 ? (
             <Muted>Sin integrantes aún.</Muted>
@@ -202,8 +180,8 @@ export function HomeScreen() {
                       {mine ? ' · TÚ' : ''}
                     </Text>
                     <Text style={styles.lbMeta}>
-                      {e.totalWorkoutDays} días ejercicio · {e.bankedCredits}{' '}
-                      créditos · {e.totalMissedDays} fallados
+                      {e.totalWorkoutDays} días ejercicio · {e.bankedCredits} a
+                      favor · {e.totalMissedDays} fallados
                     </Text>
                   </View>
                   <Text
@@ -278,14 +256,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   weekCard: { gap: spacing.sm },
-  weekMeta: { gap: 4 },
-  weekFlag: {
-    fontFamily: 'BebasNeue_400Regular',
-    fontSize: 14,
-    letterSpacing: 0.5,
-  },
-  weekFlagOn: { color: colors.dayDoubleBorder },
-  weekFlagOff: { color: colors.textMuted },
   label: {
     fontFamily: 'BebasNeue_400Regular',
     fontSize: 16,

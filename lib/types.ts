@@ -2,6 +2,10 @@ export type PlanId = "free" | "pro";
 
 export type TemplateId = "minimal" | "editorial" | "atelier";
 
+export type DocType = "portfolio" | "cv";
+
+export type SourceMode = "create" | "redesign";
+
 export interface PlanLimits {
   id: PlanId;
   name: string;
@@ -53,6 +57,9 @@ export interface PortfolioContent {
   education: EducationItem[];
   projects: ProjectItem[];
   rawNotes?: string;
+  /** Optional: tailor AI output for a specific application */
+  targetCompany?: string;
+  targetRole?: string;
 }
 
 export interface Portfolio {
@@ -63,6 +70,8 @@ export interface Portfolio {
   template_id: TemplateId;
   content: PortfolioContent;
   published: boolean;
+  doc_type?: DocType;
+  source_mode?: SourceMode;
   created_at: string;
   updated_at: string;
 }
@@ -96,8 +105,14 @@ export const EMPTY_CONTENT: PortfolioContent = {
   education: [],
   projects: [],
   rawNotes: "",
+  targetCompany: "",
+  targetRole: "",
 };
 
 export function newId(): string {
   return crypto.randomUUID();
+}
+
+export function docTypeLabel(docType: DocType): string {
+  return docType === "cv" ? "CV" : "Portafolio";
 }

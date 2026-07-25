@@ -3,11 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { PortfolioPdfDocument } from "@/lib/pdf";
 import type { PortfolioContent, TemplateId } from "@/lib/types";
-import {
-  assertPdfExport,
-  LimitError,
-  recordUsage,
-} from "@/lib/usage";
+import { recordUsage } from "@/lib/usage";
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -16,15 +12,6 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  }
-
-  try {
-    await assertPdfExport(user.id);
-  } catch (err) {
-    if (err instanceof LimitError) {
-      return NextResponse.json({ error: err.message }, { status: 402 });
-    }
-    throw err;
   }
 
   const { searchParams } = new URL(request.url);

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { PLANS, monthStartIso } from "@/lib/plans";
 import type { PlanId } from "@/lib/types";
+
+/** Usage tracking kept for future billing; limits are disabled for now. */
 
 export async function getUserPlanId(userId: string): Promise<PlanId> {
   const supabase = await createClient();
@@ -22,63 +23,21 @@ export async function countUsage(
     .from("usage_events")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
-    .eq("kind", kind)
-    .gte("created_at", monthStartIso());
+    .eq("kind", kind);
   return count ?? 0;
 }
 
-export async function assertAiCredit(userId: string): Promise<void> {
-  const planId = await getUserPlanId(userId);
-  const limits = PLANS[planId];
-  const used = await countUsage(userId, "ai");
-  if (used >= limits.aiCreditsPerMonth) {
-    throw new LimitError(
-      `Has agotado los créditos de IA del plan ${limits.name} (${limits.aiCreditsPerMonth}/mes).`,
-    );
-  }
-}
+/** No-op: limits disabled — everything is unlimited/free for now. */
+export async function assertAiCredit(_userId: string): Promise<void> {}
 
-export async function assertPdfExport(userId: string): Promise<void> {
-  const planId = await getUserPlanId(userId);
-  const limits = PLANS[planId];
-  const used = await countUsage(userId, "pdf_export");
-  if (used >= limits.pdfExportsPerMonth) {
-    throw new LimitError(
-      `Has agotado las exportaciones PDF del plan ${limits.name} (${limits.pdfExportsPerMonth}/mes).`,
-    );
-  }
-}
+/** No-op: limits disabled. */
+export async function assertPdfExport(_userId: string): Promise<void> {}
 
-export async function assertCanCreatePortfolio(userId: string): Promise<void> {
-  const supabase = await createClient();
-  const planId = await getUserPlanId(userId);
-  const limits = PLANS[planId];
-  const { count } = await supabase
-    .from("portfolios")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId);
-  if ((count ?? 0) >= limits.maxPortfolios) {
-    throw new LimitError(
-      `Tu plan ${limits.name} permite hasta ${limits.maxPortfolios} portafolio(s).`,
-    );
-  }
-}
+/** No-op: limits disabled. */
+export async function assertCanCreatePortfolio(_userId: string): Promise<void> {}
 
-export async function assertCanPublish(userId: string): Promise<void> {
-  const supabase = await createClient();
-  const planId = await getUserPlanId(userId);
-  const limits = PLANS[planId];
-  const { count } = await supabase
-    .from("portfolios")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("published", true);
-  if ((count ?? 0) >= limits.maxPublished) {
-    throw new LimitError(
-      `Tu plan ${limits.name} permite hasta ${limits.maxPublished} portafolio(s) publicado(s).`,
-    );
-  }
-}
+/** No-op: limits disabled. */
+export async function assertCanPublish(_userId: string): Promise<void> {}
 
 export async function recordUsage(
   userId: string,
@@ -101,11 +60,13 @@ export class LimitError extends Error {
 }
 
 export function slugify(input: string): string {
-  return input
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 48) || "portfolio";
+  return (
+    input
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48) || "portfolio"
+  );
 }

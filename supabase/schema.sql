@@ -40,6 +40,8 @@ create table if not exists public.portfolios (
   template_id text not null default 'minimal',
   content jsonb not null default '{}'::jsonb,
   published boolean not null default false,
+  doc_type text not null default 'portfolio' check (doc_type in ('portfolio', 'cv')),
+  source_mode text not null default 'create' check (source_mode in ('create', 'redesign')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

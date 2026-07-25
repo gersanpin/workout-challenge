@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { extractTextFromFile } from "@/lib/extract";
 import type { PortfolioContent } from "@/lib/types";
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -33,22 +36,36 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (pErr || !portfolio) {
-    return NextResponse.json({ error: "Portafolio no encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
   }
 
   const uploaded: { url: string; path: string; kind: string; name: string }[] =
     [];
+  const extractedChunks: string[] = [];
 
   for (const file of files) {
     const kind = file.type.startsWith("image/")
       ? "image"
-      : file.type === "application/pdf"
+      : file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
         ? "pdf"
         : "other";
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${user.id}/${portfolioId}/${Date.now()}-${safeName}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Extract text before upload consumes nothing — we already have buffer/file
+    if (kind === "pdf" || kind === "other") {
+      try {
+        const text = await extractTextFromFile(file);
+        if (text) {
+          extractedChunks.push(`--- Archivo: ${file.name} ---\n${text}`);
+        }
+      } catch {
+        // ignore extraction failures
+      }
+    }
+
     const { error: upErr } = await supabase.storage
       .from("portfolio-assets")
       .upload(path, buffer, {
@@ -87,11 +104,26 @@ export async function POST(request: Request) {
   }
 
   let content = portfolio.content as PortfolioContent;
+  let contentChanged = false;
+
+  if (extractedChunks.length) {
+    const extracted = extractedChunks.join("\n\n").slice(0, 40000);
+    const prev = content.rawNotes?.trim() || "";
+    content = {
+      ...content,
+      rawNotes: prev
+        ? `${prev}\n\n${extracted}`
+        : extracted,
+    };
+    contentChanged = true;
+  }
+
   const imageUrls = uploaded
     .filter((u) => u.kind === "image")
     .map((u) => u.url);
 
   if (imageUrls.length) {
+    contentChanged = true;
     if (projectId) {
       content = {
         ...content,
@@ -111,7 +143,6 @@ export async function POST(request: Request) {
         ),
       };
     } else {
-      // stash on a placeholder project so images aren't lost before AI draft
       content = {
         ...content,
         projects: [
@@ -125,7 +156,9 @@ export async function POST(request: Request) {
         ],
       };
     }
+  }
 
+  if (contentChanged) {
     const { data: updated, error: uErr } = await supabase
       .from("portfolios")
       .update({ content })

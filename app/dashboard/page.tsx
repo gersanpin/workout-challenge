@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { PLANS } from "@/lib/plans";
-import { countUsage, getUserPlanId } from "@/lib/usage";
-import type { PlanId, Portfolio } from "@/lib/types";
+import type { DocType, Portfolio } from "@/lib/types";
+import { docTypeLabel } from "@/lib/types";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+
+function resolveDocType(p: Portfolio): DocType {
+  if (p.doc_type === "cv" || p.doc_type === "portfolio") return p.doc_type;
+  const meta = p.content as Portfolio["content"] & { _docType?: DocType };
+  return meta._docType === "cv" ? "cv" : "portfolio";
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -19,10 +24,7 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
-  const planId = await getUserPlanId(user.id);
-  const plan = PLANS[planId];
-  const aiUsed = await countUsage(user.id, "ai");
-  const pdfUsed = await countUsage(user.id, "pdf_export");
+  const items = (portfolios || []) as Portfolio[];
 
   return (
     <div className="mx-auto min-h-screen max-w-5xl px-6 py-8">
@@ -33,40 +35,38 @@ export default async function DashboardPage() {
           </Link>
           <p className="mt-1 text-sm text-ink-600">{user.email}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard/new"
-            className="bg-ink-950 px-4 py-2 text-sm text-ink-50"
-          >
-            Nuevo portafolio
-          </Link>
-          <SignOutButton />
-        </div>
+        <SignOutButton />
       </header>
 
-      <section className="mt-10 grid gap-4 sm:grid-cols-3">
-        <UsageCard
-          label="Plan"
-          value={plan.name}
-          hint={planId === "free" ? "Límites del plan gratis" : "Plan Pro"}
-        />
-        <UsageCard
-          label="IA este mes"
-          value={`${aiUsed} / ${plan.aiCreditsPerMonth}`}
-          hint="Créditos de redacción"
-        />
-        <UsageCard
-          label="PDF este mes"
-          value={`${pdfUsed} / ${plan.pdfExportsPerMonth}`}
-          hint="Exportaciones"
-        />
+      <section className="mt-10">
+        <h1 className="text-xl font-medium">¿Qué quieres hacer?</h1>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <ActionCard
+            href="/dashboard/new"
+            title="Nuevo portafolio"
+            body="Crea un portafolio desde cero con tus notas, imágenes y una plantilla."
+          />
+          <ActionCard
+            href="/dashboard/redesign"
+            title="Rediseñar portafolio"
+            body="Sube tu portafolio actual (PDF/archivos) y genera una versión rediseñada con IA."
+          />
+          <ActionCard
+            href="/dashboard/cv"
+            title="Crear / mejorar CV"
+            body="Genera un CV profesional a partir de texto o de un CV viejo en PDF."
+          />
+        </div>
+        <p className="mt-4 text-xs text-ink-500">
+          Uso ilimitado y gratis por ahora — sin límites de IA, PDF ni documentos.
+        </p>
       </section>
 
       <section className="mt-12">
-        <h1 className="text-xl font-medium">Tus portafolios</h1>
-        {!portfolios?.length ? (
+        <h2 className="text-xl font-medium">Tus documentos</h2>
+        {!items.length ? (
           <div className="mt-6 border border-dashed border-ink-300 bg-white/40 p-10 text-center">
-            <p className="text-ink-700">Aún no tienes un portafolio.</p>
+            <p className="text-ink-700">Aún no tienes documentos.</p>
             <Link
               href="/dashboard/new"
               className="mt-4 inline-block bg-ink-950 px-4 py-2 text-sm text-ink-50"
@@ -76,75 +76,77 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <ul className="mt-6 divide-y divide-ink-200 border border-ink-200 bg-white/70">
-            {(portfolios as Portfolio[]).map((p) => (
-              <li
-                key={p.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
-              >
-                <div>
-                  <Link
-                    href={`/dashboard/${p.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {p.title}
-                  </Link>
-                  <p className="text-sm text-ink-500">
-                    Plantilla {p.template_id}
-                    {p.published && p.slug
-                      ? ` · Publicado /p/${p.slug}`
-                      : " · Borrador"}
-                  </p>
-                </div>
-                <div className="flex gap-2 text-sm">
-                  <Link
-                    href={`/dashboard/${p.id}`}
-                    className="border border-ink-300 px-3 py-1.5"
-                  >
-                    Editar
-                  </Link>
-                  {p.published && p.slug ? (
+            {items.map((p) => {
+              const type = resolveDocType(p);
+              return (
+                <li
+                  key={p.id}
+                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
+                >
+                  <div>
                     <Link
-                      href={`/p/${p.slug}`}
-                      className="border border-ink-300 px-3 py-1.5"
-                      target="_blank"
+                      href={`/dashboard/${p.id}`}
+                      className="font-medium hover:underline"
                     >
-                      Ver link
+                      {p.title}
                     </Link>
-                  ) : null}
-                </div>
-              </li>
-            ))}
+                    <p className="text-sm text-ink-500">
+                      {docTypeLabel(type)}
+                      {p.source_mode === "redesign" ||
+                      (p.content as { _sourceMode?: string })._sourceMode ===
+                        "redesign"
+                        ? " · Rediseño"
+                        : ""}
+                      {" · "}
+                      Plantilla {p.template_id}
+                      {p.published && p.slug
+                        ? ` · Publicado /p/${p.slug}`
+                        : " · Borrador"}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 text-sm">
+                    <Link
+                      href={`/dashboard/${p.id}`}
+                      className="border border-ink-300 px-3 py-1.5"
+                    >
+                      Editar
+                    </Link>
+                    {p.published && p.slug ? (
+                      <Link
+                        href={`/p/${p.slug}`}
+                        className="border border-ink-300 px-3 py-1.5"
+                        target="_blank"
+                      >
+                        Ver link
+                      </Link>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
-
-      <p className="mt-10 text-xs text-ink-500">
-        Plan actual: <PlanBadge planId={planId} /> · Para Pro, actualiza{" "}
-        <code className="bg-ink-100 px-1">profiles.plan_id</code> en Supabase
-        (Stripe llega después).
-      </p>
     </div>
   );
 }
 
-function UsageCard({
-  label,
-  value,
-  hint,
+function ActionCard({
+  href,
+  title,
+  body,
 }: {
-  label: string;
-  value: string;
-  hint: string;
+  href: string;
+  title: string;
+  body: string;
 }) {
   return (
-    <div className="border border-ink-200 bg-white/60 px-4 py-4">
-      <p className="text-xs uppercase tracking-wider text-ink-500">{label}</p>
-      <p className="mt-1 text-2xl font-medium">{value}</p>
-      <p className="mt-1 text-xs text-ink-500">{hint}</p>
-    </div>
+    <Link
+      href={href}
+      className="block border border-ink-200 bg-white/70 p-5 transition hover:border-ink-500"
+    >
+      <p className="font-medium text-ink-950">{title}</p>
+      <p className="mt-2 text-sm leading-relaxed text-ink-600">{body}</p>
+    </Link>
   );
-}
-
-function PlanBadge({ planId }: { planId: PlanId }) {
-  return <span className="font-medium text-ink-800">{PLANS[planId].name}</span>;
 }

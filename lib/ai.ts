@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { z } from "zod";
-import type { PortfolioContent } from "./types";
+import type { DocType, PortfolioContent, SourceMode } from "./types";
 import { newId } from "./types";
 
 const contentSchema = z.object({
@@ -63,14 +63,59 @@ Escribes con tono profesional, concreto y elegante. Evitas clichés vacíos.
 Priorizas logros, escala, tipología, materiales, contexto urbano y rol del arquitecto.
 Respondes SOLO con JSON válido según el esquema pedido.`;
 
+function targetingBlock(input: {
+  targetCompany?: string;
+  targetRole?: string;
+}): string {
+  const company = input.targetCompany?.trim();
+  const role = input.targetRole?.trim();
+  if (!company && !role) return "";
+  return `
+Personalización de candidatura (IMPORTANTE):
+- Empresa objetivo: ${company || "no indicada"}
+- Puesto objetivo: ${role || "no indicado"}
+Adapta headline, summary, énfasis en experiencia/proyectos y skills para esta aplicación concreta, sin inventar hechos.`;
+}
+
+function modeBlock(docType: DocType, sourceMode: SourceMode): string {
+  if (docType === "cv") {
+    return sourceMode === "redesign"
+      ? `Modo: REDISEÑO DE CV. Analiza el CV existente (texto extraído de PDF/notas), corrige redacción, reorganiza secciones y genera un CV profesional mejorado. En projects incluye solo lo esencial o déjalo corto.`
+      : `Modo: CREAR/MEJORAR CV. Genera un CV profesional (énfasis en experiencia, formación y skills). Proyectos solo si aportan valor; prioriza trayectoria laboral.`;
+  }
+  return sourceMode === "redesign"
+    ? `Modo: REDISEÑO DE PORTAFOLIO. Analiza el portafolio existente (PDF/notas/imágenes referenciadas), mejora organización y redacción, y genera una versión rediseñada lista para plantilla visual. Destaca proyectos.`
+    : `Modo: CREAR PORTAFOLIO. Genera un portafolio profesional con proyectos destacados, experiencia y perfil.`;
+}
+
 export async function generateDraftFromNotes(input: {
   notes: string;
   fullName?: string;
   existing?: Partial<PortfolioContent>;
+  docType?: DocType;
+  sourceMode?: SourceMode;
+  targetCompany?: string;
+  targetRole?: string;
 }): Promise<PortfolioContent> {
+  const docType = input.docType || "portfolio";
+  const sourceMode = input.sourceMode || "create";
+  const targetCompany =
+    input.targetCompany || input.existing?.targetCompany || "";
+  const targetRole = input.targetRole || input.existing?.targetRole || "";
+
   const client = getClient();
   if (!client) {
-    return heuristicDraft(input.notes, input.fullName, input.existing);
+    const draft = heuristicDraft(
+      input.notes,
+      input.fullName,
+      input.existing,
+      docType,
+    );
+    return {
+      ...draft,
+      targetCompany,
+      targetRole,
+    };
   }
 
   const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -82,30 +127,43 @@ export async function generateDraftFromNotes(input: {
       { role: "system", content: SYSTEM },
       {
         role: "user",
-        content: `A partir de las notas del arquitecto, genera un borrador de CV/portafolio en JSON con claves:
+        content: `${modeBlock(docType, sourceMode)}
+${targetingBlock({ targetCompany, targetRole })}
+
+Genera JSON con claves:
 fullName, headline, summary, email, phone, location, website, skills (string[]),
 experience: [{role, company, location, startDate, endDate, description}],
 education: [{school, degree, year, description}],
 projects: [{title, year, location, typology, description, highlights: string[]}].
 
 Nombre sugerido: ${input.fullName || "desconocido"}
-Notas:
-${input.notes.slice(0, 12000)}
+Material de origen (notas + texto extraído de archivos):
+${input.notes.slice(0, 20000)}
 
-Contenido existente (puedes fusionar/mejorar):
-${JSON.stringify(input.existing ?? {})}`,
+Contenido existente (fusiona/mejora; conserva hechos):
+${JSON.stringify({
+  ...input.existing,
+  rawNotes: undefined,
+})}`,
       },
     ],
   });
 
   const raw = completion.choices[0]?.message?.content || "{}";
-  return normalizeContent(JSON.parse(raw), input.existing);
+  const normalized = normalizeContent(JSON.parse(raw), input.existing);
+  return {
+    ...normalized,
+    targetCompany,
+    targetRole,
+  };
 }
 
 export async function improveText(input: {
   field: string;
   text: string;
   context?: string;
+  targetCompany?: string;
+  targetRole?: string;
 }): Promise<string> {
   const client = getClient();
   if (!client) {
@@ -123,6 +181,10 @@ export async function improveText(input: {
         content: `Mejora el siguiente texto del campo "${input.field}" para un CV/portafolio de arquitectura.
 Mantén hechos; mejora claridad, ritmo y tono profesional. Devuelve SOLO el texto mejorado, sin comillas ni JSON.
 Contexto: ${input.context || "n/a"}
+${targetingBlock({
+  targetCompany: input.targetCompany,
+  targetRole: input.targetRole,
+})}
 Texto:
 ${input.text}`,
       },
@@ -135,6 +197,8 @@ ${input.text}`,
 export async function suggestHighlights(input: {
   title: string;
   description: string;
+  targetCompany?: string;
+  targetRole?: string;
 }): Promise<string[]> {
   const client = getClient();
   if (!client) {
@@ -152,6 +216,10 @@ export async function suggestHighlights(input: {
         role: "user",
         content: `Sugiere 3-5 bullets (highlights) para el proyecto "${input.title}".
 JSON: { "highlights": string[] }
+${targetingBlock({
+  targetCompany: input.targetCompany,
+  targetRole: input.targetRole,
+})}
 Descripción: ${input.description}`,
       },
     ],
@@ -188,6 +256,8 @@ function normalizeContent(
       highlights: p.highlights || [],
     })),
     rawNotes: existing?.rawNotes || "",
+    targetCompany: existing?.targetCompany || "",
+    targetRole: existing?.targetRole || "",
   };
 }
 
@@ -195,6 +265,7 @@ function heuristicDraft(
   notes: string,
   fullName?: string,
   existing?: Partial<PortfolioContent>,
+  docType: DocType = "portfolio",
 ): PortfolioContent {
   const lines = notes
     .split(/\n+/)
@@ -204,6 +275,24 @@ function heuristicDraft(
   const summary =
     lines.slice(0, 3).join(" ") ||
     "Arquitecto/a con enfoque en diseño, detalle constructivo y comunicación visual de proyectos.";
+
+  const projects =
+    docType === "cv"
+      ? existing?.projects || []
+      : existing?.projects?.length
+        ? existing.projects
+        : [
+            {
+              id: newId(),
+              title: "Proyecto destacado",
+              description: polishLocally(
+                lines.slice(6, 12).join(" ") ||
+                  "Proyecto de arquitectura con énfasis en materialidad, luz y uso.",
+              ),
+              highlights: localHighlights(notes),
+              imageUrls: [],
+            },
+          ];
 
   return {
     fullName: name,
@@ -223,8 +312,7 @@ function heuristicDraft(
             id: newId(),
             role: "Arquitecto/a",
             company: "Estudio / Independiente",
-            description:
-              polishLocally(lines.slice(3, 6).join(" ") || summary),
+            description: polishLocally(lines.slice(3, 6).join(" ") || summary),
           },
         ],
     education: existing?.education?.length
@@ -237,21 +325,10 @@ function heuristicDraft(
             year: "",
           },
         ],
-    projects: existing?.projects?.length
-      ? existing.projects
-      : [
-          {
-            id: newId(),
-            title: "Proyecto destacado",
-            description: polishLocally(
-              lines.slice(6, 12).join(" ") ||
-                "Proyecto de arquitectura con énfasis en materialidad, luz y uso.",
-            ),
-            highlights: localHighlights(notes),
-            imageUrls: [],
-          },
-        ],
+    projects,
     rawNotes: notes,
+    targetCompany: existing?.targetCompany || "",
+    targetRole: existing?.targetRole || "",
   };
 }
 

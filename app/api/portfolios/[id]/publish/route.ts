@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import {
-  assertCanPublish,
-  LimitError,
-  slugify,
-} from "@/lib/usage";
+import { slugify } from "@/lib/usage";
 import type { PortfolioContent } from "@/lib/types";
 
 export async function POST(
@@ -32,17 +28,6 @@ export async function POST(
 
   if (fetchError || !current) {
     return NextResponse.json({ error: "No encontrado" }, { status: 404 });
-  }
-
-  if (publish && !current.published) {
-    try {
-      await assertCanPublish(user.id);
-    } catch (err) {
-      if (err instanceof LimitError) {
-        return NextResponse.json({ error: err.message }, { status: 402 });
-      }
-      throw err;
-    }
   }
 
   let slug = current.slug as string | null;

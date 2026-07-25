@@ -45,6 +45,7 @@ Sin `OPENAI_API_KEY`, la app sigue funcionando con un **fallback heurístico** d
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
 2. En el SQL Editor, ejecuta [`supabase/schema.sql`](./supabase/schema.sql).
+   Si ya tenías el schema anterior, ejecuta también [`supabase/migration_doc_types.sql`](./supabase/migration_doc_types.sql).
 3. En Storage, crea el bucket **`portfolio-assets`** (público) o ejecuta también [`supabase/storage.sql`](./supabase/storage.sql).
 4. Auth → Email: habilita email/password (puedes desactivar “Confirm email” en desarrollo).
 
@@ -59,20 +60,17 @@ Abre [http://localhost:3000](http://localhost:3000) en el navegador (escritorio 
 ## Flujo de producto
 
 1. Registro / login  
-2. **Nuevo portafolio**: notas + imágenes/PDF → plantilla → borrador IA  
-3. Editor: textos, proyectos, “Mejorar con IA”, plantillas  
-4. **Descargar PDF** y/o **Publicar link** `/p/[slug]`
+2. Elige en el dashboard:
+   - **Nuevo portafolio** — desde notas/imágenes  
+   - **Rediseñar portafolio** — sube PDF/archivos existentes  
+   - **Crear / mejorar CV** — texto o CV PDF (separado del portafolio)  
+3. Opcional: indica **empresa/puesto** para personalizar la IA  
+4. Plantilla → borrador IA → editor  
+5. **Descargar PDF** y/o **Publicar link** `/p/[slug]`
 
-## Planes (sin Stripe todavía)
+## Planes / límites
 
-Límites en `lib/plans.ts` + tabla `plans` / `profiles.plan_id`:
-
-| Plan | Portfolios | Publicados | IA / mes | PDF / mes |
-| --- | --- | --- | --- | --- |
-| free | 1 | 1 | 20 | 5 |
-| pro | 10 | 10 | 200 | 50 |
-
-Para Pro en pruebas: `update profiles set plan_id = 'pro' where id = '...'`.
+**Por ahora todo es ilimitado y gratis** (sin cortes de IA, PDF ni número de documentos). La tabla `plans` / `usage_events` queda para cuando decidamos cobro.
 
 ## Scripts
 

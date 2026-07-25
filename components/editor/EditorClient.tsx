@@ -303,6 +303,26 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
               </div>
             </Panel>
 
+            <Panel title="Candidatura (opcional)">
+              <p className="mb-2 text-xs text-ink-500">
+                Si indicas empresa/puesto, la IA personaliza mejoras y regeneraciones.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label="Empresa objetivo"
+                  value={content.targetCompany || ""}
+                  onChange={(v) =>
+                    setContent({ ...content, targetCompany: v })
+                  }
+                />
+                <Field
+                  label="Puesto objetivo"
+                  value={content.targetRole || ""}
+                  onChange={(v) => setContent({ ...content, targetRole: v })}
+                />
+              </div>
+            </Panel>
+
             <Panel title="Perfil">
               <Field
                 label="Nombre"

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PortfolioPreview } from "@/components/templates/PortfolioPreview";
+import { readJsonSafe } from "@/lib/errors";
 import { TEMPLATES } from "@/lib/templates";
 import type {
   EducationItem,
@@ -23,6 +24,7 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
   const [published, setPublished] = useState(portfolio.published);
   const [slug, setSlug] = useState(portfolio.slug || "");
   const [saving, setSaving] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
@@ -63,6 +65,7 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
 
   async function improve(field: string, text: string, apply: (v: string) => void) {
     setError(null);
+    setAiBusy(true);
     setMessage("Mejorando con IA…");
     try {
       const res = await fetch("/api/ai/improve", {
@@ -74,17 +77,21 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
           text,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error IA");
-      apply(data.text);
+      const data = await readJsonSafe<{ error?: string; text?: string }>(res);
+      if (!res.ok) throw new Error(data.error || "Error de IA");
+      apply(data.text || text);
       setMessage("Texto mejorado");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
       setMessage(null);
+    } finally {
+      setAiBusy(false);
     }
   }
 
   async function suggestProjectHighlights(project: ProjectItem) {
+    setError(null);
+    setAiBusy(true);
     setMessage("Sugiriendo destacados…");
     try {
       const res = await fetch("/api/ai/highlights", {
@@ -96,21 +103,31 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
           description: project.description,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error IA");
+      const data = await readJsonSafe<{
+        error?: string;
+        highlights?: string[];
+      }>(res);
+      if (!res.ok) throw new Error(data.error || "Error de IA");
       setContent((c) => ({
         ...c,
         projects: c.projects.map((p) =>
-          p.id === project.id ? { ...p, highlights: data.highlights } : p,
+          p.id === project.id
+            ? { ...p, highlights: data.highlights || p.highlights }
+            : p,
         ),
       }));
       setMessage("Destacados actualizados");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
+      setMessage(null);
+    } finally {
+      setAiBusy(false);
     }
   }
 
   async function regenerate() {
+    setError(null);
+    setAiBusy(true);
     setMessage("Regenerando borrador…");
     try {
       const res = await fetch("/api/ai/generate", {
@@ -118,12 +135,18 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ portfolioId: portfolio.id }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error IA");
-      setContent(data.content);
+      const data = await readJsonSafe<{
+        error?: string;
+        content?: PortfolioContent;
+      }>(res);
+      if (!res.ok) throw new Error(data.error || "Error de IA");
+      if (data.content) setContent(data.content);
       setMessage("Borrador regenerado");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
+      setMessage(null);
+    } finally {
+      setAiBusy(false);
     }
   }
 
@@ -223,17 +246,31 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
           <button
             type="button"
             onClick={regenerate}
-            className="border border-ink-300 bg-white/70 px-3 py-2"
+            disabled={aiBusy}
+            className="inline-flex items-center gap-2 border border-ink-300 bg-white/70 px-3 py-2 disabled:opacity-60"
           >
+            {aiBusy ? (
+              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink-400/30 border-t-ink-800" />
+            ) : null}
             Regenerar con IA
           </button>
         </div>
       </div>
 
-      {(message || error || publicUrl) && (
+      {(message || error || publicUrl || aiBusy) && (
         <div className="mt-4 space-y-1 text-sm">
-          {message && <p className="text-ink-700">{message}</p>}
-          {error && <p className="text-red-700">{error}</p>}
+          {aiBusy && (
+            <p className="flex items-center gap-2 text-ink-700">
+              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink-400/30 border-t-ink-800" />
+              {message || "Procesando con IA…"}
+            </p>
+          )}
+          {!aiBusy && message && <p className="text-ink-700">{message}</p>}
+          {error && (
+            <p className="border border-red-200 bg-red-50 px-3 py-2 text-red-800" role="alert">
+              {error}
+            </p>
+          )}
           {publicUrl && (
             <p className="text-ink-700">
               Link público:{" "}

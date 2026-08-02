@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateDraftFromNotes } from "@/lib/ai";
+import { mapAiError } from "@/lib/errors";
 import { recordUsage } from "@/lib/usage";
 import type { DocType, PortfolioContent, SourceMode } from "@/lib/types";
 
@@ -13,7 +14,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
+
   const portfolioId = String(body.portfolioId || "");
   if (!portfolioId) {
     return NextResponse.json({ error: "portfolioId requerido" }, { status: 400 });
@@ -39,7 +46,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "No hay texto para generar el borrador. Añade notas o sube un PDF con texto seleccionable.",
+          "No hay texto para generar el borrador. Añade notas o sube un PDF con texto seleccionable (no escaneado).",
       },
       { status: 400 },
     );
@@ -54,15 +61,20 @@ export async function POST(request: Request) {
     existing._sourceMode ||
     "create";
 
-  const content = await generateDraftFromNotes({
-    notes,
-    fullName: existing.fullName,
-    existing,
-    docType,
-    sourceMode,
-    targetCompany: existing.targetCompany,
-    targetRole: existing.targetRole,
-  });
+  let content: PortfolioContent;
+  try {
+    content = await generateDraftFromNotes({
+      notes,
+      fullName: existing.fullName,
+      existing,
+      docType,
+      sourceMode,
+      targetCompany: existing.targetCompany,
+      targetRole: existing.targetRole,
+    });
+  } catch (err) {
+    return NextResponse.json({ error: mapAiError(err) }, { status: 502 });
+  }
 
   content.rawNotes = notes;
   content.targetCompany = existing.targetCompany || "";
@@ -73,7 +85,6 @@ export async function POST(request: Request) {
       ...p,
       imageUrls: existing.projects[i]?.imageUrls || p.imageUrls || [],
     }));
-    // If AI returned fewer projects, keep leftover images on first project
     const leftover = existing.projects.slice(content.projects.length);
     for (const lp of leftover) {
       if (lp.imageUrls?.length && content.projects[0]) {

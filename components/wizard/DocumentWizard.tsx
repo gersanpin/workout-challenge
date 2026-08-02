@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { readJsonSafe } from "@/lib/errors";
+import {
+  formatBytes,
+  MAX_FILE_BYTES,
+  MAX_FILES,
+  validateUploadFiles,
+} from "@/lib/files";
 import { TEMPLATES } from "@/lib/templates";
 import type { DocType, SourceMode, TemplateId } from "@/lib/types";
 
@@ -41,7 +48,7 @@ export function DocumentWizard({
   const [targetCompany, setTargetCompany] = useState("");
   const [targetRole, setTargetRole] = useState("");
   const [templateId, setTemplateId] = useState<TemplateId>("minimal");
-  const [files, setFiles] = useState<FileList | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
@@ -49,11 +56,39 @@ export function DocumentWizard({
   function canContinueStep1(): boolean {
     if (!fullName.trim()) return false;
     const hasNotes = Boolean(notes.trim());
-    const hasFiles = Boolean(files && files.length);
+    const hasFiles = files.length > 0;
     if (notesRequired && !hasNotes) return false;
     if (filesRequired && !hasFiles) return false;
     if (!hasNotes && !hasFiles) return false;
     return true;
+  }
+
+  function onFilesChange(list: FileList | null) {
+    setError(null);
+    const next = list ? Array.from(list) : [];
+    const validationError = validateUploadFiles(next);
+    if (validationError) {
+      setFiles([]);
+      setError(validationError);
+      return;
+    }
+    setFiles(next);
+  }
+
+  function goStep2() {
+    setError(null);
+    if (files.length) {
+      const validationError = validateUploadFiles(files);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
+    if (!canContinueStep1()) {
+      setError("Completa nombre y añade texto o archivos válidos.");
+      return;
+    }
+    setStep(2);
   }
 
   async function onSubmit(e: FormEvent) {
@@ -61,6 +96,11 @@ export function DocumentWizard({
     setLoading(true);
     setError(null);
     try {
+      if (files.length) {
+        const validationError = validateUploadFiles(files);
+        if (validationError) throw new Error(validationError);
+      }
+
       setStatus("Creando documento…");
       const createRes = await fetch("/api/portfolios", {
         method: "POST",
@@ -76,19 +116,26 @@ export function DocumentWizard({
           targetRole,
         }),
       });
-      const createData = await createRes.json();
-      if (!createRes.ok) throw new Error(createData.error || "Error al crear");
+      const createData = await readJsonSafe<{
+        error?: string;
+        portfolio?: { id: string };
+      }>(createRes);
+      if (!createRes.ok) {
+        throw new Error(createData.error || "Error al crear el documento");
+      }
+      const portfolioId = createData.portfolio?.id;
+      if (!portfolioId) throw new Error("No se recibió el ID del documento");
 
-      const portfolioId = createData.portfolio.id as string;
-
-      if (files && files.length) {
+      if (files.length) {
         setStatus("Subiendo y leyendo archivos…");
         const fd = new FormData();
         fd.set("portfolioId", portfolioId);
-        Array.from(files).forEach((f) => fd.append("files", f));
+        files.forEach((f) => fd.append("files", f));
         const up = await fetch("/api/upload", { method: "POST", body: fd });
-        const upData = await up.json();
-        if (!up.ok) throw new Error(upData.error || "Error al subir archivos");
+        const upData = await readJsonSafe<{ error?: string }>(up);
+        if (!up.ok) {
+          throw new Error(upData.error || "Error al subir archivos");
+        }
       }
 
       setStatus("Generando borrador con IA…");
@@ -97,21 +144,49 @@ export function DocumentWizard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ portfolioId }),
       });
-      const aiData = await aiRes.json();
-      if (!aiRes.ok) throw new Error(aiData.error || "Error de IA");
+      const aiData = await readJsonSafe<{ error?: string }>(aiRes);
+      if (!aiRes.ok) {
+        throw new Error(
+          aiData.error ||
+            "No se pudo generar el borrador con IA. Revisa la API key o el archivo e intenta de nuevo.",
+        );
+      }
 
       router.push(`/dashboard/${portfolioId}`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      setError(err instanceof Error ? err.message : "Error inesperado");
+      setStatus("");
     } finally {
       setLoading(false);
-      setStatus("");
     }
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-3xl px-6 py-8">
+    <div className="relative mx-auto min-h-screen max-w-3xl px-6 py-8">
+      {loading && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 px-6 backdrop-blur-[2px]"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="w-full max-w-sm border border-ink-200 bg-ink-50 p-8 shadow-lg">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-ink-300 border-t-ink-950" />
+            <p className="mt-5 text-center font-medium text-ink-900">
+              {status || "Procesando…"}
+            </p>
+            <div className="mt-4 space-y-2">
+              <div className="h-2 animate-pulse bg-ink-200" />
+              <div className="h-2 w-[80%] animate-pulse bg-ink-200" />
+              <div className="h-2 w-[65%] animate-pulse bg-ink-200" />
+            </div>
+            <p className="mt-4 text-center text-xs text-ink-500">
+              Esto puede tardar unos segundos. No cierres esta ventana.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Link href="/dashboard" className="text-sm text-ink-600 hover:underline">
         ← Dashboard
       </Link>
@@ -123,8 +198,9 @@ export function DocumentWizard({
           <button
             key={n}
             type="button"
+            disabled={loading}
             onClick={() => setStep(n)}
-            className={`px-3 py-1 ${step === n ? "bg-ink-950 text-ink-50" : "bg-white/60"}`}
+            className={`px-3 py-1 ${step === n ? "bg-ink-950 text-ink-50" : "bg-white/60"} disabled:opacity-50`}
           >
             Paso {n}
           </button>
@@ -139,6 +215,7 @@ export function DocumentWizard({
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                disabled={loading}
                 className="mt-1 w-full border border-ink-200 px-3 py-2"
               />
             </label>
@@ -148,6 +225,7 @@ export function DocumentWizard({
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                disabled={loading}
                 className="mt-1 w-full border border-ink-200 px-3 py-2"
               />
             </label>
@@ -159,6 +237,7 @@ export function DocumentWizard({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={notesPlaceholder}
+                disabled={loading}
                 className="mt-1 w-full border border-ink-200 px-3 py-2"
               />
             </label>
@@ -169,9 +248,23 @@ export function DocumentWizard({
                 multiple
                 required={filesRequired}
                 accept={accept}
-                onChange={(e) => setFiles(e.target.files)}
+                disabled={loading}
+                onChange={(e) => onFilesChange(e.target.files)}
                 className="mt-2 block w-full text-sm"
               />
+              <p className="mt-1 text-xs text-ink-500">
+                Hasta {MAX_FILES} archivos · máx. {formatBytes(MAX_FILE_BYTES)}{" "}
+                c/u · PDF, imágenes o texto
+              </p>
+              {files.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs text-ink-600">
+                  {files.map((f) => (
+                    <li key={`${f.name}-${f.size}`}>
+                      {f.name} · {formatBytes(f.size)}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </label>
 
             <div className="border-t border-ink-100 pt-4">
@@ -190,6 +283,7 @@ export function DocumentWizard({
                     value={targetCompany}
                     onChange={(e) => setTargetCompany(e.target.value)}
                     placeholder="Ej. Foster + Partners"
+                    disabled={loading}
                     className="mt-1 w-full border border-ink-200 px-3 py-2"
                   />
                 </label>
@@ -199,16 +293,23 @@ export function DocumentWizard({
                     value={targetRole}
                     onChange={(e) => setTargetRole(e.target.value)}
                     placeholder="Ej. Arquitecto/a junior"
+                    disabled={loading}
                     className="mt-1 w-full border border-ink-200 px-3 py-2"
                   />
                 </label>
               </div>
             </div>
 
+            {error && step === 1 && (
+              <p className="text-sm text-red-700" role="alert">
+                {error}
+              </p>
+            )}
+
             <button
               type="button"
-              disabled={!canContinueStep1()}
-              onClick={() => setStep(2)}
+              disabled={!canContinueStep1() || loading}
+              onClick={goStep2}
               className="bg-ink-950 px-4 py-2 text-sm text-ink-50 disabled:opacity-40"
             >
               Continuar
@@ -224,6 +325,7 @@ export function DocumentWizard({
                 <button
                   key={t.id}
                   type="button"
+                  disabled={loading}
                   onClick={() => setTemplateId(t.id)}
                   className={`border p-4 text-left ${
                     templateId === t.id
@@ -240,6 +342,7 @@ export function DocumentWizard({
               <button
                 type="button"
                 onClick={() => setStep(1)}
+                disabled={loading}
                 className="border border-ink-300 px-4 py-2 text-sm"
               >
                 Atrás
@@ -247,6 +350,7 @@ export function DocumentWizard({
               <button
                 type="button"
                 onClick={() => setStep(3)}
+                disabled={loading}
                 className="bg-ink-950 px-4 py-2 text-sm text-ink-50"
               >
                 Continuar
@@ -263,10 +367,13 @@ export function DocumentWizard({
               {targetCompany || targetRole
                 ? ` orientado a ${[targetRole, targetCompany].filter(Boolean).join(" · ")}`
                 : ""}
-              {files?.length ? ` · ${files.length} archivo(s)` : ""}.
+              {files.length ? ` · ${files.length} archivo(s)` : ""}.
             </p>
-            {error && <p className="text-sm text-red-700">{error}</p>}
-            {status && <p className="text-sm text-ink-600">{status}</p>}
+            {error && (
+              <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+                {error}
+              </p>
+            )}
             <div className="flex gap-2">
               <button
                 type="button"
@@ -279,9 +386,16 @@ export function DocumentWizard({
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-ink-950 px-4 py-2 text-sm text-ink-50 disabled:opacity-60"
+                className="inline-flex items-center gap-2 bg-ink-950 px-4 py-2 text-sm text-ink-50 disabled:opacity-60"
               >
-                {loading ? "Trabajando…" : "Generar borrador"}
+                {loading ? (
+                  <>
+                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink-50/30 border-t-ink-50" />
+                    Generando…
+                  </>
+                ) : (
+                  "Generar borrador"
+                )}
               </button>
             </div>
           </div>

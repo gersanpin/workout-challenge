@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { extractTextFromFile } from "@/lib/extract";
+import { validateUploadFiles } from "@/lib/files";
 import type { PortfolioContent } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -14,7 +15,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const form = await request.formData();
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { error: "No se pudo leer el formulario de subida. El archivo puede ser demasiado grande." },
+      { status: 400 },
+    );
+  }
+
   const portfolioId = String(form.get("portfolioId") || "");
   const projectId = form.get("projectId")
     ? String(form.get("projectId"))
@@ -26,6 +36,11 @@ export async function POST(request: Request) {
   }
   if (!files.length) {
     return NextResponse.json({ error: "Sin archivos" }, { status: 400 });
+  }
+
+  const validationError = validateUploadFiles(files);
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
   const { data: portfolio, error: pErr } = await supabase
@@ -54,15 +69,22 @@ export async function POST(request: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Extract text before upload consumes nothing — we already have buffer/file
     if (kind === "pdf" || kind === "other") {
       try {
         const text = await extractTextFromFile(file);
         if (text) {
           extractedChunks.push(`--- Archivo: ${file.name} ---\n${text}`);
+        } else if (kind === "pdf") {
+          extractedChunks.push(
+            `[PDF: ${file.name} — no se extrajo texto (puede ser escaneado o corrupto).]`,
+          );
         }
       } catch {
-        // ignore extraction failures
+        if (kind === "pdf") {
+          extractedChunks.push(
+            `[PDF: ${file.name} — no se pudo leer. Puede estar corrupto o protegido.]`,
+          );
+        }
       }
     }
 

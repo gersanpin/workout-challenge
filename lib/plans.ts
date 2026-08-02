@@ -19,7 +19,3 @@ export const PLANS: Record<PlanId, PlanLimits> = {
     pdfExportsPerMonth: Number.MAX_SAFE_INTEGER,
   },
 };
-
-export function monthStartIso(d = new Date()): string {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString();
-}

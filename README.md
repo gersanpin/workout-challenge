@@ -72,6 +72,8 @@ Abre [http://localhost:3000](http://localhost:3000) en el navegador (escritorio 
 
 **Por ahora todo es ilimitado y gratis** (sin cortes de IA, PDF ni número de documentos). La tabla `plans` / `usage_events` queda para cuando decidamos cobro.
 
+Subida de archivos: máx. 12 archivos, 10 MB c/u (PDF, imágenes o texto). Tipos/tamaños inválidos se rechazan antes de llamar a la IA.
+
 ## Scripts
 
 - `npm run dev` — desarrollo

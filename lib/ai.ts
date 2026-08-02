@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { z } from "zod";
+import { mapAiError } from "./errors";
 import type { DocType, PortfolioContent, SourceMode } from "./types";
 import { newId } from "./types";
 
@@ -52,10 +53,6 @@ function getClient() {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
   return new OpenAI({ apiKey: key });
-}
-
-export function isAiConfigured(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY);
 }
 
 const SYSTEM = `Eres un editor senior de CVs y portafolios para arquitectos (español).
@@ -118,16 +115,17 @@ export async function generateDraftFromNotes(input: {
     };
   }
 
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-  const completion = await client.chat.completions.create({
-    model,
-    temperature: 0.4,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: SYSTEM },
-      {
-        role: "user",
-        content: `${modeBlock(docType, sourceMode)}
+  try {
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+    const completion = await client.chat.completions.create({
+      model,
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: SYSTEM },
+        {
+          role: "user",
+          content: `${modeBlock(docType, sourceMode)}
 ${targetingBlock({ targetCompany, targetRole })}
 
 Genera JSON con claves:
@@ -145,17 +143,28 @@ ${JSON.stringify({
   ...input.existing,
   rawNotes: undefined,
 })}`,
-      },
-    ],
-  });
+        },
+      ],
+    });
 
-  const raw = completion.choices[0]?.message?.content || "{}";
-  const normalized = normalizeContent(JSON.parse(raw), input.existing);
-  return {
-    ...normalized,
-    targetCompany,
-    targetRole,
-  };
+    const raw = completion.choices[0]?.message?.content || "{}";
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error(
+        "La IA devolvió una respuesta inválida. Intenta de nuevo.",
+      );
+    }
+    const normalized = normalizeContent(parsed, input.existing);
+    return {
+      ...normalized,
+      targetCompany,
+      targetRole,
+    };
+  } catch (err) {
+    throw new Error(mapAiError(err));
+  }
 }
 
 export async function improveText(input: {
@@ -170,15 +179,16 @@ export async function improveText(input: {
     return polishLocally(input.text);
   }
 
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-  const completion = await client.chat.completions.create({
-    model,
-    temperature: 0.3,
-    messages: [
-      { role: "system", content: SYSTEM },
-      {
-        role: "user",
-        content: `Mejora el siguiente texto del campo "${input.field}" para un CV/portafolio de arquitectura.
+  try {
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+    const completion = await client.chat.completions.create({
+      model,
+      temperature: 0.3,
+      messages: [
+        { role: "system", content: SYSTEM },
+        {
+          role: "user",
+          content: `Mejora el siguiente texto del campo "${input.field}" para un CV/portafolio de arquitectura.
 Mantén hechos; mejora claridad, ritmo y tono profesional. Devuelve SOLO el texto mejorado, sin comillas ni JSON.
 Contexto: ${input.context || "n/a"}
 ${targetingBlock({
@@ -187,11 +197,14 @@ ${targetingBlock({
 })}
 Texto:
 ${input.text}`,
-      },
-    ],
-  });
+        },
+      ],
+    });
 
-  return (completion.choices[0]?.message?.content || input.text).trim();
+    return (completion.choices[0]?.message?.content || input.text).trim();
+  } catch (err) {
+    throw new Error(mapAiError(err));
+  }
 }
 
 export async function suggestHighlights(input: {
@@ -205,30 +218,34 @@ export async function suggestHighlights(input: {
     return localHighlights(input.description);
   }
 
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-  const completion = await client.chat.completions.create({
-    model,
-    temperature: 0.4,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: SYSTEM },
-      {
-        role: "user",
-        content: `Sugiere 3-5 bullets (highlights) para el proyecto "${input.title}".
+  try {
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+    const completion = await client.chat.completions.create({
+      model,
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: SYSTEM },
+        {
+          role: "user",
+          content: `Sugiere 3-5 bullets (highlights) para el proyecto "${input.title}".
 JSON: { "highlights": string[] }
 ${targetingBlock({
   targetCompany: input.targetCompany,
   targetRole: input.targetRole,
 })}
 Descripción: ${input.description}`,
-      },
-    ],
-  });
+        },
+      ],
+    });
 
-  const parsed = JSON.parse(completion.choices[0]?.message?.content || "{}");
-  return Array.isArray(parsed.highlights)
-    ? parsed.highlights.map(String).slice(0, 5)
-    : localHighlights(input.description);
+    const parsed = JSON.parse(completion.choices[0]?.message?.content || "{}");
+    return Array.isArray(parsed.highlights)
+      ? parsed.highlights.map(String).slice(0, 5)
+      : localHighlights(input.description);
+  } catch (err) {
+    throw new Error(mapAiError(err));
+  }
 }
 
 function normalizeContent(

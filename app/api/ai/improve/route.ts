@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { improveText } from "@/lib/ai";
+import { mapAiError } from "@/lib/errors";
 import { recordUsage } from "@/lib/usage";
 import type { PortfolioContent } from "@/lib/types";
 
@@ -13,7 +14,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
+
   const field = String(body.field || "text");
   const text = String(body.text || "");
   const portfolioId = body.portfolioId ? String(body.portfolioId) : undefined;
@@ -36,13 +43,16 @@ export async function POST(request: Request) {
     targetRole = content?.targetRole || "";
   }
 
-  const improved = await improveText({
-    field,
-    text,
-    targetCompany,
-    targetRole,
-  });
-  await recordUsage(user.id, "ai", { action: "improve", field, portfolioId });
-
-  return NextResponse.json({ text: improved });
+  try {
+    const improved = await improveText({
+      field,
+      text,
+      targetCompany,
+      targetRole,
+    });
+    await recordUsage(user.id, "ai", { action: "improve", field, portfolioId });
+    return NextResponse.json({ text: improved });
+  } catch (err) {
+    return NextResponse.json({ error: mapAiError(err) }, { status: 502 });
+  }
 }

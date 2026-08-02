@@ -35,30 +35,50 @@ export default async function DashboardPage() {
           </Link>
           <p className="mt-1 text-sm text-ink-600">{user.email}</p>
         </div>
-        <SignOutButton />
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/new"
+            className="bg-ink-950 px-4 py-2 text-sm text-ink-50"
+          >
+            Crear CV o portafolio
+          </Link>
+          <SignOutButton />
+        </div>
       </header>
 
       <section className="mt-10">
         <h1 className="text-xl font-medium">¿Qué quieres hacer?</h1>
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <ActionCard
             href="/dashboard/new"
-            title="Nuevo portafolio"
-            body="Crea un portafolio desde cero con tus notas, imágenes y una plantilla."
+            eyebrow="Crear"
+            title="CV o portafolio nuevo"
+            body="Elige CV o portafolio en el primer paso. Plantillas, IA y export PDF — sin límites de uso."
+            primary
           />
           <ActionCard
             href="/dashboard/redesign"
-            title="Rediseñar portafolio"
-            body="Sube tu portafolio actual (PDF/archivos) y genera una versión rediseñada con IA."
+            eyebrow="Rediseñar"
+            title="Portafolio existente"
+            body="Sube un PDF multipágina o imágenes y genera una versión rediseñada con IA."
+          />
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <ActionCard
+            href="/dashboard/new?type=cv"
+            eyebrow="Atajo"
+            title="Ir directo a crear CV"
+            body="PDF o texto + vacante opcional + plantilla ATS-safe."
           />
           <ActionCard
-            href="/dashboard/cv"
-            title="Crear / mejorar CV"
-            body="Genera un CV profesional a partir de texto o de un CV viejo en PDF."
+            href="/dashboard/new?type=portfolio"
+            eyebrow="Atajo"
+            title="Ir directo a crear portafolio"
+            body="Abre el asistente de portafolio (notas, imágenes, plantilla e IA)."
           />
         </div>
         <p className="mt-4 text-xs text-ink-500">
-          Uso ilimitado y gratis por ahora — sin límites de IA, PDF ni documentos.
+          Uso ilimitado y gratis por ahora — sin tope de documentos, IA ni PDF.
         </p>
       </section>
 
@@ -71,7 +91,7 @@ export default async function DashboardPage() {
               href="/dashboard/new"
               className="mt-4 inline-block bg-ink-950 px-4 py-2 text-sm text-ink-50"
             >
-              Empezar ahora
+              Crear CV o portafolio
             </Link>
           </div>
         ) : (
@@ -135,18 +155,41 @@ function ActionCard({
   href,
   title,
   body,
+  eyebrow,
+  primary,
 }: {
   href: string;
   title: string;
   body: string;
+  eyebrow?: string;
+  primary?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="block border border-ink-200 bg-white/70 p-5 transition hover:border-ink-500"
+      className={`block border p-5 transition hover:border-ink-800 ${
+        primary
+          ? "border-ink-950 bg-ink-950 text-ink-50"
+          : "border-ink-200 bg-white/70 text-ink-950"
+      }`}
     >
-      <p className="font-medium text-ink-950">{title}</p>
-      <p className="mt-2 text-sm leading-relaxed text-ink-600">{body}</p>
+      {eyebrow ? (
+        <p
+          className={`text-xs uppercase tracking-wider ${
+            primary ? "text-ink-300" : "text-ink-500"
+          }`}
+        >
+          {eyebrow}
+        </p>
+      ) : null}
+      <p className="mt-1 font-medium">{title}</p>
+      <p
+        className={`mt-2 text-sm leading-relaxed ${
+          primary ? "text-ink-200" : "text-ink-600"
+        }`}
+      >
+        {body}
+      </p>
     </Link>
   );
 }

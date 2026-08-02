@@ -1,6 +1,9 @@
 import type { PlanId, PlanLimits } from "./types";
 
-/** Kept for future billing. Limits are not enforced in the app right now. */
+/**
+ * Plan metadata only — NOT enforced anywhere in the app.
+ * Limits are fully disabled until billing is introduced.
+ */
 export const PLANS: Record<PlanId, PlanLimits> = {
   free: {
     id: "free",
@@ -12,10 +15,15 @@ export const PLANS: Record<PlanId, PlanLimits> = {
   },
   pro: {
     id: "pro",
-    name: "Pro",
+    name: "Pro (ilimitado)",
     maxPortfolios: Number.MAX_SAFE_INTEGER,
     maxPublished: Number.MAX_SAFE_INTEGER,
     aiCreditsPerMonth: Number.MAX_SAFE_INTEGER,
     pdfExportsPerMonth: Number.MAX_SAFE_INTEGER,
   },
 };
+
+/** Always false for now — keep helpers from accidentally gating UX. */
+export function limitsEnabled(): boolean {
+  return false;
+}

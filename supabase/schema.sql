@@ -3,7 +3,7 @@
 
 create extension if not exists "pgcrypto";
 
--- Plans (reference; limits also enforced in app via lib/plans.ts)
+-- Plans (reference metadata only — app does NOT enforce limits for now)
 create table if not exists public.plans (
   id text primary key,
   name text not null,
@@ -15,8 +15,8 @@ create table if not exists public.plans (
 
 insert into public.plans (id, name, max_portfolios, max_published, ai_credits_per_month, pdf_exports_per_month)
 values
-  ('free', 'Gratis', 1, 1, 20, 5),
-  ('pro', 'Pro', 10, 10, 200, 50)
+  ('free', 'Gratis (ilimitado)', 2147483647, 2147483647, 2147483647, 2147483647),
+  ('pro', 'Pro (ilimitado)', 2147483647, 2147483647, 2147483647, 2147483647)
 on conflict (id) do update set
   name = excluded.name,
   max_portfolios = excluded.max_portfolios,

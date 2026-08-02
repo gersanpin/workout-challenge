@@ -45,7 +45,9 @@ Sin `OPENAI_API_KEY`, la app sigue funcionando con un **fallback heurístico** d
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
 2. En el SQL Editor, ejecuta [`supabase/schema.sql`](./supabase/schema.sql).
-   Si ya tenías el schema anterior, ejecuta también [`supabase/migration_doc_types.sql`](./supabase/migration_doc_types.sql).
+   Si ya tenías el schema anterior, ejecuta también:
+   - [`supabase/migration_doc_types.sql`](./supabase/migration_doc_types.sql)
+   - [`supabase/migration_unlimited.sql`](./supabase/migration_unlimited.sql) ← quita tope de 1 portafolio en `plans`
 3. En Storage, crea el bucket **`portfolio-assets`** (público) o ejecuta también [`supabase/storage.sql`](./supabase/storage.sql).
 4. Auth → Email: habilita email/password (puedes desactivar “Confirm email” en desarrollo).
 

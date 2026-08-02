@@ -28,6 +28,9 @@ export async function GET() {
   return NextResponse.json({ portfolios: data });
 }
 
+/**
+ * Create a CV or portfolio. No plan / usage limits are applied.
+ */
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -37,7 +40,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
+
   const title = String(body.title || "Mi documento");
   const templateId = (body.templateId || "minimal") as TemplateId;
   const fullName = String(body.fullName || "");
@@ -50,6 +59,21 @@ export async function POST(request: Request) {
   const targetRole = String(body.targetRole || "");
   const jobUrl = String(body.jobUrl || "");
   const jobDescription = String(body.jobDescription || "");
+
+  // Ensure profile row exists (FK) — never block on missing profile/plan
+  await supabase.from("profiles").upsert(
+    {
+      id: user.id,
+      email: user.email,
+      full_name:
+        fullName ||
+        (user.user_metadata?.full_name as string | undefined) ||
+        user.email?.split("@")[0] ||
+        null,
+      plan_id: "free",
+    },
+    { onConflict: "id" },
+  );
 
   const content = {
     ...EMPTY_CONTENT,
@@ -96,7 +120,14 @@ export async function POST(request: Request) {
   }
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Never surface plan-limit language — limits are disabled
+    const msg = error.message || "No se pudo crear el documento";
+    const sanitized = /plan|límite|limite|max_portfolio|crédito|credito/i.test(
+      msg,
+    )
+      ? "No se pudo crear el documento. Revisa que el schema de Supabase esté al día (migration_doc_types.sql / migration_unlimited.sql) e inténtalo de nuevo."
+      : msg;
+    return NextResponse.json({ error: sanitized }, { status: 500 });
   }
 
   return NextResponse.json({ portfolio: data });

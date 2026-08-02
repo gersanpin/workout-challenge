@@ -14,6 +14,91 @@ export function PortfolioPreview({
   templateId: TemplateId;
   className?: string;
 }) {
+  if (templateId === "ats") {
+    return (
+      <article
+        className={cx(
+          "border border-ink-300 bg-white px-8 py-10 text-ink-950 md:px-12",
+          className,
+        )}
+      >
+        <h1 className="text-xl font-bold tracking-tight">
+          {content.fullName || "Tu nombre"}
+        </h1>
+        <p className="mt-1 text-sm">{content.headline}</p>
+        <p className="mt-2 text-sm text-ink-700">
+          {[content.email, content.phone, content.location, content.website]
+            .filter(Boolean)
+            .join(" | ")}
+        </p>
+        <hr className="my-4 border-ink-300" />
+        {content.summary ? (
+          <section className="mb-5">
+            <h2 className="text-sm font-bold uppercase">Perfil</h2>
+            <p className="mt-1 text-sm leading-relaxed">{content.summary}</p>
+          </section>
+        ) : null}
+        {content.skills.length ? (
+          <section className="mb-5">
+            <h2 className="text-sm font-bold uppercase">Habilidades</h2>
+            <p className="mt-1 text-sm">{content.skills.join(" · ")}</p>
+          </section>
+        ) : null}
+        {content.experience.length ? (
+          <section className="mb-5">
+            <h2 className="text-sm font-bold uppercase">Experiencia</h2>
+            {content.experience.map((ex) => (
+              <div key={ex.id} className="mt-3">
+                <p className="text-sm font-semibold">
+                  {ex.role} — {ex.company}
+                </p>
+                <p className="text-xs text-ink-600">
+                  {[ex.startDate, ex.endDate].filter(Boolean).join(" – ")}
+                  {ex.location ? ` | ${ex.location}` : ""}
+                </p>
+                <p className="mt-1 text-sm">{ex.description}</p>
+              </div>
+            ))}
+          </section>
+        ) : null}
+        {content.education.length ? (
+          <section className="mb-5">
+            <h2 className="text-sm font-bold uppercase">Formación</h2>
+            {content.education.map((ed) => (
+              <div key={ed.id} className="mt-2 text-sm">
+                <p className="font-semibold">
+                  {ed.degree} — {ed.school}
+                </p>
+                <p className="text-xs text-ink-600">{ed.year}</p>
+              </div>
+            ))}
+          </section>
+        ) : null}
+        {content.projects.length ? (
+          <section>
+            <h2 className="text-sm font-bold uppercase">Proyectos</h2>
+            {content.projects.map((p) => (
+              <div key={p.id} className="mt-3">
+                <p className="text-sm font-semibold">{p.title}</p>
+                <p className="text-xs text-ink-600">
+                  {[p.year, p.location, p.typology].filter(Boolean).join(" | ")}
+                </p>
+                <p className="mt-1 text-sm">{p.description}</p>
+                {p.highlights.length ? (
+                  <ul className="mt-1 list-disc pl-5 text-sm">
+                    {p.highlights.map((h, i) => (
+                      <li key={i}>{h}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ))}
+          </section>
+        ) : null}
+      </article>
+    );
+  }
+
   if (templateId === "editorial") {
     return (
       <article

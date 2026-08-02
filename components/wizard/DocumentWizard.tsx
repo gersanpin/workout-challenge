@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { readJsonSafe } from "@/lib/errors";
 import {
   formatBytes,
@@ -10,7 +10,7 @@ import {
   MAX_FILES,
   validateUploadFiles,
 } from "@/lib/files";
-import { TEMPLATES } from "@/lib/templates";
+import { templatesFor } from "@/lib/templates";
 import type { DocType, SourceMode, TemplateId } from "@/lib/types";
 
 export interface DocumentWizardProps {
@@ -25,6 +25,9 @@ export interface DocumentWizardProps {
   filesLabel: string;
   filesRequired: boolean;
   accept?: string;
+  /** Show job URL scrape + manual paste (CV) */
+  enableJobLink?: boolean;
+  defaultTemplateId?: TemplateId;
 }
 
 export function DocumentWizard({
@@ -39,15 +42,29 @@ export function DocumentWizard({
   filesLabel,
   filesRequired,
   accept = "image/*,application/pdf,.pdf,.txt,.md",
+  enableJobLink = false,
+  defaultTemplateId,
 }: DocumentWizardProps) {
   const router = useRouter();
+  const availableTemplates = useMemo(() => templatesFor(docType), [docType]);
+  const initialTemplate =
+    defaultTemplateId &&
+    availableTemplates.some((t) => t.id === defaultTemplateId)
+      ? defaultTemplateId
+      : availableTemplates[0]?.id || "minimal";
+
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState(defaultTitle);
   const [fullName, setFullName] = useState("");
   const [notes, setNotes] = useState("");
   const [targetCompany, setTargetCompany] = useState("");
   const [targetRole, setTargetRole] = useState("");
-  const [templateId, setTemplateId] = useState<TemplateId>("minimal");
+  const [jobUrl, setJobUrl] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [jobHint, setJobHint] = useState<string | null>(null);
+  const [showJobPaste, setShowJobPaste] = useState(false);
+  const [fetchingJob, setFetchingJob] = useState(false);
+  const [templateId, setTemplateId] = useState<TemplateId>(initialTemplate);
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +90,48 @@ export function DocumentWizard({
       return;
     }
     setFiles(next);
+  }
+
+  async function fetchJob() {
+    setJobHint(null);
+    setError(null);
+    if (!jobUrl.trim()) {
+      setJobHint("Pega un enlace de la vacante o escribe el texto abajo.");
+      setShowJobPaste(true);
+      return;
+    }
+    setFetchingJob(true);
+    try {
+      const res = await fetch("/api/job/fetch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: jobUrl.trim() }),
+      });
+      const data = await readJsonSafe<{
+        ok?: boolean;
+        text?: string;
+        error?: string;
+        needsManualPaste?: boolean;
+      }>(res);
+      if (!res.ok || !data.ok) {
+        setShowJobPaste(true);
+        setJobHint(
+          data.error ||
+            "No se pudo leer el enlace. Pega el texto de la vacante manualmente.",
+        );
+        return;
+      }
+      setJobDescription(data.text || "");
+      setShowJobPaste(true);
+      setJobHint("Vacante leída. Puedes editar el texto si hace falta.");
+    } catch {
+      setShowJobPaste(true);
+      setJobHint(
+        "No se pudo leer el enlace. Pega el texto de la vacante manualmente.",
+      );
+    } finally {
+      setFetchingJob(false);
+    }
   }
 
   function goStep2() {
@@ -114,6 +173,8 @@ export function DocumentWizard({
           sourceMode,
           targetCompany,
           targetRole,
+          jobUrl,
+          jobDescription,
         }),
       });
       const createData = await readJsonSafe<{
@@ -127,7 +188,11 @@ export function DocumentWizard({
       if (!portfolioId) throw new Error("No se recibió el ID del documento");
 
       if (files.length) {
-        setStatus("Subiendo y leyendo archivos…");
+        setStatus(
+          sourceMode === "redesign"
+            ? "Subiendo portafolio multipágina / imágenes…"
+            : "Subiendo y leyendo archivos…",
+        );
         const fd = new FormData();
         fd.set("portfolioId", portfolioId);
         files.forEach((f) => fd.append("files", f));
@@ -138,7 +203,7 @@ export function DocumentWizard({
         }
       }
 
-      setStatus("Generando borrador con IA…");
+      setStatus("Generando borrador con IA (sin inventar datos)…");
       const aiRes = await fetch("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -192,6 +257,10 @@ export function DocumentWizard({
       </Link>
       <h1 className="mt-6 font-display text-4xl">{heading}</h1>
       <p className="mt-2 text-ink-600">{description}</p>
+      <p className="mt-2 text-xs text-ink-500">
+        La IA solo reorganiza y reformula lo que ya aportaste: no inventa
+        experiencia, fechas ni proyectos.
+      </p>
 
       <div className="mt-8 flex gap-2 text-xs uppercase tracking-wider text-ink-500">
         {[1, 2, 3].map((n) => (
@@ -254,7 +323,7 @@ export function DocumentWizard({
               />
               <p className="mt-1 text-xs text-ink-500">
                 Hasta {MAX_FILES} archivos · máx. {formatBytes(MAX_FILE_BYTES)}{" "}
-                c/u · PDF, imágenes o texto
+                c/u · PDF multipágina e imágenes permitidos
               </p>
               {files.length > 0 && (
                 <ul className="mt-2 space-y-1 text-xs text-ink-600">
@@ -271,10 +340,6 @@ export function DocumentWizard({
               <p className="text-sm font-medium text-ink-800">
                 Personalizar para una candidatura{" "}
                 <span className="font-normal text-ink-500">(opcional)</span>
-              </p>
-              <p className="mt-1 text-xs text-ink-500">
-                Si lo indicas, la IA adaptará tono, énfasis y headline a esa
-                empresa/puesto.
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm">
@@ -298,6 +363,54 @@ export function DocumentWizard({
                   />
                 </label>
               </div>
+
+              {enableJobLink && (
+                <div className="mt-4 space-y-2">
+                  <label className="block text-sm">
+                    <span className="text-ink-600">
+                      Link de la vacante (LinkedIn u otro)
+                    </span>
+                    <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={jobUrl}
+                        onChange={(e) => setJobUrl(e.target.value)}
+                        placeholder="https://…"
+                        disabled={loading || fetchingJob}
+                        className="w-full border border-ink-200 px-3 py-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={fetchJob}
+                        disabled={loading || fetchingJob}
+                        className="shrink-0 border border-ink-300 px-3 py-2 text-sm disabled:opacity-60"
+                      >
+                        {fetchingJob ? "Leyendo…" : "Leer vacante"}
+                      </button>
+                    </div>
+                  </label>
+                  {jobHint && (
+                    <p className="text-xs text-ink-600" role="status">
+                      {jobHint}
+                    </p>
+                  )}
+                  {(showJobPaste || jobDescription) && (
+                    <label className="block text-sm">
+                      <span className="text-ink-600">
+                        Texto de la vacante (pega aquí si el link no se pudo
+                        leer)
+                      </span>
+                      <textarea
+                        rows={5}
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
+                        disabled={loading}
+                        placeholder="Pega la descripción del puesto…"
+                        className="mt-1 w-full border border-ink-200 px-3 py-2"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
 
             {error && step === 1 && (
@@ -320,8 +433,8 @@ export function DocumentWizard({
         {step === 2 && (
           <div className="space-y-4 border border-ink-200 bg-white/70 p-6">
             <p className="text-sm text-ink-600">Elige una plantilla</p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {TEMPLATES.map((t) => (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {availableTemplates.map((t) => (
                 <button
                   key={t.id}
                   type="button"
@@ -333,7 +446,10 @@ export function DocumentWizard({
                       : "border-ink-200"
                   } ${t.previewClass}`}
                 >
-                  <p className="font-medium">{t.name}</p>
+                  <p className="font-medium">
+                    {t.name}
+                    {t.atsSafe ? " · ATS" : ""}
+                  </p>
                   <p className="mt-2 text-xs opacity-80">{t.description}</p>
                 </button>
               ))}
@@ -370,7 +486,10 @@ export function DocumentWizard({
               {files.length ? ` · ${files.length} archivo(s)` : ""}.
             </p>
             {error && (
-              <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+              <p
+                className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                role="alert"
+              >
                 {error}
               </p>
             )}

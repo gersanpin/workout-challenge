@@ -31,6 +31,7 @@ export async function POST(request: Request) {
 
   let targetCompany = "";
   let targetRole = "";
+  let jobDescription = "";
   if (portfolioId) {
     const { data } = await supabase
       .from("portfolios")
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
     const content = data?.content as PortfolioContent | undefined;
     targetCompany = content?.targetCompany || "";
     targetRole = content?.targetRole || "";
+    jobDescription = content?.jobDescription || "";
   }
 
   try {
@@ -49,6 +51,7 @@ export async function POST(request: Request) {
       text,
       targetCompany,
       targetRole,
+      jobDescription,
     });
     await recordUsage(user.id, "ai", { action: "improve", field, portfolioId });
     return NextResponse.json({ text: improved });

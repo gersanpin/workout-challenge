@@ -48,6 +48,8 @@ export async function POST(request: Request) {
   ) as SourceMode;
   const targetCompany = String(body.targetCompany || "");
   const targetRole = String(body.targetRole || "");
+  const jobUrl = String(body.jobUrl || "");
+  const jobDescription = String(body.jobDescription || "");
 
   const content = {
     ...EMPTY_CONTENT,
@@ -55,6 +57,8 @@ export async function POST(request: Request) {
     rawNotes: notes,
     targetCompany,
     targetRole,
+    jobUrl,
+    jobDescription,
   };
 
   let { data, error } = await supabase

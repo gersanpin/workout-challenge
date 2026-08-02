@@ -1,10 +1,19 @@
 export type PlanId = "free" | "pro";
 
-export type TemplateId = "minimal" | "editorial" | "atelier";
+export type TemplateId = "minimal" | "editorial" | "atelier" | "ats";
 
 export type DocType = "portfolio" | "cv";
 
 export type SourceMode = "create" | "redesign";
+
+export type SectionKey =
+  | "profile"
+  | "experience"
+  | "education"
+  | "skills"
+  | "projects";
+
+export type SectionStatus = "pending" | "accepted" | "edited";
 
 export interface PlanLimits {
   id: PlanId;
@@ -44,6 +53,20 @@ export interface ProjectItem {
   imageUrls: string[];
 }
 
+export type SectionBaseline = {
+  fullName?: string;
+  headline?: string;
+  summary?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  website?: string;
+  skills?: string[];
+  experience?: ExperienceItem[];
+  education?: EducationItem[];
+  projects?: ProjectItem[];
+};
+
 export interface PortfolioContent {
   fullName: string;
   headline: string;
@@ -57,9 +80,15 @@ export interface PortfolioContent {
   education: EducationItem[];
   projects: ProjectItem[];
   rawNotes?: string;
-  /** Optional: tailor AI output for a specific application */
   targetCompany?: string;
   targetRole?: string;
+  /** Job posting URL (optional) */
+  jobUrl?: string;
+  /** Job posting text (scraped or pasted manually) */
+  jobDescription?: string;
+  /** Snapshot after last AI draft — used to revert sections */
+  sectionBaseline?: SectionBaseline;
+  sectionStatus?: Partial<Record<SectionKey, SectionStatus>>;
 }
 
 export interface Portfolio {
@@ -107,6 +136,8 @@ export const EMPTY_CONTENT: PortfolioContent = {
   rawNotes: "",
   targetCompany: "",
   targetRole: "",
+  jobUrl: "",
+  jobDescription: "",
 };
 
 export function newId(): string {

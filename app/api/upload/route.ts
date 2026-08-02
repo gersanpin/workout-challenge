@@ -156,26 +156,27 @@ export async function POST(request: Request) {
         ),
       };
     } else if (content.projects.length) {
-      content = {
-        ...content,
-        projects: content.projects.map((p, i) =>
-          i === 0
-            ? { ...p, imageUrls: [...(p.imageUrls || []), ...imageUrls] }
-            : p,
-        ),
-      };
+      // Distribute images across existing projects (multipage / multi-project)
+      const projects = [...content.projects];
+      imageUrls.forEach((url, i) => {
+        const idx = Math.min(i, projects.length - 1);
+        projects[idx] = {
+          ...projects[idx],
+          imageUrls: [...(projects[idx].imageUrls || []), url],
+        };
+      });
+      content = { ...content, projects };
     } else {
+      // One project stub per image so multipage uploads keep visual order
       content = {
         ...content,
-        projects: [
-          {
-            id: crypto.randomUUID(),
-            title: "Proyecto (imágenes subidas)",
-            description: "",
-            highlights: [],
-            imageUrls,
-          },
-        ],
+        projects: imageUrls.map((url, i) => ({
+          id: crypto.randomUUID(),
+          title: `Proyecto ${i + 1} (imagen subida)`,
+          description: "",
+          highlights: [],
+          imageUrls: [url],
+        })),
       };
     }
   }

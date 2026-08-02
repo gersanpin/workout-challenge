@@ -72,7 +72,11 @@ Abre [http://localhost:3000](http://localhost:3000) en el navegador (escritorio 
 
 **Por ahora todo es ilimitado y gratis** (sin cortes de IA, PDF ni número de documentos). La tabla `plans` / `usage_events` queda para cuando decidamos cobro.
 
-Subida de archivos: máx. 12 archivos, 10 MB c/u (PDF, imágenes o texto). Tipos/tamaños inválidos se rechazan antes de llamar a la IA.
+Subida de archivos: máx. 24 archivos, 15 MB c/u (PDF multipágina, imágenes o texto). Tipos/tamaños inválidos se rechazan antes de llamar a la IA.
+
+CV: plantilla **ATS-safe**, link/texto de vacante, revisión por secciones (aceptar/revertir/regenerar).  
+Portafolio: rediseño multipágina + edición asistida en lenguaje natural.  
+La IA tiene regla estricta de **no inventar** experiencia ni proyectos.
 
 ## Scripts
 

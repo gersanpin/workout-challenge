@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateDraftFromNotes } from "@/lib/ai";
 import { mapAiError } from "@/lib/errors";
+import { withAiDraftMeta } from "@/lib/sections";
 import { recordUsage } from "@/lib/usage";
 import type { DocType, PortfolioContent, SourceMode } from "@/lib/types";
 
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
       sourceMode,
       targetCompany: existing.targetCompany,
       targetRole: existing.targetRole,
+      jobDescription: existing.jobDescription,
     });
   } catch (err) {
     return NextResponse.json({ error: mapAiError(err) }, { status: 502 });
@@ -79,22 +81,39 @@ export async function POST(request: Request) {
   content.rawNotes = notes;
   content.targetCompany = existing.targetCompany || "";
   content.targetRole = existing.targetRole || "";
+  content.jobUrl = existing.jobUrl || "";
+  content.jobDescription = existing.jobDescription || "";
 
   if (existing.projects?.length) {
-    content.projects = content.projects.map((p, i) => ({
-      ...p,
-      imageUrls: existing.projects[i]?.imageUrls || p.imageUrls || [],
-    }));
-    const leftover = existing.projects.slice(content.projects.length);
-    for (const lp of leftover) {
-      if (lp.imageUrls?.length && content.projects[0]) {
-        content.projects[0].imageUrls = [
-          ...content.projects[0].imageUrls,
-          ...lp.imageUrls,
-        ];
+    content.projects = content.projects.map((p, i) => {
+      const byTitle = existing.projects.find(
+        (x) => x.title.toLowerCase() === p.title.toLowerCase(),
+      );
+      return {
+        ...p,
+        imageUrls:
+          byTitle?.imageUrls ||
+          existing.projects[i]?.imageUrls ||
+          p.imageUrls ||
+          [],
+      };
+    });
+    // Keep any leftover image-only projects from upload
+    const usedTitles = new Set(
+      content.projects.map((p) => p.title.toLowerCase()),
+    );
+    for (const lp of existing.projects) {
+      if (
+        lp.imageUrls?.length &&
+        !usedTitles.has(lp.title.toLowerCase()) &&
+        lp.title.includes("imágenes")
+      ) {
+        content.projects.push(lp);
       }
     }
   }
+
+  content = withAiDraftMeta(content);
 
   const { data: updated, error: updateError } = await supabase
     .from("portfolios")

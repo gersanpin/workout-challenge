@@ -18,7 +18,8 @@ export async function extractTextFromFile(file: File): Promise<string> {
     try {
       const { extractPdfText } = await import("@/lib/pdfText");
       const buffer = Buffer.from(await file.arrayBuffer());
-      return await extractPdfText(buffer);
+      const { text } = await extractPdfText(buffer);
+      return text;
     } catch {
       return `[PDF adjunto: ${file.name} — no se pudo extraer texto automáticamente; usa las notas del usuario si las hay.]`;
     }

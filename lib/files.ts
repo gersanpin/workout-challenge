@@ -1,7 +1,7 @@
 /** Shared upload validation (client + server). */
 
-export const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB per file
-export const MAX_FILES = 12;
+export const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB (multipage PDFs)
+export const MAX_FILES = 24; // portfolios often need many project images
 
 const ALLOWED_EXT = new Set([
   ".pdf",

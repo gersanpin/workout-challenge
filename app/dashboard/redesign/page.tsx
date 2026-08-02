@@ -6,14 +6,16 @@ export default function RedesignPortfolioPage() {
       docType="portfolio"
       sourceMode="redesign"
       heading="Rediseñar portafolio existente"
-      description="Sube tu portafolio actual (PDF o archivos). La IA lo analiza y genera una versión rediseñada con nuestras plantillas."
+      description="Sube un PDF multipágina o varias imágenes de proyectos. La IA rediseña el conjunto completo sin inventar proyectos nuevos."
       defaultTitle="Portafolio rediseñado"
       notesLabel="Notas adicionales (opcional)"
-      notesPlaceholder="Contexto extra: qué quieres enfatizar, proyectos a ocultar, tono deseado…"
+      notesPlaceholder="Qué enfatizar, tipologías a priorizar, tono deseado…"
       notesRequired={false}
-      filesLabel="Portafolio actual (PDF, imágenes u otros archivos) — requerido"
+      filesLabel="Portafolio actual — PDF multipágina y/o múltiples imágenes (requerido)"
       filesRequired={true}
       accept="application/pdf,.pdf,image/*,.txt,.md"
+      enableJobLink
+      defaultTemplateId="minimal"
     />
   );
 }

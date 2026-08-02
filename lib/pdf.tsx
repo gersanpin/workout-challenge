@@ -14,6 +14,42 @@ const fonts = StyleSheet.create({
 });
 
 function stylesFor(template: TemplateId) {
+  if (template === "ats") {
+    return StyleSheet.create({
+      page: {
+        ...fonts.base,
+        padding: 48,
+        backgroundColor: "#ffffff",
+        color: "#111111",
+      },
+      name: { fontSize: 16, fontFamily: "Helvetica-Bold", marginBottom: 4 },
+      headline: { fontSize: 11, marginBottom: 8, color: "#222222" },
+      section: {
+        marginTop: 14,
+        marginBottom: 4,
+        fontSize: 11,
+        fontFamily: "Helvetica-Bold",
+        textTransform: "uppercase",
+        color: "#111111",
+      },
+      muted: { color: "#333333", fontSize: 9 },
+      body: { lineHeight: 1.4, marginBottom: 4, fontSize: 10 },
+      projectTitle: {
+        fontSize: 10,
+        fontFamily: "Helvetica-Bold",
+        marginBottom: 2,
+      },
+      rule: {
+        borderBottomWidth: 1,
+        borderBottomColor: "#cccccc",
+        marginVertical: 8,
+      },
+      row: { flexDirection: "column", marginBottom: 6 },
+      col: { flex: 1 },
+      image: { width: 1, height: 1 }, // ATS: no images with embedded text
+      chip: { fontSize: 10, marginBottom: 2, color: "#111111" },
+    });
+  }
   if (template === "editorial") {
     return StyleSheet.create({
       page: {
@@ -107,13 +143,17 @@ export function PortfolioPdfDocument({
         {content.skills?.length ? (
           <>
             <Text style={s.section}>Habilidades</Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-              {content.skills.map((sk) => (
-                <Text key={sk} style={s.chip}>
-                  {sk}
-                </Text>
-              ))}
-            </View>
+            {templateId === "ats" ? (
+              <Text style={s.body}>{content.skills.join(" · ")}</Text>
+            ) : (
+              <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                {content.skills.map((sk) => (
+                  <Text key={sk} style={s.chip}>
+                    {sk}
+                  </Text>
+                ))}
+              </View>
+            )}
           </>
         ) : null}
 
@@ -160,7 +200,7 @@ export function PortfolioPdfDocument({
               <Text style={s.muted}>
                 {[p.year, p.location, p.typology].filter(Boolean).join(" · ")}
               </Text>
-              {p.imageUrls?.[0] ? (
+              {templateId !== "ats" && p.imageUrls?.[0] ? (
                 // eslint-disable-next-line jsx-a11y/alt-text
                 <Image src={p.imageUrls[0]} style={s.image} />
               ) : null}

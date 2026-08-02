@@ -2,20 +2,32 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { SectionReviewBar } from "@/components/editor/SectionReviewBar";
 import { PortfolioPreview } from "@/components/templates/PortfolioPreview";
 import { readJsonSafe } from "@/lib/errors";
-import { TEMPLATES } from "@/lib/templates";
+import { markSection } from "@/lib/sections";
+import { templatesFor } from "@/lib/templates";
 import type {
+  DocType,
   EducationItem,
   ExperienceItem,
   Portfolio,
   PortfolioContent,
   ProjectItem,
+  SectionKey,
   TemplateId,
 } from "@/lib/types";
 import { newId } from "@/lib/types";
 
+function resolveDocType(p: Portfolio): DocType {
+  if (p.doc_type === "cv" || p.doc_type === "portfolio") return p.doc_type;
+  const meta = p.content as PortfolioContent & { _docType?: DocType };
+  return meta._docType === "cv" ? "cv" : "portfolio";
+}
+
 export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
+  const docType = resolveDocType(portfolio);
+  const availableTemplates = useMemo(() => templatesFor(docType), [docType]);
   const [title, setTitle] = useState(portfolio.title);
   const [templateId, setTemplateId] = useState<TemplateId>(
     portfolio.template_id,
@@ -25,9 +37,14 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
   const [slug, setSlug] = useState(portfolio.slug || "");
   const [saving, setSaving] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
+  const [nlInstruction, setNlInstruction] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
+
+  function touchSection(key: SectionKey, next: PortfolioContent) {
+    return markSection(next, key, "edited");
+  }
 
   const publicUrl = useMemo(() => {
     if (!published || !slug) return null;
@@ -142,6 +159,63 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
       if (!res.ok) throw new Error(data.error || "Error de IA");
       if (data.content) setContent(data.content);
       setMessage("Borrador regenerado");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error");
+      setMessage(null);
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function regenerateSection(section: SectionKey) {
+    setError(null);
+    setAiBusy(true);
+    setMessage(`Regenerando sección…`);
+    try {
+      await save();
+      const res = await fetch("/api/ai/section", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ portfolioId: portfolio.id, section }),
+      });
+      const data = await readJsonSafe<{
+        error?: string;
+        content?: PortfolioContent;
+      }>(res);
+      if (!res.ok) throw new Error(data.error || "Error de IA");
+      if (data.content) setContent(data.content);
+      setMessage("Sección regenerada");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error");
+      setMessage(null);
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function applyNaturalLanguageEdit() {
+    if (!nlInstruction.trim()) return;
+    setError(null);
+    setAiBusy(true);
+    setMessage("Aplicando edición con IA…");
+    try {
+      await save();
+      const res = await fetch("/api/ai/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portfolioId: portfolio.id,
+          instruction: nlInstruction.trim(),
+        }),
+      });
+      const data = await readJsonSafe<{
+        error?: string;
+        content?: PortfolioContent;
+      }>(res);
+      if (!res.ok) throw new Error(data.error || "Error de IA");
+      if (data.content) setContent(data.content);
+      setNlInstruction("");
+      setMessage("Edición aplicada");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
       setMessage(null);
@@ -302,7 +376,7 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
       {tab === "preview" ? (
         <div className="mt-6">
           <div className="mb-4 flex flex-wrap gap-2">
-            {TEMPLATES.map((t) => (
+            {availableTemplates.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -325,7 +399,7 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
           <div className="space-y-6">
             <Panel title="Plantilla">
               <div className="flex flex-wrap gap-2">
-                {TEMPLATES.map((t) => (
+                {availableTemplates.map((t) => (
                   <button
                     key={t.id}
                     type="button"
@@ -335,14 +409,50 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
                     }`}
                   >
                     {t.name}
+                    {t.atsSafe ? " · ATS" : ""}
                   </button>
                 ))}
               </div>
             </Panel>
 
+            {docType === "cv" && (
+              <SectionReviewBar
+                content={content}
+                busy={aiBusy || saving}
+                onChange={setContent}
+                onSave={(next) => void save({ content: next })}
+                onRegenerateSection={(key) => void regenerateSection(key)}
+              />
+            )}
+
+            {docType === "portfolio" && (
+              <Panel title="Edición asistida por IA">
+                <p className="mb-2 text-xs text-ink-500">
+                  Describe el cambio en lenguaje natural (ej. “acorta la
+                  descripción del primer proyecto” o “reordena poniendo vivienda
+                  primero”). No inventará proyectos nuevos.
+                </p>
+                <textarea
+                  rows={3}
+                  value={nlInstruction}
+                  onChange={(e) => setNlInstruction(e.target.value)}
+                  className="w-full border border-ink-200 px-3 py-2 text-sm"
+                  placeholder="Instrucción…"
+                />
+                <button
+                  type="button"
+                  disabled={aiBusy || !nlInstruction.trim()}
+                  onClick={() => void applyNaturalLanguageEdit()}
+                  className="mt-2 border border-ink-300 px-3 py-1.5 text-sm disabled:opacity-50"
+                >
+                  Aplicar con IA
+                </button>
+              </Panel>
+            )}
+
             <Panel title="Candidatura (opcional)">
               <p className="mb-2 text-xs text-ink-500">
-                Si indicas empresa/puesto, la IA personaliza mejoras y regeneraciones.
+                Empresa/puesto y texto de vacante: la IA prioriza hechos existentes.
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field
@@ -358,21 +468,39 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
                   onChange={(v) => setContent({ ...content, targetRole: v })}
                 />
               </div>
+              <Field
+                label="Texto de la vacante"
+                value={content.jobDescription || ""}
+                multiline
+                onChange={(v) =>
+                  setContent({ ...content, jobDescription: v })
+                }
+              />
             </Panel>
 
             <Panel title="Perfil">
               <Field
                 label="Nombre"
                 value={content.fullName}
-                onChange={(v) => setContent({ ...content, fullName: v })}
+                onChange={(v) =>
+                  setContent(
+                    touchSection("profile", { ...content, fullName: v }),
+                  )
+                }
               />
               <Field
                 label="Titular"
                 value={content.headline}
-                onChange={(v) => setContent({ ...content, headline: v })}
+                onChange={(v) =>
+                  setContent(
+                    touchSection("profile", { ...content, headline: v }),
+                  )
+                }
                 onImprove={() =>
                   improve("headline", content.headline, (v) =>
-                    setContent((c) => ({ ...c, headline: v })),
+                    setContent((c) =>
+                      touchSection("profile", { ...c, headline: v }),
+                    ),
                   )
                 }
               />
@@ -380,10 +508,16 @@ export function EditorClient({ portfolio }: { portfolio: Portfolio }) {
                 label="Resumen"
                 value={content.summary}
                 multiline
-                onChange={(v) => setContent({ ...content, summary: v })}
+                onChange={(v) =>
+                  setContent(
+                    touchSection("profile", { ...content, summary: v }),
+                  )
+                }
                 onImprove={() =>
                   improve("summary", content.summary, (v) =>
-                    setContent((c) => ({ ...c, summary: v })),
+                    setContent((c) =>
+                      touchSection("profile", { ...c, summary: v }),
+                    ),
                   )
                 }
               />

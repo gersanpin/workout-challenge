@@ -1,0 +1,27 @@
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.switcher button {
+  padding: 0.15rem 0;
+  transition: color 0.25s var(--ease);
+}
+
+.switcher button:hover {
+  color: var(--ink);
+}
+
+.active {
+  color: var(--ink) !important;
+}
+
+.sep {
+  opacity: 0.45;
+}

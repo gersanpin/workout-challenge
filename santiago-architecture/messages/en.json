@@ -1,0 +1,87 @@
+{
+  "Meta": {
+    "siteName": "Santiago Architecture",
+    "homeTitle": "Santiago Architecture | Architecture Studio",
+    "homeDescription": "Architecture studio designing residential, hospitality, and cultural spaces.",
+    "projectsTitle": "Projects | Santiago Architecture",
+    "projectsDescription": "Selected architecture projects across residential, hospitality, and masterplan work.",
+    "aboutTitle": "About | Santiago Architecture",
+    "aboutDescription": "A concise practice focused on clarity, material honesty, and place.",
+    "servicesTitle": "Services | Santiago Architecture",
+    "servicesDescription": "Architecture, interiors, and masterplanning from concept to delivery.",
+    "contactTitle": "Contact | Santiago Architecture",
+    "contactDescription": "Start a conversation about your next project."
+  },
+  "Nav": {
+    "projects": "Projects",
+    "about": "About",
+    "services": "Services",
+    "contact": "Contact",
+    "menu": "Menu",
+    "close": "Close"
+  },
+  "Home": {
+    "brand": "Santiago Architecture",
+    "headline": "Architecture shaped by place.",
+    "support": "Residential, hospitality, and cultural work with a quiet material focus.",
+    "exploreProjects": "Explore Projects",
+    "startProject": "Start a Project"
+  },
+  "Projects": {
+    "title": "Projects",
+    "selected": "Selected Projects",
+    "gridView": "Grid View",
+    "globeView": "Globe View",
+    "viewProject": "View Project",
+    "nextProject": "Next Project",
+    "filters": {
+      "all": "All",
+      "residential": "Residential",
+      "hospitality": "Hospitality",
+      "masterplan": "Masterplan",
+      "commercial": "Commercial",
+      "interior": "Interior",
+      "concept": "Concept"
+    },
+    "labels": {
+      "location": "Location",
+      "typology": "Typology",
+      "year": "Year",
+      "area": "Area"
+    },
+    "empty": "No projects in this category."
+  },
+  "About": {
+    "title": "About",
+    "lead": "Santiago Architecture is a studio working across Mexico and beyond.",
+    "body": "We design with restraint: clear plans, honest materials, and spaces that hold light and climate with care."
+  },
+  "Services": {
+    "title": "Services",
+    "lead": "From early concepts to built work.",
+    "items": {
+      "architecture": {
+        "title": "Architecture",
+        "body": "Houses, hospitality, and civic buildings."
+      },
+      "interiors": {
+        "title": "Interiors",
+        "body": "Material palettes, built-ins, and spatial detail."
+      },
+      "masterplan": {
+        "title": "Masterplanning",
+        "body": "Site strategies and long-horizon frameworks."
+      }
+    }
+  },
+  "Contact": {
+    "title": "Contact",
+    "lead": "Have a project in mind?",
+    "body": "Let's discuss your project.",
+    "cta": "Start a Project",
+    "email": "studio@santiago.architecture"
+  },
+  "Footer": {
+    "rights": "All rights reserved."
+  }
+}

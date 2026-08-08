@@ -1,0 +1,41 @@
+.explorer {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.toolbar {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.views,
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+}
+
+.views button,
+.filters button {
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  transition: color 0.25s var(--ease);
+}
+
+.views button:hover,
+.filters button:hover,
+.active {
+  color: var(--ink);
+}
+
+.active {
+  text-decoration: underline;
+  text-underline-offset: 0.35em;
+}
+
+.stage {
+  animation: fade-up 0.55s var(--ease) both;
+}

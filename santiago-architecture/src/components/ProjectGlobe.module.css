@@ -72,6 +72,25 @@
   color: var(--ink-muted);
 }
 
+.quickList {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.quickList button {
+  text-align: left;
+  font-size: 0.92rem;
+  color: var(--ink);
+  transition: color 0.25s var(--ease);
+}
+
+.quickList button:hover {
+  color: var(--steel-strong);
+}
+
 @media (max-width: 900px) {
   .wrap {
     grid-template-columns: 1fr;

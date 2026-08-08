@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Stars } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -33,19 +33,20 @@ function GlobeMesh() {
         color="#8a9198"
         roughness={0.92}
         metalness={0.08}
-        transparent
-        opacity={0.92}
       />
     </mesh>
   );
 }
 
 function GridLines() {
-  const geometry = useMemo(() => new THREE.SphereGeometry(GLOBE_RADIUS + 0.001, 32, 24), []);
+  const geometry = useMemo(
+    () => new THREE.SphereGeometry(GLOBE_RADIUS + 0.002, 36, 24),
+    [],
+  );
   return (
-    <lineSegments>
-      <edgesGeometry args={[geometry]} />
-      <lineBasicMaterial color="#5d6770" transparent opacity={0.35} />
+    <lineSegments raycast={() => null}>
+      <wireframeGeometry args={[geometry]} />
+      <lineBasicMaterial color="#5d6770" transparent opacity={0.28} />
     </lineSegments>
   );
 }
@@ -60,25 +61,46 @@ function ProjectPin({
   onSelect: (slug: string) => void;
 }) {
   const position = useMemo(
-    () => latLngToPosition(project.latitude, project.longitude, GLOBE_RADIUS + 0.02),
+    () =>
+      latLngToPosition(
+        project.latitude,
+        project.longitude,
+        GLOBE_RADIUS + 0.04,
+      ),
     [project.latitude, project.longitude],
   );
 
   return (
-    <mesh
-      position={position}
-      onClick={(event) => {
-        event.stopPropagation();
-        onSelect(project.slug);
-      }}
-    >
-      <sphereGeometry args={[selected ? 0.045 : 0.03, 16, 16]} />
-      <meshStandardMaterial
-        color={selected ? "#fbfaf8" : "#2f3840"}
-        emissive={selected ? "#6d7c89" : "#17191b"}
-        emissiveIntensity={selected ? 0.55 : 0.15}
-      />
-    </mesh>
+    <group position={position}>
+      <mesh
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          onSelect(project.slug);
+        }}
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelect(project.slug);
+        }}
+        onPointerOver={(event) => {
+          event.stopPropagation();
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "auto";
+        }}
+      >
+        <sphereGeometry args={[0.14, 16, 16]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      <mesh raycast={() => null}>
+        <sphereGeometry args={[selected ? 0.055 : 0.038, 16, 16]} />
+        <meshStandardMaterial
+          color={selected ? "#fbfaf8" : "#1f262c"}
+          emissive={selected ? "#6d7c89" : "#17191b"}
+          emissiveIntensity={selected ? 0.7 : 0.2}
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -91,33 +113,38 @@ type Props = {
 export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
   const t = useTranslations("Projects");
   const locale = useLocale() as LocaleCode;
-  const selected = projects.find((project) => project.slug === selectedSlug) ?? null;
+  const selected =
+    projects.find((project) => project.slug === selectedSlug) ?? null;
 
   return (
     <div className={styles.wrap}>
       <div className={styles.canvas}>
-        <Canvas camera={{ position: [0, 0.4, 4.2], fov: 42 }}>
+        <Canvas
+          camera={{ position: [0, 0.35, 4.1], fov: 42 }}
+          dpr={[1, 1.75]}
+          onPointerMissed={() => onSelect(null)}
+        >
           <color attach="background" args={["#d9d7d2"]} />
-          <ambientLight intensity={0.85} />
-          <directionalLight position={[4, 3, 2]} intensity={1.1} />
+          <ambientLight intensity={0.9} />
+          <directionalLight position={[4, 3, 2]} intensity={1.15} />
           <Suspense fallback={null}>
             <GlobeMesh />
             <GridLines />
-            <Stars radius={40} depth={20} count={1200} factor={2} fade speed={0.4} />
             {projects.map((project) => (
               <ProjectPin
                 key={project.slug}
                 project={project}
                 selected={project.slug === selectedSlug}
-                onSelect={(slug) => onSelect(slug)}
+                onSelect={onSelect}
               />
             ))}
             <OrbitControls
+              makeDefault
               enablePan={false}
               minDistance={2.8}
               maxDistance={6}
-              rotateSpeed={0.55}
-              autoRotate
+              rotateSpeed={0.5}
+              autoRotate={!selectedSlug}
               autoRotateSpeed={0.35}
             />
           </Suspense>
@@ -127,7 +154,7 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
       <aside className={styles.panel}>
         {selected ? (
           <>
-            <p className={styles.kicker}>{t("labels.typology")}</p>
+            <p className={styles.kicker}>{t(`filters.${selected.category}`)}</p>
             <h2>{getLocalized(selected.name, locale)}</h2>
             <dl className={styles.details}>
               <div>
@@ -143,12 +170,29 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
                 <dd>{selected.year}</dd>
               </div>
             </dl>
-            <Link href={`/projects/${selected.slug}`} className="btn btn-primary">
+            <Link
+              href={`/projects/${selected.slug}`}
+              className="btn btn-primary"
+            >
               {t("viewProject")}
             </Link>
           </>
         ) : (
-          <p className={styles.placeholder}>{t("selected")}</p>
+          <>
+            <p className={styles.placeholder}>{t("selected")}</p>
+            <ul className={styles.quickList}>
+              {projects.map((project) => (
+                <li key={project.slug}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(project.slug)}
+                  >
+                    {getLocalized(project.name, locale)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </aside>
     </div>

@@ -1,0 +1,87 @@
+{
+  "Meta": {
+    "siteName": "Santiago Architecture",
+    "homeTitle": "Santiago Architecture | Estudio de arquitectura",
+    "homeDescription": "Estudio de arquitectura para proyectos residenciales, hospitality y culturales.",
+    "projectsTitle": "Proyectos | Santiago Architecture",
+    "projectsDescription": "Proyectos de arquitectura seleccionados en residencial, hospitalidad y plan maestro.",
+    "aboutTitle": "Acerca de | Santiago Architecture",
+    "aboutDescription": "Una práctica concisa enfocada en claridad, honestidad material y lugar.",
+    "servicesTitle": "Servicios | Santiago Architecture",
+    "servicesDescription": "Arquitectura, interiores y masterplanning desde el concepto hasta la entrega.",
+    "contactTitle": "Contacto | Santiago Architecture",
+    "contactDescription": "Inicia una conversación sobre tu próximo proyecto."
+  },
+  "Nav": {
+    "projects": "Proyectos",
+    "about": "Acerca de",
+    "services": "Servicios",
+    "contact": "Contacto",
+    "menu": "Menú",
+    "close": "Cerrar"
+  },
+  "Home": {
+    "brand": "Santiago Architecture",
+    "headline": "Arquitectura moldeada por el lugar.",
+    "support": "Obra residencial, hospitality y cultural con un enfoque material sobrio.",
+    "exploreProjects": "Explorar proyectos",
+    "startProject": "Iniciar un proyecto"
+  },
+  "Projects": {
+    "title": "Proyectos",
+    "selected": "Proyectos seleccionados",
+    "gridView": "Vista de proyectos",
+    "globeView": "Vista global",
+    "viewProject": "Ver proyecto",
+    "nextProject": "Siguiente proyecto",
+    "filters": {
+      "all": "Todos",
+      "residential": "Residencial",
+      "hospitality": "Hospitalidad",
+      "masterplan": "Plan maestro",
+      "commercial": "Comercial",
+      "interior": "Interior",
+      "concept": "Conceptual"
+    },
+    "labels": {
+      "location": "Ubicación",
+      "typology": "Tipología",
+      "year": "Año",
+      "area": "Área"
+    },
+    "empty": "No hay proyectos en esta categoría."
+  },
+  "About": {
+    "title": "Acerca de",
+    "lead": "Santiago Architecture es un estudio que trabaja en México y más allá.",
+    "body": "Diseñamos con mesura: plantas claras, materiales honestos y espacios que cuidan la luz y el clima."
+  },
+  "Services": {
+    "title": "Servicios",
+    "lead": "Desde conceptos tempranos hasta obra construida.",
+    "items": {
+      "architecture": {
+        "title": "Arquitectura",
+        "body": "Casas, hospitality y edificios cívicos."
+      },
+      "interiors": {
+        "title": "Interiores",
+        "body": "Paletas materiales, carpintería y detalle espacial."
+      },
+      "masterplan": {
+        "title": "Plan maestro",
+        "body": "Estrategias de sitio y marcos de largo plazo."
+      }
+    }
+  },
+  "Contact": {
+    "title": "Contacto",
+    "lead": "¿Tienes un proyecto en mente?",
+    "body": "Hablemos de tu proyecto.",
+    "cta": "Iniciar un proyecto",
+    "email": "studio@santiago.architecture"
+  },
+  "Footer": {
+    "rights": "Todos los derechos reservados."
+  }
+}

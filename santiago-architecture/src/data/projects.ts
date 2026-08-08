@@ -29,6 +29,39 @@ export type Project = {
 
 export const projects: Project[] = [
   {
+    slug: "casa-manglar",
+    year: 2025,
+    latitude: 21.1619,
+    longitude: -86.8515,
+    area: "550 m²",
+    category: "residential",
+    images: [
+      "/projects/casa-manglar/01.jpg",
+      "/projects/casa-manglar/02.jpg",
+      "/projects/casa-manglar/03.jpg",
+    ],
+    name: {
+      en: "Manglar House",
+      es: "Casa Manglar",
+    },
+    location: {
+      en: "Cancún, Quintana Roo, Mexico",
+      es: "Cancún, Quintana Roo, México",
+    },
+    description: {
+      en: "A 550 m² residence with organic white volumes and bamboo screens.",
+      es: "Residencia de 550 m² con volúmenes orgánicos blancos y celosías de bambú.",
+    },
+    seoTitle: {
+      en: "Manglar House | Architecture Portfolio",
+      es: "Casa Manglar en Cancún | Portafolio de arquitectura",
+    },
+    seoDescription: {
+      en: "Manglar House — 550 m² residential architecture in Cancún.",
+      es: "Casa Manglar — arquitectura residencial de 550 m² en Cancún.",
+    },
+  },
+  {
     slug: "casa-sisal",
     year: 2024,
     latitude: 21.165,
@@ -60,6 +93,7 @@ export const projects: Project[] = [
       es: "Casa Sisal — arquitectura residencial costera en Yucatán.",
     },
   },
+
   {
     slug: "casa-merida",
     year: 2023,

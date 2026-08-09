@@ -84,19 +84,19 @@ function AbstractEarth() {
     topoMap.anisotropy = 8;
   }, [waterMap, topoMap]);
 
-  const uniforms = useMemo(() => {
-    const toLinear = (hex: string) =>
-      new THREE.Color(hex).convertSRGBToLinear();
-    return {
+  const uniforms = useMemo(
+    () => ({
       uWater: { value: waterMap },
       uTopo: { value: topoMap },
-      uLand: { value: toLinear("#d2cbc0") },
-      uLandHigh: { value: toLinear("#ebe6de") },
-      uOcean: { value: toLinear("#7d8891") },
-      uOceanDeep: { value: toLinear("#5c6770") },
+      // Raw sRGB values + toneMapped={false} for predictable abstract color
+      uLand: { value: new THREE.Color("#ddd6cb") },
+      uLandHigh: { value: new THREE.Color("#f0ebe3") },
+      uOcean: { value: new THREE.Color("#a7b0b8") },
+      uOceanDeep: { value: new THREE.Color("#8b959e") },
       uLightDir: { value: new THREE.Vector3(4.5, 2.8, 2.2).normalize() },
-    };
-  }, [waterMap, topoMap]);
+    }),
+    [waterMap, topoMap],
+  );
 
   return (
     <mesh>
@@ -105,6 +105,7 @@ function AbstractEarth() {
         uniforms={uniforms}
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}
+        toneMapped={false}
       />
     </mesh>
   );

@@ -1,11 +1,12 @@
 .explorer {
-  display: grid;
-  gap: var(--space-3);
+  display: block;
+  width: 100%;
 }
 
 .toolbar {
   display: flex;
   align-items: center;
+  margin-bottom: var(--space-3);
 }
 
 .views {
@@ -34,13 +35,14 @@
 }
 
 .stage {
-  animation: fade-up 0.55s var(--ease) both;
+  width: 100%;
 }
 
 .fullBleed {
   width: 100vw;
   max-width: 100vw;
-  margin: 0;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   padding: 0;
 }
 
@@ -48,6 +50,7 @@
   width: min(100% - 2.5rem, var(--max));
   margin-inline: auto;
   padding-bottom: var(--space-6);
+  animation: fade-up 0.55s var(--ease) both;
 }
 
 @media (max-width: 768px) {

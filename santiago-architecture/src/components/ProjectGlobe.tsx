@@ -35,15 +35,16 @@ void main() {
 `;
 
 const fragmentShader = /* glsl */ `
-uniform sampler2D uWater;
+uniform sampler2D uMask;
 uniform vec3 uLand;
 uniform vec3 uOcean;
 
 varying vec2 vUv;
 
 void main() {
-  float water = texture2D(uWater, vUv).r;
-  float landMask = 1.0 - smoothstep(0.42, 0.58, water);
+  // Mask: 1.0 ocean, 0.0 land (holes already filled)
+  float ocean = texture2D(uMask, vUv).r;
+  float landMask = 1.0 - smoothstep(0.35, 0.65, ocean);
   vec3 color = mix(uOcean, uLand, landMask);
   gl_FragColor = vec4(color, 1.0);
 }
@@ -60,22 +61,23 @@ function latLngToPosition(lat: number, lng: number, radius: number) {
 }
 
 function ConceptualEarth() {
-  const [waterMap] = useTexture(["/textures/earth-water.png"]);
+  const [maskMap] = useTexture(["/textures/earth-mask.png"]);
 
   useEffect(() => {
-    waterMap.colorSpace = THREE.NoColorSpace;
-    waterMap.minFilter = THREE.LinearFilter;
-    waterMap.magFilter = THREE.LinearFilter;
-    waterMap.anisotropy = 4;
-  }, [waterMap]);
+    maskMap.colorSpace = THREE.NoColorSpace;
+    maskMap.minFilter = THREE.LinearFilter;
+    maskMap.magFilter = THREE.LinearFilter;
+    maskMap.anisotropy = 4;
+  }, [maskMap]);
 
   const uniforms = useMemo(
     () => ({
-      uWater: { value: waterMap },
-      uLand: { value: new THREE.Color("#d8d2c8") },
-      uOcean: { value: new THREE.Color("#2f353a") },
+      uMask: { value: maskMap },
+      // Soft pastel solids
+      uLand: { value: new THREE.Color("#e9e0d4") },
+      uOcean: { value: new THREE.Color("#b7c4c9") },
     }),
-    [waterMap],
+    [maskMap],
   );
 
   return (
@@ -192,8 +194,7 @@ function CameraFocus({
       project.longitude,
       1,
     ).normalize();
-    const distance = Math.max(camera.position.length(), CAMERA_DISTANCE);
-    const to = direction.multiplyScalar(distance);
+    const to = direction.multiplyScalar(CAMERA_DISTANCE);
 
     animation.current = {
       from: camera.position.clone(),

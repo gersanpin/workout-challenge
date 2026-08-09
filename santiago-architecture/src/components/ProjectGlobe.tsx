@@ -90,15 +90,6 @@ function AppleEarth() {
     configureColorMap(cloudsMap, anisotropy);
   }, [cloudsMap, dayMap, gl, normalMap, specularMap]);
 
-  const atmosphereUniforms = useMemo(
-    () => ({
-      uGlow: { value: new THREE.Color("#6eb6ff") },
-      uPower: { value: 2.85 },
-      uIntensity: { value: 0.85 },
-    }),
-    [],
-  );
-
   useFrame((_, delta) => {
     if (cloudsRef.current) {
       cloudsRef.current.rotation.y += delta * 0.012;
@@ -144,38 +135,6 @@ function AppleEarth() {
           depthWrite={false}
           specular={new THREE.Color("#111111")}
           shininess={4}
-        />
-      </mesh>
-
-      {/* Atmosphere halo */}
-      <mesh scale={1.055}>
-        <sphereGeometry args={[GLOBE_RADIUS, 128, 128]} />
-        <shaderMaterial
-          uniforms={atmosphereUniforms}
-          vertexShader={atmosphereVertex}
-          fragmentShader={atmosphereFragment}
-          transparent
-          depthWrite={false}
-          side={THREE.BackSide}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-
-      {/* Outer rim glow toward camera */}
-      <mesh scale={1.028}>
-        <sphereGeometry args={[GLOBE_RADIUS, 128, 128]} />
-        <shaderMaterial
-          uniforms={{
-            uGlow: { value: new THREE.Color("#a8d4ff") },
-            uPower: { value: 3.6 },
-            uIntensity: { value: 0.35 },
-          }}
-          vertexShader={atmosphereVertex}
-          fragmentShader={atmosphereFragment}
-          transparent
-          depthWrite={false}
-          side={THREE.FrontSide}
-          blending={THREE.AdditiveBlending}
         />
       </mesh>
     </group>

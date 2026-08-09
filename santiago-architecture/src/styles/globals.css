@@ -35,10 +35,13 @@
 html {
   scroll-behavior: smooth;
   overflow-x: clip;
+  width: 100%;
 }
 
 body {
   margin: 0;
+  width: 100%;
+  max-width: none;
   min-height: 100vh;
   overflow-x: clip;
   background:

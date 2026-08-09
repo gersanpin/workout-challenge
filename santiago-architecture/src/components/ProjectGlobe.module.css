@@ -168,7 +168,8 @@
   }
 
   .preview {
-    max-width: 18rem;
+    width: min(16rem, 72vw);
+    height: min(16rem, 72vw);
   }
 
   .quickList {
@@ -186,6 +187,7 @@
   }
 
   .preview {
-    max-width: none;
+    width: min(14.5rem, 70vw);
+    height: min(14.5rem, 70vw);
   }
 }

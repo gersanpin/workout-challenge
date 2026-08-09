@@ -22,70 +22,38 @@ import {
 import styles from "./ProjectGlobe.module.css";
 
 const GLOBE_RADIUS = 1.6;
-/** Fixed framing: full sphere with generous margin, like the original view. */
-const CAMERA_DISTANCE = 5.2;
-const CAMERA_FOV = 40;
+/** Fixed framing: full sphere + atmosphere with generous margin. */
+const CAMERA_DISTANCE = 5.35;
+const CAMERA_FOV = 38;
+const SEGMENTS = 256;
 
-/** Flat schematic earth: two solids, crisp AA coasts, thin ink outline. */
-const vertexShader = /* glsl */ `
-varying vec2 vUv;
+const atmosphereVertex = /* glsl */ `
 varying vec3 vNormal;
+varying vec3 vWorldPosition;
 
 void main() {
-  vUv = uv;
   vNormal = normalize(normalMatrix * normal);
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 world = modelMatrix * vec4(position, 1.0);
+  vWorldPosition = world.xyz;
+  gl_Position = projectionMatrix * viewMatrix * world;
 }
 `;
 
-const fragmentShader = /* glsl */ `
+const atmosphereFragment = /* glsl */ `
 precision highp float;
 
-uniform sampler2D uMask;
-uniform vec3 uLand;
-uniform vec3 uOcean;
-uniform vec3 uStroke;
-uniform vec2 uTexel;
+uniform vec3 uGlow;
+uniform float uPower;
+uniform float uIntensity;
 
-varying vec2 vUv;
 varying vec3 vNormal;
-
-float sampleOcean(vec2 uv) {
-  return texture2D(uMask, uv).r;
-}
+varying vec3 vWorldPosition;
 
 void main() {
-  // Mask: 1.0 ocean, 0.0 land
-  float ocean = sampleOcean(vUv);
-
-  // Screen-aware AA so coasts stay nitid on retina, not stair-stepped
-  float aa = max(fwidth(ocean), 0.002);
-  float landMask = 1.0 - smoothstep(0.5 - aa, 0.5 + aa, ocean);
-
-  // Thin coastline stroke via neighbor differences
-  vec2 t = uTexel * 1.15;
-  float n = sampleOcean(vUv + vec2(0.0, t.y));
-  float s = sampleOcean(vUv - vec2(0.0, t.y));
-  float e = sampleOcean(vUv + vec2(t.x, 0.0));
-  float w = sampleOcean(vUv - vec2(t.x, 0.0));
-  float ne = sampleOcean(vUv + t);
-  float nw = sampleOcean(vUv + vec2(-t.x, t.y));
-  float se = sampleOcean(vUv + vec2(t.x, -t.y));
-  float sw = sampleOcean(vUv - t);
-  float edge =
-    abs(ocean - n) + abs(ocean - s) + abs(ocean - e) + abs(ocean - w) +
-    abs(ocean - ne) + abs(ocean - nw) + abs(ocean - se) + abs(ocean - sw);
-  float strokeAa = max(fwidth(edge), 0.08);
-  float stroke = smoothstep(0.28 - strokeAa, 0.28 + strokeAa, edge);
-
-  vec3 color = mix(uOcean, uLand, landMask);
-  color = mix(color, uStroke, stroke);
-
-  // Soft limb darkening for a polished sphere read (Apple-like)
-  float fresnel = pow(1.0 - max(dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)), 0.0), 2.4);
-  color *= 1.0 - fresnel * 0.12;
-
-  gl_FragColor = vec4(color, 1.0);
+  vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+  float fresnel = pow(1.0 - max(dot(viewDir, normalize(vNormal)), 0.0), uPower);
+  float alpha = fresnel * uIntensity;
+  gl_FragColor = vec4(uGlow, alpha);
 }
 `;
 
@@ -104,61 +72,140 @@ function ConfigureRenderer() {
 
   useEffect(() => {
     gl.outputColorSpace = THREE.SRGBColorSpace;
-    gl.toneMapping = THREE.NoToneMapping;
+    gl.toneMapping = THREE.ACESFilmicToneMapping;
+    gl.toneMappingExposure = 1.15;
     gl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
   }, [gl]);
 
   return null;
 }
 
-function ConceptualEarth() {
+function configureColorMap(texture: THREE.Texture, anisotropy: number) {
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = anisotropy;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.needsUpdate = true;
+}
+
+function configureDataMap(texture: THREE.Texture, anisotropy: number) {
+  texture.colorSpace = THREE.NoColorSpace;
+  texture.anisotropy = anisotropy;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.needsUpdate = true;
+}
+
+function AppleEarth() {
   const { gl } = useThree();
-  const [maskMap] = useTexture(["/textures/earth-mask.png"]);
+  const cloudsRef = useRef<THREE.Mesh>(null);
+  const [dayMap, normalMap, specularMap, cloudsMap] = useTexture([
+    "/textures/earth-day-4k.jpg",
+    "/textures/earth-normal.jpg",
+    "/textures/earth-specular.jpg",
+    "/textures/earth-clouds.png",
+  ]);
 
   useEffect(() => {
-    maskMap.colorSpace = THREE.NoColorSpace;
-    maskMap.generateMipmaps = true;
-    maskMap.minFilter = THREE.LinearMipmapLinearFilter;
-    maskMap.magFilter = THREE.LinearFilter;
-    maskMap.anisotropy = Math.min(16, gl.capabilities.getMaxAnisotropy());
-    maskMap.needsUpdate = true;
-  }, [gl, maskMap]);
+    const anisotropy = Math.min(16, gl.capabilities.getMaxAnisotropy());
+    configureColorMap(dayMap, anisotropy);
+    configureDataMap(normalMap, anisotropy);
+    configureDataMap(specularMap, anisotropy);
+    configureColorMap(cloudsMap, anisotropy);
+  }, [cloudsMap, dayMap, gl, normalMap, specularMap]);
 
-  const uniforms = useMemo(
-    () => {
-      const image = maskMap.image as { width?: number; height?: number } | undefined;
-      const width = image?.width || 4096;
-      const height = image?.height || 2048;
-      return {
-        uMask: { value: maskMap },
-        // Reference schematic: khaki land, charcoal ocean, ink stroke
-        uLand: { value: new THREE.Color("#c2b189") },
-        uOcean: { value: new THREE.Color("#2a2a2a") },
-        uStroke: { value: new THREE.Color("#141414") },
-        uTexel: { value: new THREE.Vector2(1.35 / width, 1.35 / height) },
-      };
-    },
-    [maskMap],
+  const atmosphereUniforms = useMemo(
+    () => ({
+      uGlow: { value: new THREE.Color("#6eb6ff") },
+      uPower: { value: 2.85 },
+      uIntensity: { value: 0.85 },
+    }),
+    [],
   );
+
+  useFrame((_, delta) => {
+    if (cloudsRef.current) {
+      cloudsRef.current.rotation.y += delta * 0.012;
+    }
+  });
 
   return (
     <group>
-      {/* Thin black silhouette rim, like the print outline */}
-      <mesh scale={1.008} renderOrder={0}>
-        <sphereGeometry args={[GLOBE_RADIUS, 192, 192]} />
-        <meshBasicMaterial
-          color="#141414"
-          side={THREE.BackSide}
-          toneMapped={false}
+      {/* Soft fill + key light — product-like illumination */}
+      <ambientLight intensity={0.42} color="#f4f7ff" />
+      <hemisphereLight args={["#dce9ff", "#f2efe8", 0.55]} />
+      <directionalLight
+        position={[4.5, 2.2, 3.2]}
+        intensity={2.35}
+        color="#fff4e5"
+      />
+      <directionalLight
+        position={[-3.5, -1.2, -2.5]}
+        intensity={0.45}
+        color="#9eb7ff"
+      />
+
+      {/* Planet */}
+      <mesh>
+        <sphereGeometry args={[GLOBE_RADIUS, SEGMENTS, SEGMENTS]} />
+        <meshPhongMaterial
+          map={dayMap}
+          normalMap={normalMap}
+          normalScale={new THREE.Vector2(0.9, 0.9)}
+          specularMap={specularMap}
+          specular={new THREE.Color("#3a3a3a")}
+          shininess={22}
         />
       </mesh>
-      <mesh renderOrder={1}>
+
+      {/* Cloud veil */}
+      <mesh ref={cloudsRef} scale={1.008}>
         <sphereGeometry args={[GLOBE_RADIUS, 192, 192]} />
+        <meshPhongMaterial
+          map={cloudsMap}
+          transparent
+          opacity={0.4}
+          depthWrite={false}
+          specular={new THREE.Color("#111111")}
+          shininess={4}
+        />
+      </mesh>
+
+      {/* Atmosphere halo */}
+      <mesh scale={1.055}>
+        <sphereGeometry args={[GLOBE_RADIUS, 128, 128]} />
         <shaderMaterial
-          uniforms={uniforms}
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          toneMapped={false}
+          uniforms={atmosphereUniforms}
+          vertexShader={atmosphereVertex}
+          fragmentShader={atmosphereFragment}
+          transparent
+          depthWrite={false}
+          side={THREE.BackSide}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* Outer rim glow toward camera */}
+      <mesh scale={1.028}>
+        <sphereGeometry args={[GLOBE_RADIUS, 128, 128]} />
+        <shaderMaterial
+          uniforms={{
+            uGlow: { value: new THREE.Color("#a8d4ff") },
+            uPower: { value: 3.6 },
+            uIntensity: { value: 0.35 },
+          }}
+          vertexShader={atmosphereVertex}
+          fragmentShader={atmosphereFragment}
+          transparent
+          depthWrite={false}
+          side={THREE.FrontSide}
+          blending={THREE.AdditiveBlending}
         />
       </mesh>
     </group>
@@ -166,24 +213,35 @@ function ConceptualEarth() {
 }
 
 function MapPinMesh({ selected }: { selected: boolean }) {
-  const scale = selected ? 1.18 : 1;
-  // Light pins read on charcoal ocean; dark core keeps the schematic mark.
-  const fill = selected ? "#f4efe4" : "#efe6d4";
-  const core = "#17191b";
+  const scale = selected ? 1.2 : 1;
+  const core = selected ? "#ffffff" : "#f2f7ff";
+  const glow = selected ? "#8ec5ff" : "#c9ddff";
 
   return (
     <group scale={scale}>
-      <mesh position={[0, 0.04, 0]} rotation={[Math.PI, 0, 0]} raycast={() => null}>
-        <coneGeometry args={[0.02, 0.07, 3]} />
-        <meshBasicMaterial color={fill} toneMapped={false} />
+      <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+        <ringGeometry args={[0.035, 0.055, 48]} />
+        <meshBasicMaterial
+          color={glow}
+          transparent
+          opacity={selected ? 0.85 : 0.45}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
-      <mesh position={[0, 0.085, 0]} raycast={() => null}>
-        <sphereGeometry args={[0.028, 24, 24]} />
-        <meshBasicMaterial color={fill} toneMapped={false} />
-      </mesh>
-      <mesh position={[0, 0.085, 0.012]} raycast={() => null}>
-        <circleGeometry args={[0.011, 24]} />
+      <mesh position={[0, 0.012, 0]} raycast={() => null}>
+        <sphereGeometry args={[0.022, 32, 32]} />
         <meshBasicMaterial color={core} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 0.012, 0]} raycast={() => null}>
+        <sphereGeometry args={[0.038, 32, 32]} />
+        <meshBasicMaterial
+          color={glow}
+          transparent
+          opacity={selected ? 0.35 : 0.18}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   );
@@ -202,7 +260,7 @@ function ProjectPin({
     const pos = latLngToPosition(
       project.latitude,
       project.longitude,
-      GLOBE_RADIUS + 0.008,
+      GLOBE_RADIUS + 0.012,
     );
     const q = new THREE.Quaternion().setFromUnitVectors(
       new THREE.Vector3(0, 1, 0),
@@ -214,7 +272,7 @@ function ProjectPin({
   return (
     <group position={position} quaternion={quaternion}>
       <mesh
-        position={[0, 0.07, 0]}
+        position={[0, 0.05, 0]}
         onPointerDown={(event) => {
           event.stopPropagation();
           onSelect(project.slug);
@@ -231,7 +289,7 @@ function ProjectPin({
           document.body.style.cursor = "auto";
         }}
       >
-        <sphereGeometry args={[0.11, 12, 12]} />
+        <sphereGeometry args={[0.1, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       <MapPinMesh selected={selected} />
@@ -253,7 +311,7 @@ function LockGlobeDistance({
     persp.near = 0.1;
     persp.far = 100;
     persp.clearViewOffset();
-    persp.position.set(0, 0, CAMERA_DISTANCE);
+    persp.position.set(0, 0.15, CAMERA_DISTANCE);
     persp.lookAt(0, 0, 0);
     persp.updateProjectionMatrix();
   }, [camera]);
@@ -261,7 +319,7 @@ function LockGlobeDistance({
   useFrame(() => {
     const persp = camera as THREE.PerspectiveCamera;
     const dir = camera.position.clone();
-    if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0.15, 1);
     dir.normalize();
     if (Math.abs(camera.position.length() - CAMERA_DISTANCE) > 0.02) {
       camera.position.copy(dir.multiplyScalar(CAMERA_DISTANCE));
@@ -360,7 +418,7 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
     <div className={styles.wrap}>
       <div className={styles.canvas}>
         <Canvas
-          camera={{ position: [0, 0, CAMERA_DISTANCE], fov: CAMERA_FOV }}
+          camera={{ position: [0, 0.15, CAMERA_DISTANCE], fov: CAMERA_FOV }}
           dpr={[1, 2.5]}
           gl={{
             alpha: true,
@@ -375,7 +433,7 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
           <Suspense fallback={null}>
             <ConfigureRenderer />
             <LockGlobeDistance controlsRef={controlsRef} />
-            <ConceptualEarth />
+            <AppleEarth />
             {projects.map((project) => (
               <ProjectPin
                 key={project.slug}
@@ -392,9 +450,9 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
               enableZoom={false}
               minDistance={CAMERA_DISTANCE}
               maxDistance={CAMERA_DISTANCE}
-              rotateSpeed={0.4}
+              rotateSpeed={0.35}
               autoRotate={!selectedSlug}
-              autoRotateSpeed={0.22}
+              autoRotateSpeed={0.18}
             />
           </Suspense>
         </Canvas>

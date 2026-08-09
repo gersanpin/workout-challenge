@@ -9,12 +9,19 @@
 }
 
 .shell {
-  /* Hierarchy: title >> lead/body cluster >> next section >> related lines */
-  --space-tight: 0.5rem;
-  --space-related: 1.6rem;
-  --space-after-title: 3rem;
-  --space-section: 3.75rem;
-  --space-block: 3.25rem;
+  /*
+    Vertical hierarchy (desktop / default):
+    title —— large —— lead
+    lead —— medium —— body
+    intro —— larger —— list / CTA
+    service blocks —— large —— next block
+    service title —— tight —— description
+  */
+  --space-tight: 0.45rem;
+  --space-related: 1.75rem;
+  --space-after-title: 3.25rem;
+  --space-section: 4rem;
+  --space-block: 3.5rem;
 
   width: min(100%, 36rem);
   margin: 0 auto;
@@ -27,7 +34,8 @@
 }
 
 .title {
-  margin: 0 0 var(--space-after-title);
+  margin: 0;
+  margin-bottom: var(--space-after-title);
   font-family: var(--font-display);
   font-size: clamp(2.8rem, 8vw, 5rem);
   font-weight: 600;
@@ -46,7 +54,6 @@
   text-wrap: balance;
 }
 
-/* Lead + body sit as one supporting cluster under the title */
 .lead + .body {
   margin-top: var(--space-related);
 }
@@ -61,7 +68,6 @@
   text-wrap: pretty;
 }
 
-/* Next major block after intro copy (services list, contact actions) */
 .lead + .serviceList,
 .body + * {
   margin-top: var(--space-section);
@@ -117,8 +123,8 @@
   width: min(100%, 40rem);
 }
 
-/* Desktop / wide landscape: keep vertical centering, keep generous spacing */
-@media (orientation: landscape) {
+/* Keep page copy vertically centered on wide screens */
+@media (min-width: 900px) {
   .stage,
   .contactStage {
     min-height: 100svh;
@@ -137,8 +143,8 @@
   }
 }
 
-/* Only compress spacing on short landscape viewports (phones rotated) */
-@media (orientation: landscape) and (max-height: 560px) {
+/* Phone landscape only — do not compress desktop / preview panels */
+@media (orientation: landscape) and (max-width: 900px) and (max-height: 480px) {
   .stage,
   .contactStage {
     padding-top: calc(var(--nav-height) + 0.25rem);

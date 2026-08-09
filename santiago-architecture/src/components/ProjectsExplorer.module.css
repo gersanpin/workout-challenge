@@ -4,19 +4,17 @@
 }
 
 .toolbar {
-  display: grid;
-  gap: 1.1rem;
+  display: flex;
+  align-items: center;
 }
 
-.views,
-.filters {
+.views {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem 1rem;
 }
 
-.views button,
-.filters button {
+.views button {
   font-size: 0.74rem;
   font-weight: 500;
   letter-spacing: 0.12em;
@@ -26,7 +24,6 @@
 }
 
 .views button:hover,
-.filters button:hover,
 .active {
   color: var(--ink);
 }

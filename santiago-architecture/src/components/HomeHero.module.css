@@ -37,20 +37,21 @@
 .content {
   position: relative;
   z-index: 2;
-  width: min(100%, 68rem);
-  max-width: 68rem;
+  /* Halfway between previous inset (~68rem / 7vw pad) and the screen edge */
+  width: min(100%, 86rem);
+  max-width: 86rem;
   margin-inline: auto;
-  padding: 0 clamp(1.75rem, 7vw, 5.5rem) clamp(3.5rem, 8vh, 6rem);
+  padding: 0 clamp(1rem, 3.5vw, 2.75rem) clamp(3.5rem, 8vh, 6rem);
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
-  gap: clamp(1.5rem, 4vw, 3.5rem);
+  gap: clamp(1.5rem, 5vw, 5rem);
   align-items: end;
   box-sizing: border-box;
 }
 
 .copy {
   min-width: 0;
-  max-width: 34rem;
+  max-width: 38rem;
 }
 
 .brand {

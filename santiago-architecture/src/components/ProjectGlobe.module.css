@@ -1,18 +1,21 @@
 .wrap {
   position: relative;
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 22vw);
+  align-items: center;
+  gap: 0 clamp(1rem, 2vw, 2rem);
   width: 100%;
   min-height: calc(100svh - var(--nav-height) - 6.25rem);
   margin: 0;
-  padding: 0;
+  padding: 0 var(--page-pad) var(--space-3);
   box-sizing: border-box;
   overflow: visible;
 }
 
 .canvas {
   width: 100%;
-  height: calc(100svh - var(--nav-height) - 6.25rem);
-  min-height: 520px;
+  height: calc(100svh - var(--nav-height) - 7.5rem);
+  min-height: 420px;
   border: none;
   background: transparent;
   overflow: visible;
@@ -25,21 +28,18 @@
 }
 
 .panel {
-  position: absolute;
-  top: 50%;
-  right: clamp(1rem, 2.2vw, 2rem);
+  position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.7rem;
-  width: min(22rem, 26vw);
-  max-width: calc(100% - 2rem);
-  padding: 1.1rem 1.15rem 1.2rem;
+  width: 100%;
+  max-width: 22rem;
+  justify-self: end;
+  padding: 0;
   border: none;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(10px);
-  transform: translateY(-50%);
+  background: transparent;
 }
 
 .preview {

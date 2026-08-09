@@ -22,9 +22,9 @@ import {
 import styles from "./ProjectGlobe.module.css";
 
 const GLOBE_RADIUS = 1.6;
-/** Far enough that the full sphere stays in frame with a little margin. */
-const CAMERA_DISTANCE = 4.05;
-const CAMERA_FOV = 36;
+/** Pulled back so the full sphere fits in the stage with clear margin. */
+const CAMERA_DISTANCE = 5.55;
+const CAMERA_FOV = 38;
 
 /** Flat schematic earth: two solids, hard coasts, thin ink outline. */
 const vertexShader = /* glsl */ `
@@ -206,35 +206,15 @@ function ProjectPin({
   );
 }
 
-/** Shift projection so the globe sits left-of-center and fills the stage. */
+/** Keep framing centered so the full globe stays in view. */
 function DesktopFraming() {
-  const { camera, size } = useThree();
+  const { camera } = useThree();
 
   useEffect(() => {
     const persp = camera as THREE.PerspectiveCamera;
-    if (size.width < 960) {
-      persp.clearViewOffset();
-      persp.updateProjectionMatrix();
-      return;
-    }
-
-    // Mild left bias so the full globe clears the right detail rail.
-    const offsetX = Math.round(size.width * -0.08);
-    persp.setViewOffset(
-      size.width,
-      size.height,
-      offsetX,
-      0,
-      size.width,
-      size.height,
-    );
+    persp.clearViewOffset();
     persp.updateProjectionMatrix();
-
-    return () => {
-      persp.clearViewOffset();
-      persp.updateProjectionMatrix();
-    };
-  }, [camera, size.height, size.width]);
+  }, [camera]);
 
   return null;
 }
@@ -317,7 +297,7 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
     <div className={styles.wrap}>
       <div className={styles.canvas}>
         <Canvas
-          camera={{ position: [0, 0.05, CAMERA_DISTANCE], fov: CAMERA_FOV }}
+          camera={{ position: [0, 0, CAMERA_DISTANCE], fov: CAMERA_FOV }}
           dpr={[1, 1.5]}
           gl={{ alpha: true, antialias: true }}
           style={{ background: "transparent" }}

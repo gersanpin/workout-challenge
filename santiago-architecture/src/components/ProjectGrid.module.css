@@ -1,14 +1,19 @@
-/* Viewport-filling collage: only white = gutter lines between tiles */
+/*
+  Asymmetric collage:
+  - odd column spans (never 50/50)
+  - no continuous vertical seam down the middle
+  - fills the viewport; images crop hard
+*/
 
 .collage {
   --collage-chrome: calc(var(--nav-height) + 5.1rem);
   --collage-gap: 3px;
-  --collage-rows: 4;
+  --collage-rows: 7;
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-rows: repeat(var(--collage-rows), minmax(0, 1fr));
   grid-auto-flow: dense;
   gap: var(--collage-gap);
@@ -25,12 +30,52 @@
   overflow: hidden;
 }
 
-/* Mobile: equal 2x4 pack — fills every cell, images crop to fit */
-.hero,
-.tall,
-.square,
-.wide {
+/* Mobile 3-col / 7-row pack — large piece is 2/3, not half
+   [ A A B ]
+   [ A A B ]
+   [ A A C ]
+   [ D E E ]
+   [ D E E ]
+   [ F F G ]
+   [ H H H ]
+*/
+.tileA {
+  grid-column: span 2;
+  grid-row: span 3;
+}
+
+.tileB {
   grid-column: span 1;
+  grid-row: span 2;
+}
+
+.tileC {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+.tileD {
+  grid-column: span 1;
+  grid-row: span 2;
+}
+
+.tileE {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.tileF {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.tileG {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+.tileH {
+  grid-column: span 3;
   grid-row: span 1;
 }
 
@@ -46,12 +91,12 @@
 .image {
   object-fit: cover;
   object-position: center;
-  transform: scale(1.12);
+  transform: scale(1.14);
   transition: transform 0.8s var(--ease), filter 0.8s var(--ease);
 }
 
 .item:hover .image {
-  transform: scale(1.18);
+  transform: scale(1.2);
   filter: saturate(1.04) contrast(1.02);
 }
 
@@ -91,36 +136,57 @@
   padding: 2rem;
 }
 
-/* 4 columns / 4 rows: hero+tall | four squares | two wides */
-@media (min-width: 560px) {
+/* Tablet 8-col / 6-row — 5+3 top (not 4+4)
+   [==== A 5x3 ====][== B 3x3 ==]
+   [== C 3x2 ==][= D 2x2 =][== E 3x2 ==]
+   [==== F 4 ====][ G 2 ][ H 2 ]
+*/
+@media (min-width: 700px) {
   .collage {
-    --collage-rows: 4;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    --collage-rows: 6;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 
-  .hero {
+  .tileA {
+    grid-column: span 5;
+    grid-row: span 3;
+  }
+
+  .tileB {
+    grid-column: span 3;
+    grid-row: span 3;
+  }
+
+  .tileC {
+    grid-column: span 3;
+    grid-row: span 2;
+  }
+
+  .tileD {
     grid-column: span 2;
     grid-row: span 2;
   }
 
-  .tall {
-    grid-column: span 2;
+  .tileE {
+    grid-column: span 3;
     grid-row: span 2;
   }
 
-  .square {
-    grid-column: span 1;
+  .tileF {
+    grid-column: span 4;
     grid-row: span 1;
   }
 
-  .wide {
+  .tileG {
     grid-column: span 2;
     grid-row: span 1;
   }
-}
 
-/* 4 columns keeps filling cleanly on tablet+ */
-@media (min-width: 768px) {
+  .tileH {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
   .meta {
     padding: 1.55rem 0.85rem 0.75rem;
   }
@@ -134,31 +200,54 @@
   }
 }
 
-/* Large desktop: 4x3 variety without empty cells
-   hero 2x2, tall 2x2, four 1x1, two 2x1 → rows = 2+1+1 = 4 */
-@media (min-width: 1024px) {
+/* Desktop 12-col / 6-row — 7+5 top (breaks center seam)
+   [======= A 7x3 =======][==== B 5x3 ====]
+   [== C 4x2 ==][= D 3x2 =][=== E 5x2 ===]
+   [==== F 6x1 ====][ G 3 ][ H 3 ]
+*/
+@media (min-width: 1100px) {
   .collage {
-    --collage-rows: 4;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    --collage-rows: 6;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 
-  .hero {
-    grid-column: span 2;
+  .tileA {
+    grid-column: span 7;
+    grid-row: span 3;
+  }
+
+  .tileB {
+    grid-column: span 5;
+    grid-row: span 3;
+  }
+
+  .tileC {
+    grid-column: span 4;
     grid-row: span 2;
   }
 
-  .tall {
-    grid-column: span 2;
+  .tileD {
+    grid-column: span 3;
     grid-row: span 2;
   }
 
-  .square {
-    grid-column: span 1;
+  .tileE {
+    grid-column: span 5;
+    grid-row: span 2;
+  }
+
+  .tileF {
+    grid-column: span 6;
     grid-row: span 1;
   }
 
-  .wide {
-    grid-column: span 2;
+  .tileG {
+    grid-column: span 3;
+    grid-row: span 1;
+  }
+
+  .tileH {
+    grid-column: span 3;
     grid-row: span 1;
   }
 }
@@ -178,15 +267,47 @@
 @media (max-height: 500px) and (orientation: landscape) {
   .collage {
     --collage-chrome: calc(var(--nav-height) + 3.75rem);
-    --collage-rows: 2;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    --collage-rows: 4;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  .hero,
-  .tall,
-  .square,
-  .wide {
+  .tileA {
+    grid-column: span 3;
+    grid-row: span 3;
+  }
+
+  .tileB {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .tileC {
     grid-column: span 1;
+    grid-row: span 2;
+  }
+
+  .tileD {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  .tileE {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+
+  .tileF {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  .tileG {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  .tileH {
+    grid-column: span 2;
     grid-row: span 1;
   }
 }

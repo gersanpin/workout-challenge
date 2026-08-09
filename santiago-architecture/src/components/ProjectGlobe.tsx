@@ -27,36 +27,6 @@ const CAMERA_DISTANCE = 5.35;
 const CAMERA_FOV = 38;
 const SEGMENTS = 256;
 
-const atmosphereVertex = /* glsl */ `
-varying vec3 vNormal;
-varying vec3 vWorldPosition;
-
-void main() {
-  vNormal = normalize(normalMatrix * normal);
-  vec4 world = modelMatrix * vec4(position, 1.0);
-  vWorldPosition = world.xyz;
-  gl_Position = projectionMatrix * viewMatrix * world;
-}
-`;
-
-const atmosphereFragment = /* glsl */ `
-precision highp float;
-
-uniform vec3 uGlow;
-uniform float uPower;
-uniform float uIntensity;
-
-varying vec3 vNormal;
-varying vec3 vWorldPosition;
-
-void main() {
-  vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-  float fresnel = pow(1.0 - max(dot(viewDir, normalize(vNormal)), 0.0), uPower);
-  float alpha = fresnel * uIntensity;
-  gl_FragColor = vec4(uGlow, alpha);
-}
-`;
-
 function latLngToPosition(lat: number, lng: number, radius: number) {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lng + 180) * (Math.PI / 180);

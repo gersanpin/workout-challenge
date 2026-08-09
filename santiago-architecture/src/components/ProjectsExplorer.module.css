@@ -12,8 +12,9 @@
   justify-content: space-between;
   width: 100%;
   box-sizing: border-box;
-  margin: 0 0 0.35rem;
-  padding: 0 var(--page-pad);
+  margin: 0;
+  padding: 0.15rem var(--page-pad) 0.35rem;
+  background: var(--bg);
 }
 
 .views {

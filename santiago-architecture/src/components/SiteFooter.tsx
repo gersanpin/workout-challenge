@@ -9,8 +9,8 @@ export function SiteFooter() {
   const pathname = usePathname();
   const year = new Date().getFullYear();
 
-  // Home is a single locked screen — no footer below the fold.
-  if (pathname === "/") return null;
+  // Full-bleed screens — no footer below the fold.
+  if (pathname === "/" || pathname === "/projects") return null;
 
   return (
     <footer className={styles.footer}>

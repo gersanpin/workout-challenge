@@ -26,7 +26,7 @@ const GLOBE_RADIUS = 1.6;
 const CAMERA_DISTANCE = 2.72;
 const CAMERA_FOV = 34;
 
-/** Flat conceptual earth: real coastlines, solid colors, no material lighting. */
+/** Flat schematic earth: two solids, hard coasts, thin ink outline. */
 const vertexShader = /* glsl */ `
 varying vec2 vUv;
 
@@ -40,14 +40,37 @@ const fragmentShader = /* glsl */ `
 uniform sampler2D uMask;
 uniform vec3 uLand;
 uniform vec3 uOcean;
+uniform vec3 uStroke;
+uniform vec2 uTexel;
 
 varying vec2 vUv;
 
+float sampleOcean(vec2 uv) {
+  return texture2D(uMask, uv).r;
+}
+
 void main() {
   // Mask: 1.0 ocean, 0.0 land (holes already filled)
-  float ocean = texture2D(uMask, vUv).r;
-  float landMask = 1.0 - smoothstep(0.35, 0.65, ocean);
+  float ocean = sampleOcean(vUv);
+  // Hard cut for a graphic, print-like fill
+  float landMask = 1.0 - step(0.5, ocean);
+
+  // Thin coastline stroke via neighbor differences
+  float n = sampleOcean(vUv + vec2(0.0, uTexel.y));
+  float s = sampleOcean(vUv - vec2(0.0, uTexel.y));
+  float e = sampleOcean(vUv + vec2(uTexel.x, 0.0));
+  float w = sampleOcean(vUv - vec2(uTexel.x, 0.0));
+  float ne = sampleOcean(vUv + uTexel);
+  float nw = sampleOcean(vUv + vec2(-uTexel.x, uTexel.y));
+  float se = sampleOcean(vUv + vec2(uTexel.x, -uTexel.y));
+  float sw = sampleOcean(vUv - uTexel);
+  float edge =
+    abs(ocean - n) + abs(ocean - s) + abs(ocean - e) + abs(ocean - w) +
+    abs(ocean - ne) + abs(ocean - nw) + abs(ocean - se) + abs(ocean - sw);
+  float stroke = step(0.35, edge);
+
   vec3 color = mix(uOcean, uLand, landMask);
+  color = mix(color, uStroke, stroke);
   gl_FragColor = vec4(color, 1.0);
 }
 `;
@@ -69,36 +92,51 @@ function ConceptualEarth() {
     maskMap.colorSpace = THREE.NoColorSpace;
     maskMap.minFilter = THREE.LinearFilter;
     maskMap.magFilter = THREE.LinearFilter;
-    maskMap.anisotropy = 4;
+    maskMap.generateMipmaps = false;
+    maskMap.anisotropy = 1;
   }, [maskMap]);
 
   const uniforms = useMemo(
     () => ({
       uMask: { value: maskMap },
-      // Soft pastel solids
-      uLand: { value: new THREE.Color("#e9e0d4") },
-      uOcean: { value: new THREE.Color("#b7c4c9") },
+      // Reference schematic: khaki land, charcoal ocean, ink stroke
+      uLand: { value: new THREE.Color("#c2b189") },
+      uOcean: { value: new THREE.Color("#2a2a2a") },
+      uStroke: { value: new THREE.Color("#141414") },
+      uTexel: { value: new THREE.Vector2(2.2 / 1600, 2.2 / 800) },
     }),
     [maskMap],
   );
 
   return (
-    <mesh>
-      <sphereGeometry args={[GLOBE_RADIUS, 96, 96]} />
-      <shaderMaterial
-        uniforms={uniforms}
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        toneMapped={false}
-      />
-    </mesh>
+    <group>
+      {/* Thin black silhouette rim, like the print outline */}
+      <mesh scale={1.012} renderOrder={0}>
+        <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
+        <meshBasicMaterial
+          color="#141414"
+          side={THREE.BackSide}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh renderOrder={1}>
+        <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
+        <shaderMaterial
+          uniforms={uniforms}
+          vertexShader={vertexShader}
+          fragmentShader={fragmentShader}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
   );
 }
 
 function MapPinMesh({ selected }: { selected: boolean }) {
-  const scale = selected ? 1.15 : 1;
-  const fill = selected ? "#17191b" : "#17191b";
-  const accent = selected ? "#f2efe8" : "#ecebe8";
+  const scale = selected ? 1.18 : 1;
+  // Light pins read on charcoal ocean; dark core keeps the schematic mark.
+  const fill = selected ? "#f4efe4" : "#efe6d4";
+  const core = "#17191b";
 
   return (
     <group scale={scale}>
@@ -107,12 +145,12 @@ function MapPinMesh({ selected }: { selected: boolean }) {
         <meshBasicMaterial color={fill} toneMapped={false} />
       </mesh>
       <mesh position={[0, 0.085, 0]} raycast={() => null}>
-        <sphereGeometry args={[0.026, 12, 12]} />
+        <sphereGeometry args={[0.028, 12, 12]} />
         <meshBasicMaterial color={fill} toneMapped={false} />
       </mesh>
       <mesh position={[0, 0.085, 0.012]} raycast={() => null}>
-        <circleGeometry args={[0.01, 12]} />
-        <meshBasicMaterial color={accent} toneMapped={false} />
+        <circleGeometry args={[0.011, 12]} />
+        <meshBasicMaterial color={core} toneMapped={false} />
       </mesh>
     </group>
   );

@@ -27,9 +27,11 @@ export default async function ServicesPage({ params }: Props) {
 
   return (
     <div className="page">
-      <div className="container">
-        <h1 className="section-title">{t("title")}</h1>
-        <p className="section-lead">{t("lead")}</p>
+      <div className={`container ${styles.shell}`}>
+        <header className={styles.pageHeader}>
+          <h1 className="section-title">{t("title")}</h1>
+          <p>{t("lead")}</p>
+        </header>
         <ul className={styles.serviceList}>
           {items.map((item) => (
             <li key={item}>

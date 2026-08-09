@@ -9,7 +9,7 @@
   width: 100%;
   max-width: none;
   box-sizing: border-box;
-  padding: 0 clamp(1rem, 2.5vw, 2rem) 0.55rem;
+  padding: 0 var(--page-pad) 0.55rem;
 }
 
 .topCopy {

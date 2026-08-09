@@ -1,14 +1,22 @@
 .article {
+  width: 100%;
+  max-width: none;
   padding: calc(var(--nav-height) + var(--space-4)) 0 var(--space-6);
 }
 
 .intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: end;
+  width: 100%;
   margin-bottom: var(--space-4);
 }
 
 .header {
-  max-width: 40rem;
-  margin-bottom: var(--space-4);
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .kicker {
@@ -24,8 +32,8 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
 }
 
 .meta dt {
@@ -37,15 +45,18 @@
 
 .meta dd {
   margin: 0.25rem 0 0;
+  font-size: 1.05rem;
 }
 
 .next {
   margin-top: var(--space-5);
+  width: 100%;
 }
 
-@media (max-width: 800px) {
-  .meta {
-    grid-template-columns: 1fr 1fr;
+@media (max-width: 900px) {
+  .intro {
+    grid-template-columns: 1fr;
+    gap: 2rem;
   }
 }
 

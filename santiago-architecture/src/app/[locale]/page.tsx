@@ -37,13 +37,15 @@ export default async function HomePage({ params }: Props) {
       />
       <div className={styles.overlay} />
       <div className={`container ${styles.content}`}>
-        <p className={`${styles.brand} fade-up`}>{t("brand")}</p>
-        <h1 className={`${styles.headline} fade-up fade-up-delay`}>
-          {t("headline")}
-        </h1>
-        <p className={`${styles.support} fade-up fade-up-delay-2`}>
-          {t("support")}
-        </p>
+        <div className={`${styles.copy} fade-up`}>
+          <p className={styles.brand}>{t("brand")}</p>
+          <h1 className={`${styles.headline} fade-up fade-up-delay`}>
+            {t("headline")}
+          </h1>
+          <p className={`${styles.support} fade-up fade-up-delay-2`}>
+            {t("support")}
+          </p>
+        </div>
         <div className={`${styles.actions} fade-up fade-up-delay-2`}>
           <Link href="/projects" className="btn btn-primary">
             {t("exploreProjects")}

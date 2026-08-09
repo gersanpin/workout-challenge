@@ -22,7 +22,7 @@
   --space-5: 4rem;
   --space-6: 6rem;
   --nav-height: 4.25rem;
-  --max: 1120px;
+  --page-pad: clamp(1rem, 2.5vw, 2rem);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -84,28 +84,35 @@ main {
 }
 
 .container {
-  width: min(100% - 2.5rem, var(--max));
-  margin-inline: auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-inline: var(--page-pad);
+  box-sizing: border-box;
 }
 
 .page {
+  width: 100%;
+  max-width: none;
   padding: calc(var(--nav-height) + var(--space-4)) 0 var(--space-6);
 }
 
 .section-title {
   margin: 0 0 var(--space-2);
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(2.6rem, 7vw, 5.5rem);
   font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  width: 100%;
 }
 
 .section-lead {
   margin: 0;
-  max-width: 36rem;
+  width: 100%;
+  max-width: none;
   color: var(--ink-muted);
-  font-size: 1.05rem;
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
 }
 
 .btn {
@@ -179,10 +186,6 @@ main {
 }
 
 @media (max-width: 768px) {
-  .container {
-    width: min(100% - 1.5rem, var(--max));
-  }
-
   .page {
     padding-top: calc(var(--nav-height) + var(--space-3));
   }

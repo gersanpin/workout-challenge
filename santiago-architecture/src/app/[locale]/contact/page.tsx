@@ -25,14 +25,23 @@ export default async function ContactPage({ params }: Props) {
 
   return (
     <div className="page">
-      <div className={`container ${styles.narrow}`}>
-        <h1 className="section-title">{t("title")}</h1>
-        <p className="section-lead">{t("lead")}</p>
-        <p className={styles.body}>{t("body")}</p>
-        <a className={`btn btn-primary ${styles.cta}`} href={`mailto:${t("email")}`}>
-          {t("cta")}
-        </a>
-        <p className={styles.email}>{t("email")}</p>
+      <div className={`container ${styles.shell}`}>
+        <header className={styles.pageHeader}>
+          <h1 className="section-title">{t("title")}</h1>
+          <p>{t("lead")}</p>
+        </header>
+        <div className={styles.split}>
+          <p className={styles.body}>{t("body")}</p>
+          <div className={styles.contactActions}>
+            <a
+              className={`btn btn-primary ${styles.cta}`}
+              href={`mailto:${t("email")}`}
+            >
+              {t("cta")}
+            </a>
+            <p className={styles.email}>{t("email")}</p>
+          </div>
+        </div>
       </div>
     </div>
   );

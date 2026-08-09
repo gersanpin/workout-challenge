@@ -25,10 +25,12 @@ export default async function AboutPage({ params }: Props) {
 
   return (
     <div className="page">
-      <div className={`container ${styles.narrow}`}>
+      <div className={`container ${styles.shell}`}>
         <h1 className="section-title">{t("title")}</h1>
-        <p className="section-lead">{t("lead")}</p>
-        <p className={styles.body}>{t("body")}</p>
+        <div className={styles.split}>
+          <p className="section-lead">{t("lead")}</p>
+          <p className={styles.body}>{t("body")}</p>
+        </div>
       </div>
     </div>
   );

@@ -173,109 +173,117 @@ export function ContactInquiryForm({ studioEmail }: Props) {
   }
 
   if (step === "meeting") {
-    return (
-      <div className={styles.wrap}>
-        <div className={fromInquiry ? styles.success : styles.meetingPrompt}>
-          {fromInquiry ? <p>{t("success")}</p> : null}
-          <div className={styles.meetingPrompt}>
-            <h2 className={styles.meetingTitle}>{t("meeting.title")}</h2>
-            <p className={styles.meetingLead}>{t("meeting.lead")}</p>
+    const meetingForm = (
+      <div className={styles.meetingPrompt}>
+        <h2 className={styles.meetingTitle}>{t("meeting.title")}</h2>
+        <p className={styles.meetingLead}>{t("meeting.lead")}</p>
 
-            {siteConfig.meetingUrl ? (
-              <a
-                className="btn btn-primary"
-                href={siteConfig.meetingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t("meeting.openCalendar")}
-              </a>
-            ) : null}
+        {siteConfig.meetingUrl ? (
+          <a
+            className="btn btn-primary"
+            href={siteConfig.meetingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t("meeting.openCalendar")}
+          </a>
+        ) : null}
 
-            <form className={styles.form} onSubmit={handleMeetingSubmit}>
-              {!fromInquiry ? (
-                <div className={styles.row}>
-                  <label className={styles.field}>
-                    <span className={styles.label}>{t("fields.name")}</span>
-                    <input
-                      className={styles.input}
-                      name="name"
-                      autoComplete="name"
-                      required
-                      value={values.name}
-                      onChange={(event) => update("name", event.target.value)}
-                    />
-                  </label>
-                  <label className={styles.field}>
-                    <span className={styles.label}>{t("fields.email")}</span>
-                    <input
-                      className={styles.input}
-                      type="email"
-                      name="email"
-                      autoComplete="email"
-                      required
-                      value={values.email}
-                      onChange={(event) => update("email", event.target.value)}
-                    />
-                  </label>
-                </div>
-              ) : null}
-
-              <div className={styles.row}>
-                <label className={styles.field}>
-                  <span className={styles.label}>{t("meeting.fields.date")}</span>
-                  <input
-                    className={styles.input}
-                    type="date"
-                    name="meetingDate"
-                    required
-                    value={meeting.date}
-                    onChange={(event) => updateMeeting("date", event.target.value)}
-                  />
-                </label>
-                <label className={styles.field}>
-                  <span className={styles.label}>{t("meeting.fields.time")}</span>
-                  <input
-                    className={styles.input}
-                    type="time"
-                    name="meetingTime"
-                    required
-                    value={meeting.time}
-                    onChange={(event) => updateMeeting("time", event.target.value)}
-                  />
-                </label>
-              </div>
-
+        <form className={styles.form} onSubmit={handleMeetingSubmit}>
+          {!fromInquiry ? (
+            <div className={styles.row}>
               <label className={styles.field}>
-                <span className={styles.label}>{t("meeting.fields.notes")}</span>
-                <textarea
-                  className={styles.textarea}
-                  name="meetingNotes"
-                  placeholder={t("meeting.placeholders.notes")}
-                  value={meeting.notes}
-                  onChange={(event) => updateMeeting("notes", event.target.value)}
+                <span className={styles.label}>{t("fields.name")}</span>
+                <input
+                  className={styles.input}
+                  name="name"
+                  autoComplete="name"
+                  required
+                  value={values.name}
+                  onChange={(event) => update("name", event.target.value)}
                 />
               </label>
+              <label className={styles.field}>
+                <span className={styles.label}>{t("fields.email")}</span>
+                <input
+                  className={styles.input}
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  required
+                  value={values.email}
+                  onChange={(event) => update("email", event.target.value)}
+                />
+              </label>
+            </div>
+          ) : null}
 
-              <div className={styles.actions}>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={sending}
-                >
-                  {sending ? t("meeting.sending") : t("meeting.submit")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-line"
-                  onClick={() => (fromInquiry ? setStep("done") : setStep("idle"))}
-                >
-                  {fromInquiry ? t("meeting.skip") : t("cancel")}
-                </button>
-              </div>
-            </form>
+          <div className={styles.row}>
+            <label className={styles.field}>
+              <span className={styles.label}>{t("meeting.fields.date")}</span>
+              <input
+                className={styles.input}
+                type="date"
+                name="meetingDate"
+                required
+                value={meeting.date}
+                onChange={(event) => updateMeeting("date", event.target.value)}
+              />
+            </label>
+            <label className={styles.field}>
+              <span className={styles.label}>{t("meeting.fields.time")}</span>
+              <input
+                className={styles.input}
+                type="time"
+                name="meetingTime"
+                required
+                value={meeting.time}
+                onChange={(event) => updateMeeting("time", event.target.value)}
+              />
+            </label>
           </div>
-        </div>
+
+          <label className={styles.field}>
+            <span className={styles.label}>{t("meeting.fields.notes")}</span>
+            <textarea
+              className={styles.textarea}
+              name="meetingNotes"
+              placeholder={t("meeting.placeholders.notes")}
+              value={meeting.notes}
+              onChange={(event) => updateMeeting("notes", event.target.value)}
+            />
+          </label>
+
+          <div className={styles.actions}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={sending}
+            >
+              {sending ? t("meeting.sending") : t("meeting.submit")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-line"
+              onClick={() => (fromInquiry ? setStep("done") : setStep("idle"))}
+            >
+              {fromInquiry ? t("meeting.skip") : t("cancel")}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+
+    return (
+      <div className={styles.wrap}>
+        {fromInquiry ? (
+          <div className={styles.success}>
+            <p>{t("success")}</p>
+            {meetingForm}
+          </div>
+        ) : (
+          meetingForm
+        )}
         <ContactMeta studioEmail={studioEmail} />
       </div>
     );

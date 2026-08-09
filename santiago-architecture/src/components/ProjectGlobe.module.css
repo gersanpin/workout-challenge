@@ -120,7 +120,35 @@
   }
 
   .canvas {
-    min-height: 420px;
-    height: min(58vh, 520px);
+    min-height: 360px;
+    height: min(52svh, 480px);
+  }
+
+  .preview {
+    max-width: 20rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .canvas {
+    min-height: 300px;
+    height: min(48svh, 400px);
+  }
+
+  .panel h2 {
+    font-size: clamp(1.4rem, 7vw, 1.9rem);
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .wrap {
+    grid-template-columns: minmax(0, 1.2fr) minmax(180px, 0.8fr);
+    align-items: stretch;
+    min-height: auto;
+  }
+
+  .canvas {
+    min-height: 220px;
+    height: min(70svh, 360px);
   }
 }

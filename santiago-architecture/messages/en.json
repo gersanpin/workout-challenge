@@ -81,9 +81,38 @@
   "Contact": {
     "title": "Contact",
     "lead": "Have a project in mind?",
-    "body": "Let's discuss your project.",
+    "body": "Tell us who you are and what you want to build. We'll follow up to discuss scope, site, and next steps.",
     "cta": "Start a Project",
-    "email": "studio@santiago.architecture"
+    "email": "studio@santiago.architecture",
+    "submit": "Send inquiry",
+    "sending": "Opening mail…",
+    "cancel": "Cancel",
+    "success": "Thanks — your inquiry is ready to send. If your mail app didn't open, email us directly.",
+    "sendAnother": "Start another inquiry",
+    "mailSubject": "Project inquiry from {name}",
+    "mailIntro": "New project inquiry from the Santiago Architecture site:",
+    "fields": {
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "company": "Company / client",
+      "projectType": "Project type",
+      "location": "Site location",
+      "timeline": "Timeline",
+      "message": "What do you want to do?"
+    },
+    "placeholders": {
+      "timeline": "e.g. Design start in 2026",
+      "message": "Briefly describe the site, program, size, and goals."
+    },
+    "types": {
+      "residential": "Residential",
+      "hospitality": "Hospitality",
+      "masterplan": "Masterplan",
+      "commercial": "Commercial",
+      "interior": "Interiors",
+      "other": "Other"
+    }
   },
   "Footer": {
     "rights": "All rights reserved."

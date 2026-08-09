@@ -81,9 +81,38 @@
   "Contact": {
     "title": "Contacto",
     "lead": "¿Tienes un proyecto en mente?",
-    "body": "Hablemos de tu proyecto.",
+    "body": "Cuéntanos quién eres y qué quieres construir. Te contactamos para hablar de alcance, sitio y siguientes pasos.",
     "cta": "Iniciar un proyecto",
-    "email": "studio@santiago.architecture"
+    "email": "studio@santiago.architecture",
+    "submit": "Enviar consulta",
+    "sending": "Abriendo correo…",
+    "cancel": "Cancelar",
+    "success": "Gracias — tu consulta está lista para enviarse. Si no se abrió el correo, escríbenos directamente.",
+    "sendAnother": "Nueva consulta",
+    "mailSubject": "Consulta de proyecto de {name}",
+    "mailIntro": "Nueva consulta de proyecto desde el sitio de Santiago Architecture:",
+    "fields": {
+      "name": "Nombre completo",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "company": "Empresa / cliente",
+      "projectType": "Tipo de proyecto",
+      "location": "Ubicación del sitio",
+      "timeline": "Tiempos",
+      "message": "¿Qué quieres hacer?"
+    },
+    "placeholders": {
+      "timeline": "p. ej. Inicio de diseño en 2026",
+      "message": "Describe brevemente el sitio, el programa, el tamaño y los objetivos."
+    },
+    "types": {
+      "residential": "Residencial",
+      "hospitality": "Hospitalidad",
+      "masterplan": "Plan maestro",
+      "commercial": "Comercial",
+      "interior": "Interiores",
+      "other": "Otro"
+    }
   },
   "Footer": {
     "rights": "Todos los derechos reservados."

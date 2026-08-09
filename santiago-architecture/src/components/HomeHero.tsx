@@ -73,7 +73,7 @@ export function HomeHero({ covers }: Props) {
           <Link href="/projects" className="btn btn-primary">
             {t("exploreProjects")}
           </Link>
-          <Link href="/contact" className="btn btn-ghost">
+          <Link href="/contact?start=1" className="btn btn-ghost">
             {t("startProject")}
           </Link>
         </div>

@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { ContactInquiryForm } from "@/components/ContactInquiryForm";
 import { buildMetadata } from "@/lib/seo";
 import type { Locale } from "@/i18n/routing";
 import styles from "../content.module.css";
@@ -24,20 +26,14 @@ export default async function ContactPage({ params }: Props) {
   const t = await getTranslations("Contact");
 
   return (
-    <div className={styles.stage}>
-      <div className={styles.shell}>
+    <div className={`${styles.stage} ${styles.contactStage}`}>
+      <div className={`${styles.shell} ${styles.contactShell}`}>
         <h1 className={styles.title}>{t("title")}</h1>
         <p className={styles.lead}>{t("lead")}</p>
         <p className={styles.body}>{t("body")}</p>
-        <div className={styles.contactActions}>
-          <a
-            className={`btn btn-primary ${styles.cta}`}
-            href={`mailto:${t("email")}`}
-          >
-            {t("cta")}
-          </a>
-          <p className={styles.email}>{t("email")}</p>
-        </div>
+        <Suspense fallback={null}>
+          <ContactInquiryForm studioEmail={t("email")} />
+        </Suspense>
       </div>
     </div>
   );

@@ -37,17 +37,20 @@
 .content {
   position: relative;
   z-index: 2;
-  width: 100%;
-  max-width: none;
-  padding: 0 0 clamp(3.5rem, 8vh, 6rem);
+  width: min(100%, 68rem);
+  max-width: 68rem;
+  margin-inline: auto;
+  padding: 0 clamp(1.75rem, 7vw, 5.5rem) clamp(3.5rem, 8vh, 6rem);
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: clamp(1.5rem, 4vw, 4rem);
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
   align-items: end;
+  box-sizing: border-box;
 }
 
 .copy {
   min-width: 0;
+  max-width: 34rem;
 }
 
 .brand {
@@ -98,10 +101,17 @@
   .content {
     grid-template-columns: 1fr;
     gap: 1.25rem;
+    width: min(100%, 40rem);
+    padding-inline: clamp(1.5rem, 6vw, 2.5rem);
+  }
+
+  .copy {
+    max-width: none;
   }
 
   .actions {
     justify-self: start;
+    justify-content: start;
   }
 }
 

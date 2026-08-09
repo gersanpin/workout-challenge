@@ -59,7 +59,7 @@ export function HomeHero({ covers }: Props) {
         ))}
       </div>
       <div className={styles.overlay} />
-      <div className={`container ${styles.content}`}>
+      <div className={styles.content}>
         <div className={`${styles.copy} fade-up`}>
           <p className={styles.brand}>{t("brand")}</p>
           <h1 className={`${styles.headline} fade-up fade-up-delay`}>

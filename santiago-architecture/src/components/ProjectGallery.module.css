@@ -9,7 +9,7 @@
   margin-left: calc(50% - 50vw);
   height: calc(100dvh - var(--nav-height) - 4.75rem);
   min-height: 420px;
-  background: #17191b;
+  background: #fff;
   overflow: hidden;
 }
 

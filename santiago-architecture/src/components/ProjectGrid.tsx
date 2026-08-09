@@ -36,17 +36,15 @@ export function ProjectGrid({ projects }: Props) {
     const { body } = document;
     const prevHtml = html.style.overflow;
     const prevBody = body.style.overflow;
-    const prevHtmlBg = html.style.background;
-    const prevBodyBg = body.style.background;
     html.style.overflow = "hidden";
     body.style.overflow = "hidden";
-    html.style.background = "#000";
-    body.style.background = "#000";
+    html.style.background = "#fff";
+    body.style.background = "#fff";
     return () => {
       html.style.overflow = prevHtml;
       body.style.overflow = prevBody;
-      html.style.background = prevHtmlBg;
-      body.style.background = prevBodyBg;
+      html.style.background = "";
+      body.style.background = "";
     };
   }, []);
 

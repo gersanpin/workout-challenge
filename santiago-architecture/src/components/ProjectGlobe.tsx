@@ -208,15 +208,48 @@ function ProjectPin({
   );
 }
 
-/** Keep framing centered so the full globe stays in view. */
-function DesktopFraming() {
-  const { camera } = useThree();
+function getFitDistance(camera: THREE.PerspectiveCamera, aspect: number) {
+  const fitRadius = GLOBE_RADIUS * FIT_MARGIN;
+  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.01));
+  const distV = fitRadius / Math.tan(vFov / 2);
+  const distH = fitRadius / Math.tan(hFov / 2);
+  return Math.max(distV, distH, CAMERA_DISTANCE);
+}
+
+/** Size the camera so the full sphere always fits inside the canvas. */
+function FitGlobe({
+  controlsRef,
+  distanceRef,
+}: {
+  controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+  distanceRef: MutableRefObject<number>;
+}) {
+  const { camera, size } = useThree();
 
   useEffect(() => {
     const persp = camera as THREE.PerspectiveCamera;
     persp.clearViewOffset();
-    persp.updateProjectionMatrix();
-  }, [camera]);
+    const aspect = size.width / Math.max(size.height, 1);
+    const dist = getFitDistance(persp, aspect);
+    distanceRef.current = dist;
+
+    const dir = camera.position.clone();
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+    dir.normalize().multiplyScalar(dist);
+    camera.position.copy(dir);
+    camera.near = 0.1;
+    camera.far = dist * 5;
+    camera.updateProjectionMatrix();
+
+    const controls = controlsRef.current;
+    if (controls) {
+      controls.minDistance = dist;
+      controls.maxDistance = dist;
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+  }, [camera, controlsRef, distanceRef, size.height, size.width]);
 
   return null;
 }
@@ -224,9 +257,11 @@ function DesktopFraming() {
 function CameraFocus({
   project,
   controlsRef,
+  distanceRef,
 }: {
   project: Project | null;
   controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+  distanceRef: MutableRefObject<number>;
 }) {
   const { camera } = useThree();
   const animation = useRef<{
@@ -249,14 +284,14 @@ function CameraFocus({
       project.longitude,
       1,
     ).normalize();
-    const to = direction.multiplyScalar(CAMERA_DISTANCE);
+    const to = direction.multiplyScalar(distanceRef.current || CAMERA_DISTANCE);
 
     animation.current = {
       from: camera.position.clone(),
       to,
       progress: 0,
     };
-  }, [camera, focusKey, project]);
+  }, [camera, distanceRef, focusKey, project]);
 
   useFrame((_, delta) => {
     const controls = controlsRef.current;
@@ -293,7 +328,21 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
   const selected =
     projects.find((project) => project.slug === selectedSlug) ?? null;
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const distanceRef = useRef(CAMERA_DISTANCE);
   const preview = selected?.images[0];
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const { body } = document;
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+    };
+  }, []);
 
   return (
     <div className={styles.wrap}>
@@ -306,7 +355,7 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
           onPointerMissed={() => onSelect(null)}
         >
           <Suspense fallback={null}>
-            <DesktopFraming />
+            <FitGlobe controlsRef={controlsRef} distanceRef={distanceRef} />
             <ConceptualEarth />
             {projects.map((project) => (
               <ProjectPin
@@ -316,7 +365,11 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
                 onSelect={onSelect}
               />
             ))}
-            <CameraFocus project={selected} controlsRef={controlsRef} />
+            <CameraFocus
+              project={selected}
+              controlsRef={controlsRef}
+              distanceRef={distanceRef}
+            />
             <OrbitControls
               ref={controlsRef}
               makeDefault

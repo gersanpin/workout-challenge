@@ -9,6 +9,7 @@
 .toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   width: 100%;
   box-sizing: border-box;
   margin: 0 0 var(--space-3);

@@ -22,7 +22,7 @@ import {
 import styles from "./ProjectGlobe.module.css";
 
 const GLOBE_RADIUS = 1.6;
-const CAMERA_DISTANCE = 3.55;
+const CAMERA_DISTANCE = 3.35;
 
 /** Flat conceptual earth: real coastlines, solid colors, no material lighting. */
 const vertexShader = /* glsl */ `

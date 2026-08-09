@@ -24,46 +24,28 @@ import styles from "./ProjectGlobe.module.css";
 const GLOBE_RADIUS = 1.6;
 const CAMERA_DISTANCE = 4.05;
 
+/** Flat conceptual earth: real coastlines, solid colors, no material lighting. */
 const vertexShader = /* glsl */ `
 varying vec2 vUv;
-varying vec3 vNormalW;
 
 void main() {
   vUv = uv;
-  vNormalW = normalize(mat3(modelMatrix) * normal);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
 
 const fragmentShader = /* glsl */ `
 uniform sampler2D uWater;
-uniform sampler2D uTopo;
 uniform vec3 uLand;
-uniform vec3 uLandHigh;
 uniform vec3 uOcean;
-uniform vec3 uOceanDeep;
-uniform vec3 uLightDir;
 
 varying vec2 vUv;
-varying vec3 vNormalW;
 
 void main() {
   float water = texture2D(uWater, vUv).r;
-  float topo = texture2D(uTopo, vUv).r;
-
-  float landMask = 1.0 - smoothstep(0.25, 0.58, water);
-  vec3 land = mix(uLand, uLandHigh, smoothstep(0.05, 0.55, topo));
-  vec3 ocean = mix(uOceanDeep, uOcean, 0.55);
-  vec3 base = mix(ocean, land, landMask);
-
-  float coast = smoothstep(0.2, 0.42, water) * (1.0 - smoothstep(0.42, 0.7, water));
-  base = mix(base, mix(uLand, uOcean, 0.55), coast * 0.16);
-
-  float ndotl = clamp(dot(normalize(vNormalW), normalize(uLightDir)), 0.0, 1.0);
-  float hemi = 0.9 + 0.1 * ndotl;
-  float relief = mix(1.0, 0.96 + topo * 0.08, landMask);
-
-  gl_FragColor = vec4(base * hemi * relief, 1.0);
+  float landMask = 1.0 - smoothstep(0.42, 0.58, water);
+  vec3 color = mix(uOcean, uLand, landMask);
+  gl_FragColor = vec4(color, 1.0);
 }
 `;
 
@@ -77,35 +59,28 @@ function latLngToPosition(lat: number, lng: number, radius: number) {
   );
 }
 
-function AbstractEarth() {
-  const [waterMap, topoMap] = useTexture([
-    "/textures/earth-water.png",
-    "/textures/earth-topology.png",
-  ]);
+function ConceptualEarth() {
+  const [waterMap] = useTexture(["/textures/earth-water.png"]);
 
   useEffect(() => {
     waterMap.colorSpace = THREE.NoColorSpace;
-    topoMap.colorSpace = THREE.NoColorSpace;
-    waterMap.anisotropy = 8;
-    topoMap.anisotropy = 8;
-  }, [waterMap, topoMap]);
+    waterMap.minFilter = THREE.LinearFilter;
+    waterMap.magFilter = THREE.LinearFilter;
+    waterMap.anisotropy = 4;
+  }, [waterMap]);
 
   const uniforms = useMemo(
     () => ({
       uWater: { value: waterMap },
-      uTopo: { value: topoMap },
-      uLand: { value: new THREE.Color("#ddd6cb") },
-      uLandHigh: { value: new THREE.Color("#f0ebe3") },
-      uOcean: { value: new THREE.Color("#a7b0b8") },
-      uOceanDeep: { value: new THREE.Color("#8b959e") },
-      uLightDir: { value: new THREE.Vector3(4.5, 2.8, 2.2).normalize() },
+      uLand: { value: new THREE.Color("#d8d2c8") },
+      uOcean: { value: new THREE.Color("#2f353a") },
     }),
-    [waterMap, topoMap],
+    [waterMap],
   );
 
   return (
     <mesh>
-      <sphereGeometry args={[GLOBE_RADIUS, 128, 128]} />
+      <sphereGeometry args={[GLOBE_RADIUS, 96, 96]} />
       <shaderMaterial
         uniforms={uniforms}
         vertexShader={vertexShader}
@@ -116,46 +91,24 @@ function AbstractEarth() {
   );
 }
 
-function Atmosphere() {
-  return (
-    <mesh scale={1.016} raycast={() => null}>
-      <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
-      <meshBasicMaterial
-        color="#8a949c"
-        transparent
-        opacity={0.07}
-        side={THREE.BackSide}
-        depthWrite={false}
-      />
-    </mesh>
-  );
-}
-
 function MapPinMesh({ selected }: { selected: boolean }) {
-  const scale = selected ? 1.2 : 1;
-  const body = selected ? "#2f3840" : "#1b2228";
-  const head = selected ? "#f2efe8" : "#2a3238";
-  const ring = selected ? "#6d7c89" : "#ecebe8";
+  const scale = selected ? 1.15 : 1;
+  const fill = selected ? "#17191b" : "#17191b";
+  const accent = selected ? "#f2efe8" : "#ecebe8";
 
   return (
     <group scale={scale}>
-      <mesh position={[0, 0.042, 0]} rotation={[Math.PI, 0, 0]} raycast={() => null}>
-        <coneGeometry args={[0.024, 0.08, 20]} />
-        <meshStandardMaterial color={body} roughness={0.5} metalness={0.18} />
+      <mesh position={[0, 0.04, 0]} rotation={[Math.PI, 0, 0]} raycast={() => null}>
+        <coneGeometry args={[0.02, 0.07, 3]} />
+        <meshBasicMaterial color={fill} toneMapped={false} />
       </mesh>
-      <mesh position={[0, 0.09, 0]} raycast={() => null}>
-        <sphereGeometry args={[0.03, 24, 24]} />
-        <meshStandardMaterial
-          color={head}
-          roughness={0.4}
-          metalness={0.12}
-          emissive={selected ? "#cfc8bc" : "#111417"}
-          emissiveIntensity={selected ? 0.18 : 0.08}
-        />
+      <mesh position={[0, 0.085, 0]} raycast={() => null}>
+        <sphereGeometry args={[0.026, 12, 12]} />
+        <meshBasicMaterial color={fill} toneMapped={false} />
       </mesh>
-      <mesh position={[0, 0.09, 0.016]} raycast={() => null}>
-        <circleGeometry args={[0.012, 20]} />
-        <meshStandardMaterial color={ring} roughness={0.45} metalness={0.08} />
+      <mesh position={[0, 0.085, 0.012]} raycast={() => null}>
+        <circleGeometry args={[0.01, 12]} />
+        <meshBasicMaterial color={accent} toneMapped={false} />
       </mesh>
     </group>
   );
@@ -174,7 +127,7 @@ function ProjectPin({
     const pos = latLngToPosition(
       project.latitude,
       project.longitude,
-      GLOBE_RADIUS + 0.01,
+      GLOBE_RADIUS + 0.008,
     );
     const q = new THREE.Quaternion().setFromUnitVectors(
       new THREE.Vector3(0, 1, 0),
@@ -186,7 +139,7 @@ function ProjectPin({
   return (
     <group position={position} quaternion={quaternion}>
       <mesh
-        position={[0, 0.08, 0]}
+        position={[0, 0.07, 0]}
         onPointerDown={(event) => {
           event.stopPropagation();
           onSelect(project.slug);
@@ -203,7 +156,7 @@ function ProjectPin({
           document.body.style.cursor = "auto";
         }}
       >
-        <sphereGeometry args={[0.12, 16, 16]} />
+        <sphereGeometry args={[0.11, 12, 12]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       <MapPinMesh selected={selected} />
@@ -290,17 +243,14 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
     <div className={styles.wrap}>
       <div className={styles.canvas}>
         <Canvas
-          camera={{ position: [0, 0.3, CAMERA_DISTANCE], fov: 40 }}
-          dpr={[1, 1.75]}
+          camera={{ position: [0, 0.25, CAMERA_DISTANCE], fov: 38 }}
+          dpr={[1, 1.5]}
           gl={{ alpha: true, antialias: true }}
           style={{ background: "transparent" }}
           onPointerMissed={() => onSelect(null)}
         >
-          <ambientLight intensity={0.85} />
-          <directionalLight position={[4.5, 2.8, 2.2]} intensity={0.9} />
           <Suspense fallback={null}>
-            <AbstractEarth />
-            <Atmosphere />
+            <ConceptualEarth />
             {projects.map((project) => (
               <ProjectPin
                 key={project.slug}
@@ -315,10 +265,10 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
               makeDefault
               enablePan={false}
               minDistance={2.8}
-              maxDistance={6}
-              rotateSpeed={0.45}
+              maxDistance={5.5}
+              rotateSpeed={0.4}
               autoRotate={!selectedSlug}
-              autoRotateSpeed={0.28}
+              autoRotateSpeed={0.22}
             />
           </Suspense>
         </Canvas>

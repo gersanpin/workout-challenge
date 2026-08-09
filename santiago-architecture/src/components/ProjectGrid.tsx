@@ -10,17 +10,30 @@ import {
 } from "@/data/projects";
 import styles from "./ProjectGrid.module.css";
 
-type CollageSize = "feature" | "tall" | "wide" | "square" | "compact";
+type CollageSize =
+  | "hero"
+  | "tall"
+  | "square"
+  | "wide"
+  | "small"
+  | "portrait"
+  | "banner"
+  | "tiny";
 
+/** Mixed orientations so the dense grid feels like a varied collage. */
 const SIZE_CYCLE: CollageSize[] = [
-  "feature",
+  "hero",
+  "portrait",
+  "small",
   "tall",
+  "wide",
+  "square",
+  "tiny",
+  "banner",
+  "portrait",
+  "small",
   "square",
   "wide",
-  "compact",
-  "tall",
-  "square",
-  "feature",
 ];
 
 type Props = {
@@ -46,9 +59,9 @@ export function ProjectGrid({ projects }: Props) {
                 src={project.images[0]}
                 alt={getLocalized(project.name, locale)}
                 fill
-                sizes="(max-width: 700px) 100vw, (max-width: 1100px) 60vw, 50vw"
+                sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 40vw"
                 className={styles.image}
-                priority={index < 2}
+                priority={index < 3}
               />
               <div className={styles.meta}>
                 <h2>{getLocalized(project.name, locale)}</h2>

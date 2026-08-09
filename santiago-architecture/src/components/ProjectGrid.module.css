@@ -4,36 +4,59 @@
   padding: 0;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-auto-rows: minmax(120px, 16vh);
+  grid-auto-rows: minmax(56px, 7.5vh);
   grid-auto-flow: dense;
   gap: 0;
   width: 100%;
   max-width: none;
 }
 
-.feature {
-  grid-column: span 7;
-  grid-row: span 5;
-}
-
-.tall {
-  grid-column: span 5;
-  grid-row: span 5;
-}
-
-.wide {
+/* Large landscape */
+.hero {
   grid-column: span 8;
   grid-row: span 4;
 }
 
-.square {
+/* Tall vertical */
+.tall {
   grid-column: span 4;
-  grid-row: span 4;
+  grid-row: span 5;
 }
 
-.compact {
+/* Narrow portrait */
+.portrait {
+  grid-column: span 3;
+  grid-row: span 5;
+}
+
+/* Soft square */
+.square {
   grid-column: span 4;
   grid-row: span 3;
+}
+
+/* Mid horizontal */
+.wide {
+  grid-column: span 6;
+  grid-row: span 2;
+}
+
+/* Long thin banner */
+.banner {
+  grid-column: span 9;
+  grid-row: span 2;
+}
+
+/* Small tile */
+.small {
+  grid-column: span 3;
+  grid-row: span 2;
+}
+
+/* Tiny accent */
+.tiny {
+  grid-column: span 3;
+  grid-row: span 2;
 }
 
 .item {
@@ -59,7 +82,7 @@
 .meta {
   position: absolute;
   inset: auto 0 0;
-  padding: 2.6rem 1.25rem 1.1rem;
+  padding: 2rem 0.9rem 0.85rem;
   background: linear-gradient(
     to top,
     rgba(23, 25, 27, 0.72) 0%,
@@ -80,16 +103,16 @@
 .meta h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 1.6vw, 1.45rem);
+  font-size: clamp(0.95rem, 1.35vw, 1.3rem);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
 
 .meta p {
-  margin: 0.3rem 0 0;
+  margin: 0.25rem 0 0;
   color: rgba(251, 250, 248, 0.78);
-  font-size: 0.82rem;
+  font-size: 0.75rem;
 }
 
 .empty {
@@ -97,57 +120,77 @@
   padding: 2rem;
 }
 
+.tiny .meta h2,
+.small .meta h2 {
+  font-size: clamp(0.88rem, 1.15vw, 1.05rem);
+}
+
+.tiny .meta p,
+.small .meta p {
+  font-size: 0.7rem;
+}
+
 @media (max-width: 960px) {
   .collage {
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-auto-rows: minmax(100px, 14vh);
+    grid-auto-rows: minmax(52px, 8vh);
   }
 
-  .feature {
+  .hero {
     grid-column: span 6;
+    grid-row: span 3;
+  }
+
+  .tall,
+  .portrait {
+    grid-column: span 3;
     grid-row: span 4;
   }
 
-  .tall {
-    grid-column: span 3;
-    grid-row: span 5;
-  }
-
-  .wide {
+  .wide,
+  .banner {
     grid-column: span 6;
+    grid-row: span 2;
+  }
+
+  .square {
+    grid-column: span 3;
     grid-row: span 3;
   }
 
-  .square,
-  .compact {
+  .small,
+  .tiny {
     grid-column: span 3;
-    grid-row: span 3;
+    grid-row: span 2;
   }
 }
 
 @media (max-width: 640px) {
   .collage {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: minmax(150px, 24vh);
+    grid-auto-rows: minmax(110px, 16vh);
   }
 
-  .feature {
+  .hero,
+  .wide,
+  .banner {
     grid-column: span 2;
     grid-row: span 2;
   }
 
-  .tall {
+  .tall,
+  .portrait {
     grid-column: span 1;
     grid-row: span 2;
   }
 
-  .wide {
-    grid-column: span 2;
-    grid-row: span 2;
+  .square {
+    grid-column: span 1;
+    grid-row: span 1;
   }
 
-  .square,
-  .compact {
+  .small,
+  .tiny {
     grid-column: span 1;
     grid-row: span 1;
   }

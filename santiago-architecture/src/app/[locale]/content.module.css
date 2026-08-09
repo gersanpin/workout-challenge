@@ -9,11 +9,12 @@
 }
 
 .shell {
+  /* Hierarchy: title >> lead/body cluster >> next section >> related lines */
   --space-tight: 0.5rem;
-  --space-related: 1.5rem;
-  --space-after-title: 2.75rem;
-  --space-section: 3.5rem;
-  --space-block: 3rem;
+  --space-related: 1.6rem;
+  --space-after-title: 3rem;
+  --space-section: 3.75rem;
+  --space-block: 3.25rem;
 
   width: min(100%, 36rem);
   margin: 0 auto;
@@ -116,7 +117,7 @@
   width: min(100%, 40rem);
 }
 
-/* Landscape / short viewports: keep copy centered, preserve hierarchy but tighter */
+/* Desktop / wide landscape: keep vertical centering, keep generous spacing */
 @media (orientation: landscape) {
   .stage,
   .contactStage {
@@ -125,52 +126,41 @@
     max-height: 100svh;
     align-items: center;
     justify-content: center;
-    padding: calc(var(--nav-height) + 0.5rem) var(--page-pad) 1rem;
+    padding: calc(var(--nav-height) + 0.75rem) var(--page-pad) 1.25rem;
     overflow: auto;
   }
 
   .shell,
   .contactShell {
-    --space-tight: 0.35rem;
-    --space-related: 0.95rem;
-    --space-after-title: 1.5rem;
-    --space-section: 1.9rem;
-    --space-block: 1.55rem;
     width: min(100%, 40rem);
     margin: auto;
   }
-
-  .title {
-    font-size: clamp(2rem, 8vh, 3.4rem);
-  }
-
-  .lead,
-  .body {
-    font-size: clamp(0.95rem, 2.8vh, 1.15rem);
-  }
-
-  .serviceList {
-    max-height: none;
-  }
 }
 
-@media (orientation: landscape) and (max-height: 500px) {
+/* Only compress spacing on short landscape viewports (phones rotated) */
+@media (orientation: landscape) and (max-height: 560px) {
   .stage,
   .contactStage {
     padding-top: calc(var(--nav-height) + 0.25rem);
     padding-bottom: 0.5rem;
   }
 
-  .shell {
+  .shell,
+  .contactShell {
     --space-tight: 0.3rem;
-    --space-related: 0.6rem;
-    --space-after-title: 0.85rem;
-    --space-section: 1.1rem;
-    --space-block: 0.85rem;
+    --space-related: 0.65rem;
+    --space-after-title: 1rem;
+    --space-section: 1.25rem;
+    --space-block: 1rem;
   }
 
   .title {
     font-size: clamp(1.7rem, 9vh, 2.6rem);
+  }
+
+  .lead,
+  .body {
+    font-size: clamp(0.95rem, 2.8vh, 1.15rem);
   }
 
   .serviceList {

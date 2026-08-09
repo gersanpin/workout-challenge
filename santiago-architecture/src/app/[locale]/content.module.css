@@ -46,12 +46,12 @@
 
 .rule {
   display: block;
-  width: min(7.5rem, 28vw);
-  height: 1px;
-  margin: 1.35rem 0 var(--space-after-title);
+  width: min(18rem, 72vw);
+  height: 2px;
+  margin: 1.5rem 0 var(--space-after-title);
   border: 0;
   background: var(--ink);
-  opacity: 0.28;
+  opacity: 0.35;
 }
 
 .lead {

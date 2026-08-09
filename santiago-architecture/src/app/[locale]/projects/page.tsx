@@ -4,6 +4,7 @@ import { projects } from "@/data/projects";
 import { ProjectsExplorer } from "@/components/ProjectsExplorer";
 import { buildMetadata } from "@/lib/seo";
 import type { Locale } from "@/i18n/routing";
+import styles from "./page.module.css";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -26,16 +27,14 @@ export default async function ProjectsPage({ params }: Props) {
   const t = await getTranslations("Projects");
 
   return (
-    <div className="page">
-      <div className="container">
+    <div className={styles.page}>
+      <div className={`container ${styles.intro}`}>
         <h1 className="section-title">{t("title")}</h1>
-        <p className="section-lead" style={{ marginBottom: "2.5rem" }}>
-          {t("selected")}
-        </p>
-        <Suspense fallback={null}>
-          <ProjectsExplorer projects={projects} />
-        </Suspense>
+        <p className="section-lead">{t("selected")}</p>
       </div>
+      <Suspense fallback={null}>
+        <ProjectsExplorer projects={projects} />
+      </Suspense>
     </div>
   );
 }

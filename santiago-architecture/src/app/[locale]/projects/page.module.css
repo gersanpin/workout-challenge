@@ -1,0 +1,11 @@
+.page {
+  padding: calc(var(--nav-height) + var(--space-4)) 0 0;
+}
+
+.intro {
+  margin-bottom: var(--space-3);
+}
+
+.intro .section-lead {
+  margin-bottom: 0;
+}

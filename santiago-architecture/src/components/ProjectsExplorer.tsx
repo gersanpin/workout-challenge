@@ -45,7 +45,7 @@ export function ProjectsExplorer({ projects }: Props) {
 
   return (
     <div className={styles.explorer}>
-      <div className={styles.toolbar}>
+      <div className={`container ${styles.toolbar}`}>
         <div className={styles.views} role="tablist" aria-label="View mode">
           <button
             type="button"
@@ -64,7 +64,10 @@ export function ProjectsExplorer({ projects }: Props) {
         </div>
       </div>
 
-      <div className={styles.stage} key={view}>
+      <div
+        className={`${styles.stage} ${view === "grid" ? styles.fullBleed : styles.contained}`}
+        key={view}
+      >
         {view === "grid" ? (
           <ProjectGrid projects={projects} />
         ) : (

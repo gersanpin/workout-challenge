@@ -24,13 +24,11 @@ export default async function AboutPage({ params }: Props) {
   const t = await getTranslations("About");
 
   return (
-    <div className="page">
-      <div className={`container ${styles.shell}`}>
-        <h1 className="section-title">{t("title")}</h1>
-        <div className={styles.split}>
-          <p className="section-lead">{t("lead")}</p>
-          <p className={styles.body}>{t("body")}</p>
-        </div>
+    <div className={styles.stage}>
+      <div className={styles.shell}>
+        <h1 className={styles.title}>{t("title")}</h1>
+        <p className={styles.lead}>{t("lead")}</p>
+        <p className={styles.body}>{t("body")}</p>
       </div>
     </div>
   );

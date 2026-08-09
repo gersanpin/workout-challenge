@@ -218,8 +218,8 @@ function DesktopFraming() {
       return;
     }
 
-    // Negative x pulls the sphere toward the left edge, clearing the right rail.
-    const offsetX = Math.round(size.width * -0.16);
+    // Mild left bias so the full globe clears the right detail rail.
+    const offsetX = Math.round(size.width * -0.08);
     persp.setViewOffset(
       size.width,
       size.height,
@@ -317,7 +317,7 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
     <div className={styles.wrap}>
       <div className={styles.canvas}>
         <Canvas
-          camera={{ position: [0, 0.2, CAMERA_DISTANCE], fov: CAMERA_FOV }}
+          camera={{ position: [0, 0.05, CAMERA_DISTANCE], fov: CAMERA_FOV }}
           dpr={[1, 1.5]}
           gl={{ alpha: true, antialias: true }}
           style={{ background: "transparent" }}

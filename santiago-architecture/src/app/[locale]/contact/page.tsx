@@ -24,23 +24,19 @@ export default async function ContactPage({ params }: Props) {
   const t = await getTranslations("Contact");
 
   return (
-    <div className="page">
-      <div className={`container ${styles.shell}`}>
-        <header className={styles.pageHeader}>
-          <h1 className="section-title">{t("title")}</h1>
-          <p>{t("lead")}</p>
-        </header>
-        <div className={styles.split}>
-          <p className={styles.body}>{t("body")}</p>
-          <div className={styles.contactActions}>
-            <a
-              className={`btn btn-primary ${styles.cta}`}
-              href={`mailto:${t("email")}`}
-            >
-              {t("cta")}
-            </a>
-            <p className={styles.email}>{t("email")}</p>
-          </div>
+    <div className={styles.stage}>
+      <div className={styles.shell}>
+        <h1 className={styles.title}>{t("title")}</h1>
+        <p className={styles.lead}>{t("lead")}</p>
+        <p className={styles.body}>{t("body")}</p>
+        <div className={styles.contactActions}>
+          <a
+            className={`btn btn-primary ${styles.cta}`}
+            href={`mailto:${t("email")}`}
+          >
+            {t("cta")}
+          </a>
+          <p className={styles.email}>{t("email")}</p>
         </div>
       </div>
     </div>

@@ -10,29 +10,20 @@ import {
 } from "@/data/projects";
 import styles from "./ProjectGrid.module.css";
 
-type CollageSize =
-  | "hero"
-  | "tall"
-  | "square"
-  | "wide"
-  | "small"
-  | "portrait"
-  | "banner"
-  | "tiny";
+type CollageSize = "hero" | "tall" | "square" | "wide";
 
-/** Mixed orientations so the dense grid feels like a varied collage. */
+/**
+ * Fixed pack for a typical project set: every row completes
+ * so the white gutters stay thin lines, not empty cells.
+ */
 const SIZE_CYCLE: CollageSize[] = [
   "hero",
-  "portrait",
-  "small",
   "tall",
+  "square",
+  "square",
+  "square",
+  "square",
   "wide",
-  "square",
-  "tiny",
-  "banner",
-  "portrait",
-  "small",
-  "square",
   "wide",
 ];
 

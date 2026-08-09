@@ -11,22 +11,17 @@ import {
 } from "@/data/projects";
 import styles from "./ProjectGrid.module.css";
 
-type CollageSize = "hero" | "tall" | "square" | "wide";
-
-/**
- * Pack that completes every row on the responsive templates below,
- * so the only white left is the thin gutter between tiles.
- */
-const SIZE_CYCLE: CollageSize[] = [
-  "hero",
-  "tall",
-  "square",
-  "square",
-  "square",
-  "square",
-  "wide",
-  "wide",
-];
+/** Irregular tile roles — spans avoid a centered 50/50 split. */
+const TILE_CYCLE = [
+  "tileA",
+  "tileB",
+  "tileC",
+  "tileD",
+  "tileE",
+  "tileF",
+  "tileG",
+  "tileH",
+] as const;
 
 type Props = {
   projects: Project[];
@@ -56,15 +51,15 @@ export function ProjectGrid({ projects }: Props) {
   return (
     <ul className={styles.collage}>
       {projects.map((project, index) => {
-        const size = SIZE_CYCLE[index % SIZE_CYCLE.length];
+        const tile = TILE_CYCLE[index % TILE_CYCLE.length];
         return (
-          <li key={project.slug} className={styles[size]}>
+          <li key={project.slug} className={styles[tile]}>
             <Link href={`/projects/${project.slug}`} className={styles.item}>
               <Image
                 src={project.images[0]}
                 alt={getLocalized(project.name, locale)}
                 fill
-                sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 25vw"
+                sizes="(max-width: 700px) 70vw, (max-width: 1100px) 45vw, 40vw"
                 className={styles.image}
                 priority={index < 4}
               />

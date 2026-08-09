@@ -9,11 +9,11 @@
 }
 
 .shell {
-  --space-tight: 0.55rem;
-  --space-related: 1.35rem;
-  --space-after-title: 2.15rem;
-  --space-section: 2.85rem;
-  --space-block: 2.4rem;
+  --space-tight: 0.5rem;
+  --space-related: 1.5rem;
+  --space-after-title: 2.75rem;
+  --space-section: 3.5rem;
+  --space-block: 3rem;
 
   width: min(100%, 36rem);
   margin: 0 auto;
@@ -131,11 +131,11 @@
 
   .shell,
   .contactShell {
-    --space-tight: 0.4rem;
-    --space-related: 0.85rem;
-    --space-after-title: 1.25rem;
-    --space-section: 1.65rem;
-    --space-block: 1.25rem;
+    --space-tight: 0.35rem;
+    --space-related: 0.95rem;
+    --space-after-title: 1.5rem;
+    --space-section: 1.9rem;
+    --space-block: 1.55rem;
     width: min(100%, 40rem);
     margin: auto;
   }

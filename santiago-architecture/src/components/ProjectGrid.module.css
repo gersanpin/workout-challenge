@@ -131,6 +131,7 @@
 /* 6 columns */
 @media (min-width: 768px) {
   .collage {
+    --collage-rows: 9;
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
@@ -170,6 +171,7 @@
 /* 12 columns — 6+6 | 3+3+3+3 | 6+6 */
 @media (min-width: 1024px) {
   .collage {
+    --collage-rows: 7;
     grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 

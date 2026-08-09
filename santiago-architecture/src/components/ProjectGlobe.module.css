@@ -50,10 +50,13 @@
 .preview {
   position: relative;
   display: block;
-  width: 100%;
-  aspect-ratio: 5 / 4;
+  width: clamp(14rem, 28vw, 18.5rem);
+  height: clamp(14rem, 28vw, 18.5rem);
+  aspect-ratio: 1;
   overflow: hidden;
+  border-radius: 50%;
   background: #d7d5d0;
+  flex-shrink: 0;
 }
 
 .previewImage {
@@ -62,7 +65,7 @@
 }
 
 .preview:hover .previewImage {
-  transform: scale(1.03);
+  transform: scale(1.04);
 }
 
 .kicker {

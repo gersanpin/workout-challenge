@@ -128,10 +128,9 @@
 
 @media (max-width: 960px) {
   .wrap {
-    display: grid;
     grid-template-columns: 1fr;
     min-height: auto;
-    overflow: visible;
+    padding-inline: 0;
   }
 
   .canvas {
@@ -140,15 +139,9 @@
   }
 
   .panel {
-    position: static;
-    top: auto;
-    right: auto;
-    width: 100%;
     max-width: none;
-    transform: none;
-    padding: 0 clamp(1rem, 2.5vw, 2rem) var(--space-5);
-    background: transparent;
-    backdrop-filter: none;
+    justify-self: stretch;
+    padding: 0 var(--page-pad) var(--space-5);
   }
 
   .preview {
@@ -174,6 +167,7 @@
 @media (max-height: 500px) and (orientation: landscape) {
   .wrap {
     min-height: auto;
+    grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.7fr);
   }
 
   .canvas {
@@ -182,8 +176,7 @@
   }
 
   .panel {
-    width: min(18rem, 34vw);
-    padding: 0.85rem 0.95rem;
+    max-width: none;
     gap: 0.5rem;
   }
 }

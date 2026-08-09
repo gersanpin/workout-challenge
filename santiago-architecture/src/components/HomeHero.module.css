@@ -101,8 +101,8 @@
   .content {
     grid-template-columns: 1fr;
     gap: 1.25rem;
-    width: min(100%, 42rem);
-    padding-inline: clamp(1.25rem, 5vw, 2rem);
+    width: 100%;
+    padding-inline: clamp(1rem, 4vw, 1.5rem);
   }
 
   .copy {

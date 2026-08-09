@@ -109,7 +109,11 @@ export function ContactInquiryForm({ studioEmail }: Props) {
             {t("sendAnother")}
           </button>
         </div>
-        <p className={styles.email}>{studioEmail}</p>
+        <div className={styles.meta}>
+          <p className={styles.email}>{studioEmail}</p>
+          <InstagramLink muted large />
+          <span className={styles.handle}>@{siteConfig.instagram.handle}</span>
+        </div>
       </div>
     );
   }
@@ -124,7 +128,11 @@ export function ContactInquiryForm({ studioEmail }: Props) {
         >
           {t("cta")}
         </button>
-        <p className={styles.email}>{studioEmail}</p>
+        <div className={styles.meta}>
+          <p className={styles.email}>{studioEmail}</p>
+          <InstagramLink muted large />
+          <span className={styles.handle}>@{siteConfig.instagram.handle}</span>
+        </div>
       </div>
     );
   }
@@ -245,7 +253,11 @@ export function ContactInquiryForm({ studioEmail }: Props) {
           </button>
         </div>
       </form>
-      <p className={styles.email}>{studioEmail}</p>
+      <div className={styles.meta}>
+        <p className={styles.email}>{studioEmail}</p>
+        <InstagramLink muted large />
+        <span className={styles.handle}>@{siteConfig.instagram.handle}</span>
+      </div>
     </div>
   );
 }

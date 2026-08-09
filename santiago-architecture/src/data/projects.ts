@@ -29,6 +29,45 @@ export type Project = {
 
 export const projects: Project[] = [
   {
+    slug: "tiny-home-costa-rica",
+    year: 2025,
+    latitude: 10.3181,
+    longitude: -84.8256,
+    area: "85 m²",
+    category: "residential",
+    images: [
+      "/projects/tiny-home-costa-rica/01.jpg",
+      "/projects/tiny-home-costa-rica/02.jpg",
+      "/projects/tiny-home-costa-rica/03.jpg",
+      "/projects/tiny-home-costa-rica/04.jpg",
+      "/projects/tiny-home-costa-rica/05.jpg",
+      "/projects/tiny-home-costa-rica/06.jpg",
+      "/projects/tiny-home-costa-rica/07.jpg",
+      "/projects/tiny-home-costa-rica/08.jpg",
+      "/projects/tiny-home-costa-rica/09.jpg",
+    ],
+    name: {
+      en: "Tiny Home Costa Rica",
+      es: "Tiny Home Costa Rica",
+    },
+    location: {
+      en: "Costa Rica",
+      es: "Costa Rica",
+    },
+    description: {
+      en: "A compact two-level retreat with curved roofs, warm wood, and open living woven into the tropical forest.",
+      es: "Un refugio compacto de dos niveles con cubiertas curvas, madera cálida y estar abierto integrado al bosque tropical.",
+    },
+    seoTitle: {
+      en: "Tiny Home Costa Rica | Architecture Portfolio",
+      es: "Tiny Home Costa Rica | Portafolio de arquitectura",
+    },
+    seoDescription: {
+      en: "Tiny Home Costa Rica — compact residential architecture in the tropical forest.",
+      es: "Tiny Home Costa Rica — arquitectura residencial compacta en el bosque tropical.",
+    },
+  },
+  {
     slug: "casa-manglar",
     year: 2025,
     latitude: 21.1619,

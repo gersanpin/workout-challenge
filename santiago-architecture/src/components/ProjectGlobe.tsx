@@ -224,9 +224,10 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
         <Canvas
           camera={{ position: [0, 0.3, 4.05], fov: 40 }}
           dpr={[1, 1.75]}
+          gl={{ alpha: true, antialias: true }}
+          style={{ background: "transparent" }}
           onPointerMissed={() => onSelect(null)}
         >
-          <color attach="background" args={["#e4e2dd"]} />
           <ambientLight intensity={0.85} />
           <directionalLight position={[4.5, 2.8, 2.2]} intensity={0.9} />
           <Suspense fallback={null}>

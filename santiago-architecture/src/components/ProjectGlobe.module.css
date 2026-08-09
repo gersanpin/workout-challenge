@@ -1,20 +1,23 @@
 .wrap {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(240px, 0.85fr);
-  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1.55fr) minmax(220px, 0.8fr);
+  gap: 1.5rem 2rem;
+  align-items: center;
   min-height: 560px;
 }
 
 .canvas {
-  min-height: 520px;
-  border: 1px solid var(--line);
-  background: #e4e2dd;
-  overflow: hidden;
+  min-height: 560px;
+  height: min(72vh, 680px);
+  border: none;
+  background: transparent;
+  overflow: visible;
 }
 
 .canvas canvas {
   width: 100% !important;
   height: 100% !important;
+  background: transparent !important;
 }
 
 .panel {
@@ -22,9 +25,9 @@
   flex-direction: column;
   justify-content: center;
   gap: 1rem;
-  padding: 1.5rem;
-  border: 1px solid var(--line);
-  background: rgba(251, 250, 248, 0.55);
+  padding: 0.25rem 0;
+  border: none;
+  background: transparent;
 }
 
 .kicker {
@@ -95,9 +98,11 @@
   .wrap {
     grid-template-columns: 1fr;
     min-height: auto;
+    gap: 1.25rem;
   }
 
   .canvas {
     min-height: 420px;
+    height: min(58vh, 520px);
   }
 }

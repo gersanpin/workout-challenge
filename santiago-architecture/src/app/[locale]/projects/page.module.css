@@ -2,14 +2,14 @@
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: calc(var(--nav-height) + var(--space-3)) 0 0;
+  padding: calc(var(--nav-height) + var(--space-2)) 0 0;
 }
 
 .top {
   width: 100%;
   max-width: none;
   box-sizing: border-box;
-  padding: 0 clamp(1rem, 2.5vw, 2rem) var(--space-3);
+  padding: 0 clamp(1rem, 2.5vw, 2rem) var(--space-2);
 }
 
 .topCopy {

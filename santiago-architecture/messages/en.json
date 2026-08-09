@@ -87,10 +87,29 @@
     "submit": "Send inquiry",
     "sending": "Opening mail…",
     "cancel": "Cancel",
-    "success": "Thanks — your inquiry is ready to send. If your mail app didn't open, email us directly.",
+    "success": "Thanks — your inquiry is ready to send. Next, schedule a meeting so we can talk through the project.",
     "sendAnother": "Start another inquiry",
     "mailSubject": "Project inquiry from {name}",
     "mailIntro": "New project inquiry from the Santiago Architecture site:",
+    "meeting": {
+      "title": "Schedule a meeting",
+      "lead": "Pick a preferred date and time. We'll confirm or suggest an alternative.",
+      "openCalendar": "Open booking calendar",
+      "submit": "Request meeting",
+      "sending": "Opening mail…",
+      "skip": "Skip for now",
+      "done": "Thanks — your meeting request is ready to send. We'll confirm shortly.",
+      "mailSubject": "Meeting request from {name}",
+      "mailIntro": "Meeting request following a project inquiry:",
+      "fields": {
+        "date": "Preferred date",
+        "time": "Preferred time",
+        "notes": "Notes"
+      },
+      "placeholders": {
+        "notes": "Timezone, video vs. in-person, or anything we should know."
+      }
+    },
     "fields": {
       "name": "Full name",
       "email": "Email",

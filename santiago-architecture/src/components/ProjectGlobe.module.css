@@ -8,7 +8,7 @@
 .canvas {
   min-height: 520px;
   border: 1px solid var(--line);
-  background: #d9d7d2;
+  background: #e4e2dd;
   overflow: hidden;
 }
 

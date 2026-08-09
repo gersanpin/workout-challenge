@@ -265,8 +265,9 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
               ref={controlsRef}
               makeDefault
               enablePan={false}
-              minDistance={2.8}
-              maxDistance={5.5}
+              enableZoom={false}
+              minDistance={CAMERA_DISTANCE}
+              maxDistance={CAMERA_DISTANCE}
               rotateSpeed={0.4}
               autoRotate={!selectedSlug}
               autoRotateSpeed={0.22}

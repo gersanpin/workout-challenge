@@ -22,7 +22,9 @@ import {
 import styles from "./ProjectGlobe.module.css";
 
 const GLOBE_RADIUS = 1.6;
-const CAMERA_DISTANCE = 3.35;
+/** Close enough that the sphere fills most of the stage height. */
+const CAMERA_DISTANCE = 2.72;
+const CAMERA_FOV = 34;
 
 /** Flat conceptual earth: real coastlines, solid colors, no material lighting. */
 const vertexShader = /* glsl */ `
@@ -166,6 +168,39 @@ function ProjectPin({
   );
 }
 
+/** Shift projection so the globe sits left-of-center and fills the stage. */
+function DesktopFraming() {
+  const { camera, size } = useThree();
+
+  useEffect(() => {
+    const persp = camera as THREE.PerspectiveCamera;
+    if (size.width < 960) {
+      persp.clearViewOffset();
+      persp.updateProjectionMatrix();
+      return;
+    }
+
+    // Negative x pulls the sphere toward the left edge, clearing the right rail.
+    const offsetX = Math.round(size.width * -0.16);
+    persp.setViewOffset(
+      size.width,
+      size.height,
+      offsetX,
+      0,
+      size.width,
+      size.height,
+    );
+    persp.updateProjectionMatrix();
+
+    return () => {
+      persp.clearViewOffset();
+      persp.updateProjectionMatrix();
+    };
+  }, [camera, size.height, size.width]);
+
+  return null;
+}
+
 function CameraFocus({
   project,
   controlsRef,
@@ -244,13 +279,14 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
     <div className={styles.wrap}>
       <div className={styles.canvas}>
         <Canvas
-          camera={{ position: [0, 0.25, CAMERA_DISTANCE], fov: 38 }}
+          camera={{ position: [0, 0.2, CAMERA_DISTANCE], fov: CAMERA_FOV }}
           dpr={[1, 1.5]}
           gl={{ alpha: true, antialias: true }}
           style={{ background: "transparent" }}
           onPointerMissed={() => onSelect(null)}
         >
           <Suspense fallback={null}>
+            <DesktopFraming />
             <ConceptualEarth />
             {projects.map((project) => (
               <ProjectPin

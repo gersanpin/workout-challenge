@@ -21,7 +21,8 @@
   --space-related: 1.75rem;
   --space-after-title: 3.25rem;
   --space-section: 4rem;
-  --space-block: 3.5rem;
+  --space-services: 5.25rem;
+  --space-block: 0;
 
   width: min(100%, 36rem);
   margin: 0 auto;
@@ -68,7 +69,10 @@
   text-wrap: pretty;
 }
 
-.lead + .serviceList,
+.lead + .serviceList {
+  margin-top: var(--space-services);
+}
+
 .body + * {
   margin-top: var(--space-section);
 }
@@ -91,7 +95,18 @@
   gap: var(--space-tight);
   justify-items: center;
   width: 100%;
+  padding: 2.15rem 0;
+  border-top: 1px solid var(--line);
   text-align: center;
+}
+
+.serviceList li:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.serviceList li:last-child {
+  padding-bottom: 0;
 }
 
 .serviceList h2 {
@@ -157,7 +172,8 @@
     --space-related: 0.65rem;
     --space-after-title: 1rem;
     --space-section: 1.25rem;
-    --space-block: 1rem;
+    --space-services: 1.5rem;
+    --space-block: 0;
   }
 
   .title {
@@ -174,5 +190,17 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.85rem 1.5rem;
     max-width: min(100%, 48rem);
+  }
+
+  .serviceList li {
+    padding: 0;
+    border-top: none;
+    border-left: 1px solid var(--line);
+    padding-left: 0.85rem;
+  }
+
+  .serviceList li:first-child {
+    border-left: none;
+    padding-left: 0;
   }
 }

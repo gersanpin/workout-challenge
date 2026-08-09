@@ -45,7 +45,7 @@ export function ProjectsExplorer({ projects }: Props) {
 
   return (
     <div className={styles.explorer}>
-      <div className={`container ${styles.toolbar}`}>
+      <div className={styles.toolbar}>
         <div className={styles.views} role="tablist" aria-label="View mode">
           <button
             type="button"
@@ -64,20 +64,19 @@ export function ProjectsExplorer({ projects }: Props) {
         </div>
       </div>
 
-      <div
-        className={`${styles.stage} ${view === "grid" ? styles.fullBleed : styles.contained}`}
-        key={view}
-      >
-        {view === "grid" ? (
+      {view === "grid" ? (
+        <section className={styles.bleed} aria-label={t("title")}>
           <ProjectGrid projects={projects} />
-        ) : (
+        </section>
+      ) : (
+        <div className={styles.globeWrap}>
           <ProjectGlobe
             projects={projects}
             selectedSlug={selectedSlug}
             onSelect={(slug) => updateParams({ project: slug })}
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

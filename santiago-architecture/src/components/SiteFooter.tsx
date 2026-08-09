@@ -7,7 +7,7 @@ export function SiteFooter() {
 
   return (
     <footer className={styles.footer}>
-      <div className={`container ${styles.inner}`}>
+      <div className={styles.inner}>
         <span className={styles.brand}>Santiago Architecture</span>
         <span>
           © {year}. {t("rights")}

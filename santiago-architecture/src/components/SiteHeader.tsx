@@ -20,7 +20,7 @@ export function SiteHeader() {
 
   return (
     <header className={styles.header}>
-      <div className={`container ${styles.inner}`}>
+      <div className={styles.inner}>
         <Link href="/" className={styles.brand} onClick={() => setOpen(false)}>
           Santiago Architecture
         </Link>

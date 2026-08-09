@@ -28,7 +28,7 @@ export default async function ProjectsPage({ params }: Props) {
 
   return (
     <div className={styles.page}>
-      <div className={`container ${styles.intro}`}>
+      <div className={styles.top}>
         <h1 className="section-title">{t("title")}</h1>
         <p className="section-lead">{t("selected")}</p>
       </div>

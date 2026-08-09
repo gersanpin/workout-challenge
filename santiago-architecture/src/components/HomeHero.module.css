@@ -37,11 +37,10 @@
 .content {
   position: relative;
   z-index: 2;
-  /* Halfway between previous inset (~68rem / 7vw pad) and the screen edge */
-  width: min(100%, 86rem);
-  max-width: 86rem;
+  width: 100%;
+  max-width: none;
   margin-inline: auto;
-  padding: 0 clamp(1rem, 3.5vw, 2.75rem) clamp(3.5rem, 8vh, 6rem);
+  padding: 0 clamp(0.85rem, 2.2vw, 1.75rem) clamp(3.5rem, 8vh, 6rem);
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
   gap: clamp(1.5rem, 5vw, 5rem);
@@ -51,7 +50,7 @@
 
 .copy {
   min-width: 0;
-  max-width: 38rem;
+  max-width: 40rem;
 }
 
 .brand {

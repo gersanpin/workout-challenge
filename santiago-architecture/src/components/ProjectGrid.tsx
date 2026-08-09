@@ -11,7 +11,7 @@ import {
 } from "@/data/projects";
 import styles from "./ProjectGrid.module.css";
 
-/** Irregular tile roles — spans avoid a centered 50/50 split. */
+/** Masonry-like roles: mixed portrait / landscape, no center seam. */
 const TILE_CYCLE = [
   "tileA",
   "tileB",
@@ -36,11 +36,17 @@ export function ProjectGrid({ projects }: Props) {
     const { body } = document;
     const prevHtml = html.style.overflow;
     const prevBody = body.style.overflow;
+    const prevHtmlBg = html.style.background;
+    const prevBodyBg = body.style.background;
     html.style.overflow = "hidden";
     body.style.overflow = "hidden";
+    html.style.background = "#000";
+    body.style.background = "#000";
     return () => {
       html.style.overflow = prevHtml;
       body.style.overflow = prevBody;
+      html.style.background = prevHtmlBg;
+      body.style.background = prevBodyBg;
     };
   }, []);
 
@@ -59,7 +65,7 @@ export function ProjectGrid({ projects }: Props) {
                 src={project.images[0]}
                 alt={getLocalized(project.name, locale)}
                 fill
-                sizes="(max-width: 700px) 70vw, (max-width: 1100px) 45vw, 40vw"
+                sizes="(max-width: 700px) 70vw, (max-width: 1100px) 50vw, 40vw"
                 className={styles.image}
                 priority={index < 4}
               />

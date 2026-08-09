@@ -14,7 +14,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0.15rem var(--page-pad) 0.35rem;
-  background: var(--bg);
+  background: #000;
 }
 
 .views {
@@ -28,13 +28,13 @@
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: rgba(245, 242, 236, 0.55);
   transition: color 0.25s var(--ease);
 }
 
 .views button:hover,
 .active {
-  color: var(--ink);
+  color: #f5f2ec;
 }
 
 .active {

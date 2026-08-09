@@ -26,17 +26,22 @@ const GLOBE_RADIUS = 1.6;
 const CAMERA_DISTANCE = 5.2;
 const CAMERA_FOV = 40;
 
-/** Flat schematic earth: two solids, hard coasts, thin ink outline. */
+/** Flat schematic earth: two solids, crisp AA coasts, thin ink outline. */
 const vertexShader = /* glsl */ `
 varying vec2 vUv;
+varying vec3 vNormal;
 
 void main() {
   vUv = uv;
+  vNormal = normalize(normalMatrix * normal);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
 
 const fragmentShader = /* glsl */ `
+#extension GL_OES_standard_derivatives : enable
+precision highp float;
+
 uniform sampler2D uMask;
 uniform vec3 uLand;
 uniform vec3 uOcean;
@@ -44,33 +49,43 @@ uniform vec3 uStroke;
 uniform vec2 uTexel;
 
 varying vec2 vUv;
+varying vec3 vNormal;
 
 float sampleOcean(vec2 uv) {
   return texture2D(uMask, uv).r;
 }
 
 void main() {
-  // Mask: 1.0 ocean, 0.0 land (holes already filled)
+  // Mask: 1.0 ocean, 0.0 land
   float ocean = sampleOcean(vUv);
-  // Hard cut for a graphic, print-like fill
-  float landMask = 1.0 - step(0.5, ocean);
+
+  // Screen-aware AA so coasts stay nitid on retina, not stair-stepped
+  float aa = max(fwidth(ocean), 0.002);
+  float landMask = 1.0 - smoothstep(0.5 - aa, 0.5 + aa, ocean);
 
   // Thin coastline stroke via neighbor differences
-  float n = sampleOcean(vUv + vec2(0.0, uTexel.y));
-  float s = sampleOcean(vUv - vec2(0.0, uTexel.y));
-  float e = sampleOcean(vUv + vec2(uTexel.x, 0.0));
-  float w = sampleOcean(vUv - vec2(uTexel.x, 0.0));
-  float ne = sampleOcean(vUv + uTexel);
-  float nw = sampleOcean(vUv + vec2(-uTexel.x, uTexel.y));
-  float se = sampleOcean(vUv + vec2(uTexel.x, -uTexel.y));
-  float sw = sampleOcean(vUv - uTexel);
+  vec2 t = uTexel * 1.15;
+  float n = sampleOcean(vUv + vec2(0.0, t.y));
+  float s = sampleOcean(vUv - vec2(0.0, t.y));
+  float e = sampleOcean(vUv + vec2(t.x, 0.0));
+  float w = sampleOcean(vUv - vec2(t.x, 0.0));
+  float ne = sampleOcean(vUv + t);
+  float nw = sampleOcean(vUv + vec2(-t.x, t.y));
+  float se = sampleOcean(vUv + vec2(t.x, -t.y));
+  float sw = sampleOcean(vUv - t);
   float edge =
     abs(ocean - n) + abs(ocean - s) + abs(ocean - e) + abs(ocean - w) +
     abs(ocean - ne) + abs(ocean - nw) + abs(ocean - se) + abs(ocean - sw);
-  float stroke = step(0.35, edge);
+  float strokeAa = max(fwidth(edge), 0.08);
+  float stroke = smoothstep(0.28 - strokeAa, 0.28 + strokeAa, edge);
 
   vec3 color = mix(uOcean, uLand, landMask);
   color = mix(color, uStroke, stroke);
+
+  // Soft limb darkening for a polished sphere read (Apple-like)
+  float fresnel = pow(1.0 - max(dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)), 0.0), 2.4);
+  color *= 1.0 - fresnel * 0.12;
+
   gl_FragColor = vec4(color, 1.0);
 }
 `;
@@ -85,34 +100,53 @@ function latLngToPosition(lat: number, lng: number, radius: number) {
   );
 }
 
+function ConfigureRenderer() {
+  const { gl } = useThree();
+
+  useEffect(() => {
+    gl.outputColorSpace = THREE.SRGBColorSpace;
+    gl.toneMapping = THREE.NoToneMapping;
+    gl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
+  }, [gl]);
+
+  return null;
+}
+
 function ConceptualEarth() {
+  const { gl } = useThree();
   const [maskMap] = useTexture(["/textures/earth-mask.png"]);
 
   useEffect(() => {
     maskMap.colorSpace = THREE.NoColorSpace;
-    maskMap.minFilter = THREE.LinearFilter;
+    maskMap.generateMipmaps = true;
+    maskMap.minFilter = THREE.LinearMipmapLinearFilter;
     maskMap.magFilter = THREE.LinearFilter;
-    maskMap.generateMipmaps = false;
-    maskMap.anisotropy = 1;
-  }, [maskMap]);
+    maskMap.anisotropy = Math.min(16, gl.capabilities.getMaxAnisotropy());
+    maskMap.needsUpdate = true;
+  }, [gl, maskMap]);
 
   const uniforms = useMemo(
-    () => ({
-      uMask: { value: maskMap },
-      // Reference schematic: khaki land, charcoal ocean, ink stroke
-      uLand: { value: new THREE.Color("#c2b189") },
-      uOcean: { value: new THREE.Color("#2a2a2a") },
-      uStroke: { value: new THREE.Color("#141414") },
-      uTexel: { value: new THREE.Vector2(2.2 / 1600, 2.2 / 800) },
-    }),
+    () => {
+      const image = maskMap.image as { width?: number; height?: number } | undefined;
+      const width = image?.width || 4096;
+      const height = image?.height || 2048;
+      return {
+        uMask: { value: maskMap },
+        // Reference schematic: khaki land, charcoal ocean, ink stroke
+        uLand: { value: new THREE.Color("#c2b189") },
+        uOcean: { value: new THREE.Color("#2a2a2a") },
+        uStroke: { value: new THREE.Color("#141414") },
+        uTexel: { value: new THREE.Vector2(1.35 / width, 1.35 / height) },
+      };
+    },
     [maskMap],
   );
 
   return (
     <group>
       {/* Thin black silhouette rim, like the print outline */}
-      <mesh scale={1.012} renderOrder={0}>
-        <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
+      <mesh scale={1.008} renderOrder={0}>
+        <sphereGeometry args={[GLOBE_RADIUS, 192, 192]} />
         <meshBasicMaterial
           color="#141414"
           side={THREE.BackSide}
@@ -120,7 +154,7 @@ function ConceptualEarth() {
         />
       </mesh>
       <mesh renderOrder={1}>
-        <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
+        <sphereGeometry args={[GLOBE_RADIUS, 192, 192]} />
         <shaderMaterial
           uniforms={uniforms}
           vertexShader={vertexShader}
@@ -145,11 +179,11 @@ function MapPinMesh({ selected }: { selected: boolean }) {
         <meshBasicMaterial color={fill} toneMapped={false} />
       </mesh>
       <mesh position={[0, 0.085, 0]} raycast={() => null}>
-        <sphereGeometry args={[0.028, 12, 12]} />
+        <sphereGeometry args={[0.028, 24, 24]} />
         <meshBasicMaterial color={fill} toneMapped={false} />
       </mesh>
       <mesh position={[0, 0.085, 0.012]} raycast={() => null}>
-        <circleGeometry args={[0.011, 12]} />
+        <circleGeometry args={[0.011, 24]} />
         <meshBasicMaterial color={core} toneMapped={false} />
       </mesh>
     </group>
@@ -328,12 +362,19 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
       <div className={styles.canvas}>
         <Canvas
           camera={{ position: [0, 0, CAMERA_DISTANCE], fov: CAMERA_FOV }}
-          dpr={[1, 1.5]}
-          gl={{ alpha: true, antialias: true }}
+          dpr={[1, 2.5]}
+          gl={{
+            alpha: true,
+            antialias: true,
+            powerPreference: "high-performance",
+            stencil: false,
+            depth: true,
+          }}
           style={{ background: "transparent" }}
           onPointerMissed={() => onSelect(null)}
         >
           <Suspense fallback={null}>
+            <ConfigureRenderer />
             <LockGlobeDistance controlsRef={controlsRef} />
             <ConceptualEarth />
             {projects.map((project) => (

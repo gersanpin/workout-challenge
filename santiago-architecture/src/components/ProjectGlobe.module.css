@@ -24,6 +24,8 @@
   width: 100% !important;
   height: 100% !important;
   background: transparent !important;
+  /* Keep WebGL buffer sharp on retina; avoid CSS blur upscaling */
+  image-rendering: auto;
 }
 
 .panel {

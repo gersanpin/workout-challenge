@@ -43,18 +43,19 @@ void main() {
   float topo = texture2D(uTopo, vUv).r;
 
   // Real coastlines, abstract material palette
-  float landMask = 1.0 - smoothstep(0.22, 0.62, water);
-  vec3 land = mix(uLand, uLandHigh, pow(topo, 0.7));
-  vec3 ocean = mix(uOceanDeep, uOcean, 0.35 + 0.65 * topo);
+  float landMask = 1.0 - smoothstep(0.25, 0.58, water);
+  vec3 land = mix(uLand, uLandHigh, smoothstep(0.05, 0.55, topo));
+  vec3 ocean = mix(uOceanDeep, uOcean, 0.55);
   vec3 base = mix(ocean, land, landMask);
 
   // Soft coast edge
-  float coast = smoothstep(0.18, 0.45, water) * (1.0 - smoothstep(0.45, 0.75, water));
-  base = mix(base, mix(uLand, uOcean, 0.45), coast * 0.18);
+  float coast = smoothstep(0.2, 0.42, water) * (1.0 - smoothstep(0.42, 0.7, water));
+  base = mix(base, mix(uLand, uOcean, 0.55), coast * 0.16);
 
+  // Nearly flat light for an editorial, minimal read
   float ndotl = clamp(dot(normalize(vNormalW), normalize(uLightDir)), 0.0, 1.0);
-  float hemi = 0.55 + 0.45 * ndotl;
-  float relief = mix(1.0, 0.9 + topo * 0.22, landMask);
+  float hemi = 0.9 + 0.1 * ndotl;
+  float relief = mix(1.0, 0.96 + topo * 0.08, landMask);
 
   gl_FragColor = vec4(base * hemi * relief, 1.0);
 }
@@ -83,18 +84,19 @@ function AbstractEarth() {
     topoMap.anisotropy = 8;
   }, [waterMap, topoMap]);
 
-  const uniforms = useMemo(
-    () => ({
+  const uniforms = useMemo(() => {
+    const toLinear = (hex: string) =>
+      new THREE.Color(hex).convertSRGBToLinear();
+    return {
       uWater: { value: waterMap },
       uTopo: { value: topoMap },
-      uLand: { value: new THREE.Color("#cfc8bc") },
-      uLandHigh: { value: new THREE.Color("#e4dfd6") },
-      uOcean: { value: new THREE.Color("#6a767f") },
-      uOceanDeep: { value: new THREE.Color("#4a545c") },
+      uLand: { value: toLinear("#d2cbc0") },
+      uLandHigh: { value: toLinear("#ebe6de") },
+      uOcean: { value: toLinear("#7d8891") },
+      uOceanDeep: { value: toLinear("#5c6770") },
       uLightDir: { value: new THREE.Vector3(4.5, 2.8, 2.2).normalize() },
-    }),
-    [waterMap, topoMap],
-  );
+    };
+  }, [waterMap, topoMap]);
 
   return (
     <mesh>

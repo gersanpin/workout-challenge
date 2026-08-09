@@ -125,8 +125,10 @@
   padding: 0;
   display: grid;
   gap: 0.5rem;
+  width: 100%;
   max-height: min(48svh, 22rem);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   text-align: center;
 }
 
@@ -171,7 +173,6 @@
 
   .preview {
     width: min(16rem, 72vw);
-    height: min(16rem, 72vw);
   }
 
   .quickList {
@@ -190,6 +191,5 @@
 
   .preview {
     width: min(14.5rem, 70vw);
-    height: min(14.5rem, 70vw);
   }
 }

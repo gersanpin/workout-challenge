@@ -22,9 +22,9 @@ import {
 import styles from "./ProjectGlobe.module.css";
 
 const GLOBE_RADIUS = 1.6;
-/** Close enough that the sphere fills most of the stage height. */
-const CAMERA_DISTANCE = 2.72;
-const CAMERA_FOV = 34;
+/** Far enough that the full sphere stays in frame with a little margin. */
+const CAMERA_DISTANCE = 4.05;
+const CAMERA_FOV = 36;
 
 /** Flat schematic earth: two solids, hard coasts, thin ink outline. */
 const vertexShader = /* glsl */ `

@@ -36,10 +36,10 @@ export const projects: Project[] = [
     area: "85 m²",
     category: "residential",
     images: [
+      "/projects/tiny-home-costa-rica/04.jpg",
       "/projects/tiny-home-costa-rica/01.jpg",
       "/projects/tiny-home-costa-rica/02.jpg",
       "/projects/tiny-home-costa-rica/03.jpg",
-      "/projects/tiny-home-costa-rica/04.jpg",
       "/projects/tiny-home-costa-rica/05.jpg",
       "/projects/tiny-home-costa-rica/06.jpg",
       "/projects/tiny-home-costa-rica/07.jpg",

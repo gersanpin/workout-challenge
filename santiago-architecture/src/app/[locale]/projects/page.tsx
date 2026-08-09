@@ -29,10 +29,7 @@ export default async function ProjectsPage({ params }: Props) {
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <div className={styles.topCopy}>
-          <h1 className={styles.title}>{t("title")}</h1>
-          <p className={styles.lead}>{t("selected")}</p>
-        </div>
+        <h1 className={styles.title}>{t("title")}</h1>
       </header>
       <Suspense fallback={null}>
         <ProjectsExplorer projects={projects} />

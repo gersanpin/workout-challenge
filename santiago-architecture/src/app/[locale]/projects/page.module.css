@@ -12,14 +12,6 @@
   padding: 0 var(--page-pad) 0.55rem;
 }
 
-.topCopy {
-  display: grid;
-  grid-template-columns: 1fr;
-  align-items: start;
-  gap: 0.65rem;
-  width: 100%;
-}
-
 .title {
   margin: 0;
   font-family: var(--font-display);
@@ -30,21 +22,9 @@
   width: 100%;
 }
 
-.lead {
-  margin: 0;
-  max-width: none;
-  width: 100%;
-  color: var(--ink-muted);
-  font-size: clamp(0.92rem, 3.4vw, 1.1rem);
-}
-
 @media (min-width: 768px) {
   .title {
     font-size: clamp(2.6rem, 6vw, 4.2rem);
-  }
-
-  .lead {
-    font-size: clamp(0.98rem, 1.5vw, 1.15rem);
   }
 }
 

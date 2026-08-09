@@ -1,13 +1,20 @@
-import Image from "next/image";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { HomeHero } from "@/components/HomeHero";
+import { projects } from "@/data/projects";
 import { buildMetadata } from "@/lib/seo";
 import type { Locale } from "@/i18n/routing";
-import styles from "./page.module.css";
 
 type Props = {
   params: Promise<{ locale: string }>;
 };
+
+function isAvailableCover(src: string) {
+  if (src.startsWith("http://") || src.startsWith("https://")) return true;
+  if (!src.startsWith("/")) return false;
+  return existsSync(path.join(process.cwd(), "public", src.slice(1)));
+}
 
 export async function generateMetadata({ params }: Props) {
   const { locale } = await params;
@@ -23,38 +30,10 @@ export async function generateMetadata({ params }: Props) {
 export default async function HomePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations("Home");
 
-  return (
-    <section className={styles.hero}>
-      <Image
-        src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=80"
-        alt=""
-        fill
-        priority
-        className={styles.heroImage}
-        sizes="100vw"
-      />
-      <div className={styles.overlay} />
-      <div className={`container ${styles.content}`}>
-        <div className={`${styles.copy} fade-up`}>
-          <p className={styles.brand}>{t("brand")}</p>
-          <h1 className={`${styles.headline} fade-up fade-up-delay`}>
-            {t("headline")}
-          </h1>
-          <p className={`${styles.support} fade-up fade-up-delay-2`}>
-            {t("support")}
-          </p>
-        </div>
-        <div className={`${styles.actions} fade-up fade-up-delay-2`}>
-          <Link href="/projects" className="btn btn-primary">
-            {t("exploreProjects")}
-          </Link>
-          <Link href="/contact" className="btn btn-ghost">
-            {t("startProject")}
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
+  const covers = projects
+    .map((project) => project.images[0])
+    .filter((src): src is string => Boolean(src) && isAvailableCover(src));
+
+  return <HomeHero covers={covers} />;
 }

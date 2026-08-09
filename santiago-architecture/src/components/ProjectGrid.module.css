@@ -8,9 +8,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-rows: minmax(104px, 17svh);
   grid-auto-flow: dense;
-  gap: 0;
+  gap: clamp(0.4rem, 0.9vw, 0.75rem);
   width: 100%;
   max-width: none;
+  background: #fff;
 }
 
 /* Phone portrait: favor vertical tiles that use the tall screen */

@@ -10,6 +10,19 @@ import {
 } from "@/data/projects";
 import styles from "./ProjectGrid.module.css";
 
+type CollageSize = "feature" | "tall" | "wide" | "square" | "compact";
+
+const SIZE_CYCLE: CollageSize[] = [
+  "feature",
+  "tall",
+  "square",
+  "wide",
+  "compact",
+  "tall",
+  "square",
+  "feature",
+];
+
 type Props = {
   projects: Project[];
 };
@@ -23,29 +36,30 @@ export function ProjectGrid({ projects }: Props) {
   }
 
   return (
-    <ul className={styles.grid}>
-      {projects.map((project) => (
-        <li key={project.slug}>
-          <Link href={`/projects/${project.slug}`} className={styles.item}>
-            <div className={styles.media}>
+    <ul className={styles.collage}>
+      {projects.map((project, index) => {
+        const size = SIZE_CYCLE[index % SIZE_CYCLE.length];
+        return (
+          <li key={project.slug} className={styles[size]}>
+            <Link href={`/projects/${project.slug}`} className={styles.item}>
               <Image
                 src={project.images[0]}
                 alt={getLocalized(project.name, locale)}
                 fill
-                sizes="(max-width: 768px) 100vw, 33vw"
+                sizes="(max-width: 700px) 100vw, (max-width: 1100px) 60vw, 50vw"
                 className={styles.image}
+                priority={index < 2}
               />
-            </div>
-            <div className={styles.meta}>
-              <h2>{getLocalized(project.name, locale)}</h2>
-              <p>
-                {getLocalized(project.location, locale)} · {project.year}
-              </p>
-              <span className={styles.cta}>{t("viewProject")}</span>
-            </div>
-          </Link>
-        </li>
-      ))}
+              <div className={styles.meta}>
+                <h2>{getLocalized(project.name, locale)}</h2>
+                <p>
+                  {getLocalized(project.location, locale)} · {project.year}
+                </p>
+              </div>
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }

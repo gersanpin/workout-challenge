@@ -29,6 +29,7 @@ export default async function ContactPage({ params }: Props) {
     <div className={`${styles.stage} ${styles.contactStage}`}>
       <div className={`${styles.shell} ${styles.contactShell}`}>
         <h1 className={styles.title}>{t("title")}</h1>
+        <hr className={styles.rule} />
         <p className={styles.lead}>{t("lead")}</p>
         <p className={styles.body}>{t("body")}</p>
         <Suspense fallback={null}>

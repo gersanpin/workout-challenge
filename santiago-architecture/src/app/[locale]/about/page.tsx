@@ -27,6 +27,7 @@ export default async function AboutPage({ params }: Props) {
     <div className={styles.stage}>
       <div className={styles.shell}>
         <h1 className={styles.title}>{t("title")}</h1>
+        <hr className={styles.rule} />
         <p className={styles.lead}>{t("lead")}</p>
         <p className={styles.body}>{t("body")}</p>
       </div>

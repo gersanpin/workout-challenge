@@ -37,7 +37,7 @@
   align-items: center;
   gap: 0.65rem;
   width: 100%;
-  max-width: min(20rem, 100%);
+  max-width: min(22.5rem, 100%);
   max-height: 100%;
   justify-self: center;
   text-align: center;
@@ -52,7 +52,7 @@
 .preview {
   position: relative;
   display: block;
-  width: min(100%, 17.5rem);
+  width: min(100%, 20rem);
   height: auto;
   aspect-ratio: 1;
   overflow: hidden;
@@ -172,7 +172,7 @@
   }
 
   .preview {
-    width: min(16rem, 72vw);
+    width: min(18rem, 76vw);
   }
 
   .quickList {
@@ -190,6 +190,6 @@
   }
 
   .preview {
-    width: min(14.5rem, 70vw);
+    width: min(16.5rem, 74vw);
   }
 }

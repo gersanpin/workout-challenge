@@ -50,9 +50,13 @@ type Props = {
 export function ContactInquiryForm({ studioEmail }: Props) {
   const t = useTranslations("Contact");
   const searchParams = useSearchParams();
-  const shouldOpen = searchParams.get("start") === "1";
+  const shouldOpenForm = searchParams.get("start") === "1";
+  const shouldOpenMeeting = searchParams.get("meeting") === "1";
 
-  const [step, setStep] = useState<Step>(shouldOpen ? "form" : "idle");
+  const [step, setStep] = useState<Step>(
+    shouldOpenForm ? "form" : shouldOpenMeeting ? "meeting" : "idle",
+  );
+  const [fromInquiry, setFromInquiry] = useState(false);
   const [values, setValues] = useState<FormState>(INITIAL);
   const [meeting, setMeeting] = useState<MeetingState>(INITIAL_MEETING);
   const [sending, setSending] = useState(false);
@@ -109,6 +113,7 @@ export function ContactInquiryForm({ studioEmail }: Props) {
 
     window.setTimeout(() => {
       setSending(false);
+      setFromInquiry(true);
       setStep("meeting");
     }, 250);
   }
@@ -119,7 +124,7 @@ export function ContactInquiryForm({ studioEmail }: Props) {
 
     const subject = t("meeting.mailSubject", { name: values.name });
     const body = [
-      t("meeting.mailIntro"),
+      fromInquiry ? t("meeting.mailIntro") : t("meeting.mailIntroDirect"),
       "",
       `${t("fields.name")}: ${values.name}`,
       `${t("fields.email")}: ${values.email}`,
@@ -141,10 +146,16 @@ export function ContactInquiryForm({ studioEmail }: Props) {
     }, 250);
   }
 
+  function openMeetingDirect() {
+    setFromInquiry(false);
+    setStep("meeting");
+  }
+
   function resetAll() {
     setValues(INITIAL);
     setMeeting(INITIAL_MEETING);
-    setStep("form");
+    setFromInquiry(false);
+    setStep("idle");
   }
 
   if (step === "done") {
@@ -164,8 +175,8 @@ export function ContactInquiryForm({ studioEmail }: Props) {
   if (step === "meeting") {
     return (
       <div className={styles.wrap}>
-        <div className={styles.success}>
-          <p>{t("success")}</p>
+        <div className={fromInquiry ? styles.success : styles.meetingPrompt}>
+          {fromInquiry ? <p>{t("success")}</p> : null}
           <div className={styles.meetingPrompt}>
             <h2 className={styles.meetingTitle}>{t("meeting.title")}</h2>
             <p className={styles.meetingLead}>{t("meeting.lead")}</p>
@@ -182,6 +193,34 @@ export function ContactInquiryForm({ studioEmail }: Props) {
             ) : null}
 
             <form className={styles.form} onSubmit={handleMeetingSubmit}>
+              {!fromInquiry ? (
+                <div className={styles.row}>
+                  <label className={styles.field}>
+                    <span className={styles.label}>{t("fields.name")}</span>
+                    <input
+                      className={styles.input}
+                      name="name"
+                      autoComplete="name"
+                      required
+                      value={values.name}
+                      onChange={(event) => update("name", event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.field}>
+                    <span className={styles.label}>{t("fields.email")}</span>
+                    <input
+                      className={styles.input}
+                      type="email"
+                      name="email"
+                      autoComplete="email"
+                      required
+                      value={values.email}
+                      onChange={(event) => update("email", event.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : null}
+
               <div className={styles.row}>
                 <label className={styles.field}>
                   <span className={styles.label}>{t("meeting.fields.date")}</span>
@@ -229,9 +268,9 @@ export function ContactInquiryForm({ studioEmail }: Props) {
                 <button
                   type="button"
                   className="btn btn-line"
-                  onClick={() => setStep("done")}
+                  onClick={() => (fromInquiry ? setStep("done") : setStep("idle"))}
                 >
-                  {t("meeting.skip")}
+                  {fromInquiry ? t("meeting.skip") : t("cancel")}
                 </button>
               </div>
             </form>
@@ -245,13 +284,22 @@ export function ContactInquiryForm({ studioEmail }: Props) {
   if (step === "idle") {
     return (
       <div className={styles.wrap}>
-        <button
-          type="button"
-          className={`btn btn-primary ${styles.start}`}
-          onClick={() => setStep("form")}
-        >
-          {t("cta")}
-        </button>
+        <div className={styles.ctaRow}>
+          <button
+            type="button"
+            className={`btn btn-primary ${styles.start}`}
+            onClick={() => setStep("form")}
+          >
+            {t("cta")}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-line ${styles.start}`}
+            onClick={openMeetingDirect}
+          >
+            {t("ctaMeeting")}
+          </button>
+        </div>
         <ContactMeta studioEmail={studioEmail} />
       </div>
     );

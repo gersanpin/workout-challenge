@@ -83,6 +83,7 @@
     "lead": "¿Tienes un proyecto en mente?",
     "body": "Cuéntanos quién eres y qué quieres construir. Te contactamos para hablar de alcance, sitio y siguientes pasos.",
     "cta": "Iniciar un proyecto",
+    "ctaMeeting": "Solicitar reunión",
     "email": "studio@santiago.architecture",
     "submit": "Enviar consulta",
     "sending": "Abriendo correo…",
@@ -101,6 +102,7 @@
       "done": "Gracias — tu solicitud de reunión está lista para enviarse. Te confirmamos pronto.",
       "mailSubject": "Solicitud de reunión de {name}",
       "mailIntro": "Solicitud de reunión después de una consulta de proyecto:",
+      "mailIntroDirect": "Solicitud de reunión desde el sitio de Santiago Architecture:",
       "fields": {
         "date": "Fecha preferida",
         "time": "Hora preferida",

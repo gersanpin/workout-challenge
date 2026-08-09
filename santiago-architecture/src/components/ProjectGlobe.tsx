@@ -22,9 +22,11 @@ import {
 import styles from "./ProjectGlobe.module.css";
 
 const GLOBE_RADIUS = 1.6;
-/** Pulled back so the full sphere fits in the stage with clear margin. */
-const CAMERA_DISTANCE = 5.55;
-const CAMERA_FOV = 38;
+/** Fallback distance; FitGlobe overrides from the canvas size. */
+const CAMERA_DISTANCE = 7.25;
+const CAMERA_FOV = 32;
+/** Keep ~35% empty margin around the sphere so it reads as complete. */
+const FIT_MARGIN = 1.38;
 
 /** Flat schematic earth: two solids, hard coasts, thin ink outline. */
 const vertexShader = /* glsl */ `

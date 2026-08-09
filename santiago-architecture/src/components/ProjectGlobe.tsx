@@ -39,7 +39,6 @@ void main() {
 `;
 
 const fragmentShader = /* glsl */ `
-#extension GL_OES_standard_derivatives : enable
 precision highp float;
 
 uniform sampler2D uMask;

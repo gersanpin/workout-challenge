@@ -399,7 +399,7 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
                   src={preview}
                   alt={getLocalized(selected.name, locale)}
                   fill
-                  sizes="280px"
+                  sizes="(max-width: 960px) 84vw, min(34rem, 40vw)"
                   className={styles.previewImage}
                 />
               </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useTexture } from "@react-three/drei";
 import * as THREE from "three";
@@ -15,10 +15,50 @@ import styles from "./ProjectGlobe.module.css";
 
 const GLOBE_RADIUS = 1.6;
 
-const LAND = { r: 201, g: 195, b: 184 }; // stone
-const LAND_HIGH = { r: 222, g: 217, b: 208 };
-const OCEAN = { r: 58, g: 67, b: 74 }; // steel charcoal
-const OCEAN_DEEP = { r: 42, g: 49, b: 54 };
+const vertexShader = /* glsl */ `
+varying vec2 vUv;
+varying vec3 vNormalW;
+
+void main() {
+  vUv = uv;
+  vNormalW = normalize(mat3(modelMatrix) * normal);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const fragmentShader = /* glsl */ `
+uniform sampler2D uWater;
+uniform sampler2D uTopo;
+uniform vec3 uLand;
+uniform vec3 uLandHigh;
+uniform vec3 uOcean;
+uniform vec3 uOceanDeep;
+uniform vec3 uLightDir;
+
+varying vec2 vUv;
+varying vec3 vNormalW;
+
+void main() {
+  float water = texture2D(uWater, vUv).r;
+  float topo = texture2D(uTopo, vUv).r;
+
+  // Real coastlines, abstract material palette
+  float landMask = 1.0 - smoothstep(0.22, 0.62, water);
+  vec3 land = mix(uLand, uLandHigh, pow(topo, 0.7));
+  vec3 ocean = mix(uOceanDeep, uOcean, 0.35 + 0.65 * topo);
+  vec3 base = mix(ocean, land, landMask);
+
+  // Soft coast edge
+  float coast = smoothstep(0.18, 0.45, water) * (1.0 - smoothstep(0.45, 0.75, water));
+  base = mix(base, mix(uLand, uOcean, 0.45), coast * 0.18);
+
+  float ndotl = clamp(dot(normalize(vNormalW), normalize(uLightDir)), 0.0, 1.0);
+  float hemi = 0.55 + 0.45 * ndotl;
+  float relief = mix(1.0, 0.9 + topo * 0.22, landMask);
+
+  gl_FragColor = vec4(base * hemi * relief, 1.0);
+}
+`;
 
 function latLngToPosition(lat: number, lng: number, radius: number) {
   const phi = (90 - lat) * (Math.PI / 180);
@@ -30,106 +70,39 @@ function latLngToPosition(lat: number, lng: number, radius: number) {
   );
 }
 
-function mixChannel(
-  a: number,
-  b: number,
-  t: number,
-) {
-  return Math.round(a + (b - a) * t);
-}
-
-function useAbstractEarthMap() {
+function AbstractEarth() {
   const [waterMap, topoMap] = useTexture([
     "/textures/earth-water.png",
     "/textures/earth-topology.png",
   ]);
-  const [colorMap, setColorMap] = useState<THREE.CanvasTexture | null>(null);
 
   useEffect(() => {
-    const waterImg = waterMap.image as HTMLImageElement | ImageBitmap;
-    const topoImg = topoMap.image as HTMLImageElement | ImageBitmap;
-    if (!waterImg || !topoImg) return;
-
-    const width =
-      "width" in waterImg ? waterImg.width : (waterImg as ImageBitmap).width;
-    const height =
-      "height" in waterImg ? waterImg.height : (waterImg as ImageBitmap).height;
-
-    const waterCanvas = document.createElement("canvas");
-    waterCanvas.width = width;
-    waterCanvas.height = height;
-    const waterCtx = waterCanvas.getContext("2d", { willReadFrequently: true });
-    if (!waterCtx) return;
-    waterCtx.drawImage(waterImg as CanvasImageSource, 0, 0, width, height);
-    const waterData = waterCtx.getImageData(0, 0, width, height).data;
-
-    const topoCanvas = document.createElement("canvas");
-    topoCanvas.width = width;
-    topoCanvas.height = height;
-    const topoCtx = topoCanvas.getContext("2d", { willReadFrequently: true });
-    if (!topoCtx) return;
-    topoCtx.drawImage(topoImg as CanvasImageSource, 0, 0, width, height);
-    const topoData = topoCtx.getImageData(0, 0, width, height).data;
-
-    const out = waterCtx.createImageData(width, height);
-    for (let i = 0; i < out.data.length; i += 4) {
-      const water = waterData[i] / 255;
-      const topo = topoData[i] / 255;
-      const landT = Math.pow(topo, 0.85);
-      const landR = mixChannel(LAND.r, LAND_HIGH.r, landT);
-      const landG = mixChannel(LAND.g, LAND_HIGH.g, landT);
-      const landB = mixChannel(LAND.b, LAND_HIGH.b, landT);
-      const oceanT = 1 - topo * 0.35;
-      const oceanR = mixChannel(OCEAN.r, OCEAN_DEEP.r, oceanT);
-      const oceanG = mixChannel(OCEAN.g, OCEAN_DEEP.g, oceanT);
-      const oceanB = mixChannel(OCEAN.b, OCEAN_DEEP.b, oceanT);
-      const w = Math.min(1, Math.max(0, (water - 0.28) / 0.42));
-      out.data[i] = mixChannel(landR, oceanR, w);
-      out.data[i + 1] = mixChannel(landG, oceanG, w);
-      out.data[i + 2] = mixChannel(landB, oceanB, w);
-      out.data[i + 3] = 255;
-    }
-
-    waterCtx.putImageData(out, 0, 0);
-    const texture = new THREE.CanvasTexture(waterCanvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = 8;
-    texture.needsUpdate = true;
-    setColorMap(texture);
-
-    return () => {
-      texture.dispose();
-    };
+    waterMap.colorSpace = THREE.NoColorSpace;
+    topoMap.colorSpace = THREE.NoColorSpace;
+    waterMap.anisotropy = 8;
+    topoMap.anisotropy = 8;
   }, [waterMap, topoMap]);
 
-  return { colorMap, bumpMap: topoMap };
-}
-
-function AbstractEarth() {
-  const { colorMap, bumpMap } = useAbstractEarthMap();
-
-  useEffect(() => {
-    bumpMap.anisotropy = 8;
-  }, [bumpMap]);
-
-  if (!colorMap) {
-    return (
-      <mesh>
-        <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
-        <meshStandardMaterial color="#9e9688" roughness={0.9} />
-      </mesh>
-    );
-  }
+  const uniforms = useMemo(
+    () => ({
+      uWater: { value: waterMap },
+      uTopo: { value: topoMap },
+      uLand: { value: new THREE.Color("#cfc8bc") },
+      uLandHigh: { value: new THREE.Color("#e4dfd6") },
+      uOcean: { value: new THREE.Color("#6a767f") },
+      uOceanDeep: { value: new THREE.Color("#4a545c") },
+      uLightDir: { value: new THREE.Vector3(4.5, 2.8, 2.2).normalize() },
+    }),
+    [waterMap, topoMap],
+  );
 
   return (
     <mesh>
       <sphereGeometry args={[GLOBE_RADIUS, 128, 128]} />
-      <meshStandardMaterial
-        map={colorMap}
-        bumpMap={bumpMap}
-        bumpScale={0.055}
-        roughness={0.92}
-        metalness={0.02}
+      <shaderMaterial
+        uniforms={uniforms}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
       />
     </mesh>
   );
@@ -137,12 +110,12 @@ function AbstractEarth() {
 
 function Atmosphere() {
   return (
-    <mesh scale={1.015} raycast={() => null}>
+    <mesh scale={1.016} raycast={() => null}>
       <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
       <meshBasicMaterial
-        color="#6d7c89"
+        color="#8a949c"
         transparent
-        opacity={0.06}
+        opacity={0.07}
         side={THREE.BackSide}
         depthWrite={false}
       />
@@ -251,9 +224,8 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
           onPointerMissed={() => onSelect(null)}
         >
           <color attach="background" args={["#e4e2dd"]} />
-          <ambientLight intensity={0.7} />
-          <directionalLight position={[4.5, 2.8, 2.2]} intensity={1.05} />
-          <directionalLight position={[-3, -1, -2]} intensity={0.22} />
+          <ambientLight intensity={0.85} />
+          <directionalLight position={[4.5, 2.8, 2.2]} intensity={0.9} />
           <Suspense fallback={null}>
             <AbstractEarth />
             <Atmosphere />

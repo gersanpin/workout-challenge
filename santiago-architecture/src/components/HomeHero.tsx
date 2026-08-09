@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import styles from "./HomeHero.module.css";
 
-const INTERVAL_MS = 3000;
+const INTERVAL_MS = 5000;
 
 type Props = {
   covers: string[];

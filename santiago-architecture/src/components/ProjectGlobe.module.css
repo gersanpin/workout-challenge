@@ -5,21 +5,19 @@
   align-items: center;
   gap: 0 clamp(1rem, 2vw, 2rem);
   width: 100%;
-  height: calc(100svh - var(--nav-height) - 5.5rem);
-  max-height: calc(100svh - var(--nav-height) - 5.5rem);
+  min-height: calc(100svh - var(--nav-height) - 5.75rem);
   margin: 0;
   padding: 0 var(--page-pad) 0.75rem;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .canvas {
   width: 100%;
-  height: 100%;
-  min-height: 0;
+  height: calc(100svh - var(--nav-height) - 6.5rem);
+  min-height: 360px;
   border: none;
   background: transparent;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .canvas canvas {
@@ -106,6 +104,7 @@
 .placeholder {
   margin: 0;
   color: var(--ink-muted);
+  text-align: center;
 }
 
 .quickList {
@@ -116,10 +115,12 @@
   gap: 0.5rem;
   max-height: min(48svh, 22rem);
   overflow: auto;
+  text-align: center;
 }
 
 .quickList button {
-  text-align: left;
+  text-align: center;
+  width: 100%;
   font-size: 0.95rem;
   color: var(--ink);
   transition: color 0.25s var(--ease);
@@ -129,36 +130,45 @@
   color: var(--steel-strong);
 }
 
+/* Phone: square stage so the full circle reads clearly */
 @media (max-width: 960px) {
   .wrap {
     grid-template-columns: 1fr;
-    height: auto;
-    max-height: none;
-    overflow: visible;
-    padding-inline: 0;
+    min-height: auto;
+    padding: 0 var(--page-pad) var(--space-4);
+    justify-items: center;
   }
 
   .canvas {
-    height: min(52svh, 420px);
-    min-height: 280px;
+    width: min(100%, 72vw, 420px);
+    height: auto;
+    aspect-ratio: 1;
+    min-height: 0;
+    margin-inline: auto;
   }
 
   .panel {
-    max-width: none;
-    justify-self: stretch;
-    padding: 0 var(--page-pad) var(--space-5);
+    max-width: 22rem;
+    width: 100%;
+    justify-self: center;
+    align-items: center;
+    text-align: center;
+    padding: 0;
     overflow: visible;
   }
 
   .preview {
-    max-width: 24rem;
+    max-width: 18rem;
+  }
+
+  .quickList {
+    width: 100%;
   }
 }
 
 @media (max-width: 640px) {
   .canvas {
-    min-height: 240px;
-    height: min(44svh, 340px);
+    width: min(100%, 78vw, 340px);
   }
 
   .panel h2 {

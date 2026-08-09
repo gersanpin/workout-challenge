@@ -87,10 +87,29 @@
     "submit": "Enviar consulta",
     "sending": "Abriendo correo…",
     "cancel": "Cancelar",
-    "success": "Gracias — tu consulta está lista para enviarse. Si no se abrió el correo, escríbenos directamente.",
+    "success": "Gracias — tu consulta está lista para enviarse. Ahora agenda una reunión para hablar del proyecto.",
     "sendAnother": "Nueva consulta",
     "mailSubject": "Consulta de proyecto de {name}",
     "mailIntro": "Nueva consulta de proyecto desde el sitio de Santiago Architecture:",
+    "meeting": {
+      "title": "Agenda una reunión",
+      "lead": "Elige una fecha y hora preferidas. Confirmamos o proponemos otra opción.",
+      "openCalendar": "Abrir calendario",
+      "submit": "Solicitar reunión",
+      "sending": "Abriendo correo…",
+      "skip": "Ahora no",
+      "done": "Gracias — tu solicitud de reunión está lista para enviarse. Te confirmamos pronto.",
+      "mailSubject": "Solicitud de reunión de {name}",
+      "mailIntro": "Solicitud de reunión después de una consulta de proyecto:",
+      "fields": {
+        "date": "Fecha preferida",
+        "time": "Hora preferida",
+        "notes": "Notas"
+      },
+      "placeholders": {
+        "notes": "Zona horaria, videollamada o presencial, o lo que debamos saber."
+      }
+    },
     "fields": {
       "name": "Nombre completo",
       "email": "Correo",

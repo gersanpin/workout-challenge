@@ -18,6 +18,14 @@ type FormState = {
   message: string;
 };
 
+type MeetingState = {
+  date: string;
+  time: string;
+  notes: string;
+};
+
+type Step = "idle" | "form" | "meeting" | "done";
+
 const INITIAL: FormState = {
   name: "",
   email: "",
@@ -29,6 +37,12 @@ const INITIAL: FormState = {
   message: "",
 };
 
+const INITIAL_MEETING: MeetingState = {
+  date: "",
+  time: "",
+  notes: "",
+};
+
 type Props = {
   studioEmail: string;
 };
@@ -38,9 +52,9 @@ export function ContactInquiryForm({ studioEmail }: Props) {
   const searchParams = useSearchParams();
   const shouldOpen = searchParams.get("start") === "1";
 
-  const [open, setOpen] = useState(shouldOpen);
+  const [step, setStep] = useState<Step>(shouldOpen ? "form" : "idle");
   const [values, setValues] = useState<FormState>(INITIAL);
-  const [submitted, setSubmitted] = useState(false);
+  const [meeting, setMeeting] = useState<MeetingState>(INITIAL_MEETING);
   const [sending, setSending] = useState(false);
 
   const projectTypes = useMemo(
@@ -60,7 +74,14 @@ export function ContactInquiryForm({ studioEmail }: Props) {
     setValues((current) => ({ ...current, [key]: value }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function updateMeeting<K extends keyof MeetingState>(
+    key: K,
+    value: MeetingState[K],
+  ) {
+    setMeeting((current) => ({ ...current, [key]: value }));
+  }
+
+  function handleInquirySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSending(true);
 
@@ -88,58 +109,157 @@ export function ContactInquiryForm({ studioEmail }: Props) {
 
     window.setTimeout(() => {
       setSending(false);
-      setSubmitted(true);
+      setStep("meeting");
     }, 250);
   }
 
-  if (submitted) {
+  function handleMeetingSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSending(true);
+
+    const subject = t("meeting.mailSubject", { name: values.name });
+    const body = [
+      t("meeting.mailIntro"),
+      "",
+      `${t("fields.name")}: ${values.name}`,
+      `${t("fields.email")}: ${values.email}`,
+      values.phone ? `${t("fields.phone")}: ${values.phone}` : null,
+      "",
+      `${t("meeting.fields.date")}: ${meeting.date}`,
+      `${t("meeting.fields.time")}: ${meeting.time}`,
+      meeting.notes ? `${t("meeting.fields.notes")}:\n${meeting.notes}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const mailto = `mailto:${studioEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+
+    window.setTimeout(() => {
+      setSending(false);
+      setStep("done");
+    }, 250);
+  }
+
+  function resetAll() {
+    setValues(INITIAL);
+    setMeeting(INITIAL_MEETING);
+    setStep("form");
+  }
+
+  if (step === "done") {
     return (
       <div className={styles.wrap}>
         <div className={styles.success}>
-          <p>{t("success")}</p>
-          <button
-            type="button"
-            className="btn btn-line"
-            onClick={() => {
-              setSubmitted(false);
-              setValues(INITIAL);
-              setOpen(true);
-            }}
-          >
+          <p>{t("meeting.done")}</p>
+          <button type="button" className="btn btn-line" onClick={resetAll}>
             {t("sendAnother")}
           </button>
         </div>
-        <div className={styles.meta}>
-          <p className={styles.email}>{studioEmail}</p>
-          <InstagramLink muted large />
-          <span className={styles.handle}>@{siteConfig.instagram.handle}</span>
-        </div>
+        <ContactMeta studioEmail={studioEmail} />
       </div>
     );
   }
 
-  if (!open) {
+  if (step === "meeting") {
+    return (
+      <div className={styles.wrap}>
+        <div className={styles.success}>
+          <p>{t("success")}</p>
+          <div className={styles.meetingPrompt}>
+            <h2 className={styles.meetingTitle}>{t("meeting.title")}</h2>
+            <p className={styles.meetingLead}>{t("meeting.lead")}</p>
+
+            {siteConfig.meetingUrl ? (
+              <a
+                className="btn btn-primary"
+                href={siteConfig.meetingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("meeting.openCalendar")}
+              </a>
+            ) : null}
+
+            <form className={styles.form} onSubmit={handleMeetingSubmit}>
+              <div className={styles.row}>
+                <label className={styles.field}>
+                  <span className={styles.label}>{t("meeting.fields.date")}</span>
+                  <input
+                    className={styles.input}
+                    type="date"
+                    name="meetingDate"
+                    required
+                    value={meeting.date}
+                    onChange={(event) => updateMeeting("date", event.target.value)}
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span className={styles.label}>{t("meeting.fields.time")}</span>
+                  <input
+                    className={styles.input}
+                    type="time"
+                    name="meetingTime"
+                    required
+                    value={meeting.time}
+                    onChange={(event) => updateMeeting("time", event.target.value)}
+                  />
+                </label>
+              </div>
+
+              <label className={styles.field}>
+                <span className={styles.label}>{t("meeting.fields.notes")}</span>
+                <textarea
+                  className={styles.textarea}
+                  name="meetingNotes"
+                  placeholder={t("meeting.placeholders.notes")}
+                  value={meeting.notes}
+                  onChange={(event) => updateMeeting("notes", event.target.value)}
+                />
+              </label>
+
+              <div className={styles.actions}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={sending}
+                >
+                  {sending ? t("meeting.sending") : t("meeting.submit")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-line"
+                  onClick={() => setStep("done")}
+                >
+                  {t("meeting.skip")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <ContactMeta studioEmail={studioEmail} />
+      </div>
+    );
+  }
+
+  if (step === "idle") {
     return (
       <div className={styles.wrap}>
         <button
           type="button"
           className={`btn btn-primary ${styles.start}`}
-          onClick={() => setOpen(true)}
+          onClick={() => setStep("form")}
         >
           {t("cta")}
         </button>
-        <div className={styles.meta}>
-          <p className={styles.email}>{studioEmail}</p>
-          <InstagramLink muted large />
-          <span className={styles.handle}>@{siteConfig.instagram.handle}</span>
-        </div>
+        <ContactMeta studioEmail={studioEmail} />
       </div>
     );
   }
 
   return (
     <div className={styles.wrap}>
-      <form className={styles.form} onSubmit={handleSubmit}>
+      <form className={styles.form} onSubmit={handleInquirySubmit}>
         <div className={styles.row}>
           <label className={styles.field}>
             <span className={styles.label}>{t("fields.name")}</span>
@@ -247,17 +367,23 @@ export function ContactInquiryForm({ studioEmail }: Props) {
           <button
             type="button"
             className="btn btn-line"
-            onClick={() => setOpen(false)}
+            onClick={() => setStep("idle")}
           >
             {t("cancel")}
           </button>
         </div>
       </form>
-      <div className={styles.meta}>
-        <p className={styles.email}>{studioEmail}</p>
-        <InstagramLink muted large />
-        <span className={styles.handle}>@{siteConfig.instagram.handle}</span>
-      </div>
+      <ContactMeta studioEmail={studioEmail} />
+    </div>
+  );
+}
+
+function ContactMeta({ studioEmail }: { studioEmail: string }) {
+  return (
+    <div className={styles.meta}>
+      <p className={styles.email}>{studioEmail}</p>
+      <InstagramLink muted large />
+      <span className={styles.handle}>@{siteConfig.instagram.handle}</span>
     </div>
   );
 }

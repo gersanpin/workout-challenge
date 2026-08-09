@@ -34,19 +34,22 @@ function EarthGlobe() {
   useEffect(() => {
     colorMap.colorSpace = THREE.SRGBColorSpace;
     colorMap.anisotropy = 8;
-    bumpMap.anisotropy = 4;
+    bumpMap.anisotropy = 8;
     colorMap.needsUpdate = true;
   }, [colorMap, bumpMap]);
 
   return (
     <mesh>
-      <sphereGeometry args={[GLOBE_RADIUS, 96, 96]} />
+      <sphereGeometry args={[GLOBE_RADIUS, 128, 128]} />
       <meshStandardMaterial
         map={colorMap}
         bumpMap={bumpMap}
-        bumpScale={0.035}
-        roughness={0.88}
-        metalness={0.05}
+        bumpScale={0.14}
+        displacementMap={bumpMap}
+        displacementScale={0.032}
+        displacementBias={-0.01}
+        roughness={0.82}
+        metalness={0.04}
       />
     </mesh>
   );
@@ -54,16 +57,57 @@ function EarthGlobe() {
 
 function Atmosphere() {
   return (
-    <mesh scale={1.018} raycast={() => null}>
+    <mesh scale={1.02} raycast={() => null}>
       <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
       <meshBasicMaterial
-        color="#7ea8c9"
+        color="#8eb4d0"
         transparent
-        opacity={0.08}
+        opacity={0.1}
         side={THREE.BackSide}
         depthWrite={false}
       />
     </mesh>
+  );
+}
+
+function MapPinMesh({ selected }: { selected: boolean }) {
+  const scale = selected ? 1.18 : 1;
+  const body = selected ? "#2a3238" : "#1b2228";
+  const head = selected ? "#f4f1ec" : "#c4453a";
+  const ring = selected ? "#6d7c89" : "#f7f4ef";
+
+  return (
+    <group scale={scale}>
+      {/* Stem / tip pointing toward the surface (-Y) */}
+      <mesh position={[0, 0.042, 0]} rotation={[Math.PI, 0, 0]} raycast={() => null}>
+        <coneGeometry args={[0.026, 0.085, 20]} />
+        <meshStandardMaterial
+          color={body}
+          roughness={0.45}
+          metalness={0.2}
+        />
+      </mesh>
+      {/* Pin head */}
+      <mesh position={[0, 0.095, 0]} raycast={() => null}>
+        <sphereGeometry args={[0.034, 24, 24]} />
+        <meshStandardMaterial
+          color={head}
+          roughness={0.35}
+          metalness={0.15}
+          emissive={selected ? "#d7d2c8" : "#6b241f"}
+          emissiveIntensity={selected ? 0.22 : 0.18}
+        />
+      </mesh>
+      {/* Inner disc so it reads as a location pin */}
+      <mesh position={[0, 0.095, 0.018]} raycast={() => null}>
+        <circleGeometry args={[0.014, 20]} />
+        <meshStandardMaterial
+          color={ring}
+          roughness={0.4}
+          metalness={0.1}
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -76,19 +120,23 @@ function ProjectPin({
   selected: boolean;
   onSelect: (slug: string) => void;
 }) {
-  const position = useMemo(
-    () =>
-      latLngToPosition(
-        project.latitude,
-        project.longitude,
-        GLOBE_RADIUS + 0.04,
-      ),
-    [project.latitude, project.longitude],
-  );
+  const { position, quaternion } = useMemo(() => {
+    const pos = latLngToPosition(
+      project.latitude,
+      project.longitude,
+      GLOBE_RADIUS + 0.01,
+    );
+    const q = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      pos.clone().normalize(),
+    );
+    return { position: pos, quaternion: q };
+  }, [project.latitude, project.longitude]);
 
   return (
-    <group position={position}>
+    <group position={position} quaternion={quaternion}>
       <mesh
+        position={[0, 0.08, 0]}
         onPointerDown={(event) => {
           event.stopPropagation();
           onSelect(project.slug);
@@ -105,17 +153,10 @@ function ProjectPin({
           document.body.style.cursor = "auto";
         }}
       >
-        <sphereGeometry args={[0.14, 16, 16]} />
+        <sphereGeometry args={[0.13, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      <mesh raycast={() => null}>
-        <sphereGeometry args={[selected ? 0.055 : 0.038, 16, 16]} />
-        <meshStandardMaterial
-          color={selected ? "#fbfaf8" : "#c81e3a"}
-          emissive={selected ? "#f2efe8" : "#8a1528"}
-          emissiveIntensity={selected ? 0.55 : 0.35}
-        />
-      </mesh>
+      <MapPinMesh selected={selected} />
     </group>
   );
 }
@@ -140,10 +181,11 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
           dpr={[1, 1.75]}
           onPointerMissed={() => onSelect(null)}
         >
-          <color attach="background" args={["#d4d2cd"]} />
-          <ambientLight intensity={0.55} />
-          <directionalLight position={[5, 2.5, 3]} intensity={1.45} />
-          <directionalLight position={[-3, -1, -2]} intensity={0.25} />
+          <color attach="background" args={["#d0cec9"]} />
+          <ambientLight intensity={0.42} />
+          <directionalLight position={[5.5, 3.2, 2.5]} intensity={1.7} castShadow />
+          <directionalLight position={[-4, -0.5, -2]} intensity={0.35} />
+          <hemisphereLight args={["#e8eef4", "#3d4a38", 0.45]} />
           <Suspense fallback={null}>
             <EarthGlobe />
             <Atmosphere />

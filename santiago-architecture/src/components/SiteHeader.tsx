@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { InstagramLink } from "./InstagramLink";
@@ -26,23 +26,29 @@ export function SiteHeader() {
           Santiago Architecture
         </Link>
 
-        <nav className={styles.desktopNav} aria-label="Primary">
-          {links.map((link) => {
-            const active =
-              pathname === link.href || pathname.startsWith(`${link.href}/`);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={active ? styles.active : undefined}
-              >
-                {t(link.key)}
-              </Link>
-            );
-          })}
-          <InstagramLink className={styles.socialDesktop} muted />
-          <LanguageSwitcher className={styles.langDesktop} />
-        </nav>
+        <div className={styles.desktopCluster}>
+          <nav className={styles.desktopNav} aria-label="Primary">
+            {links.map((link) => {
+              const active =
+                pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={active ? styles.active : undefined}
+                >
+                  {t(link.key)}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className={styles.desktopTools}>
+            <InstagramLink className={styles.socialDesktop} muted />
+            <Suspense fallback={null}>
+              <LanguageSwitcher className={styles.langDesktop} />
+            </Suspense>
+          </div>
+        </div>
 
         <div className={styles.mobileActions}>
           <InstagramLink className={styles.socialMobile} muted />
@@ -72,9 +78,13 @@ export function SiteHeader() {
               {t(link.key)}
             </Link>
           ))}
-          <InstagramLink muted large />
-          <LanguageSwitcher />
         </nav>
+        <div className={styles.mobileTools}>
+          <InstagramLink muted large />
+          <Suspense fallback={null}>
+            <LanguageSwitcher />
+          </Suspense>
+        </div>
       </div>
     </header>
   );

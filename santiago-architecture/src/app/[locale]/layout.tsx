@@ -71,7 +71,9 @@ export default async function LocaleLayout({ children, params }: Props) {
             <SiteHeader />
           </Suspense>
           <main>{children}</main>
-          <SiteFooter />
+          <Suspense fallback={null}>
+            <SiteFooter />
+          </Suspense>
         </NextIntlClientProvider>
       </body>
     </html>

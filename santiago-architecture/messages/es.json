@@ -34,6 +34,10 @@
     "globeView": "Vista global",
     "viewProject": "Ver proyecto",
     "nextProject": "Siguiente proyecto",
+    "gallery": "Galería del proyecto",
+    "image": "Imagen",
+    "previousImage": "Imagen anterior",
+    "nextImage": "Imagen siguiente",
     "filters": {
       "all": "Todos",
       "residential": "Residencial",

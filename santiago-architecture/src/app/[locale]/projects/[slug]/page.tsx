@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
@@ -9,6 +8,7 @@ import {
   projects,
   type LocaleCode,
 } from "@/data/projects";
+import { ProjectGallery } from "@/components/ProjectGallery";
 import { buildMetadata } from "@/lib/seo";
 import type { Locale } from "@/i18n/routing";
 import styles from "./page.module.css";
@@ -49,14 +49,17 @@ export default async function ProjectDetailPage({ params }: Props) {
   const t = await getTranslations("Projects");
   const lang = locale as LocaleCode;
   const next = getNextProject(slug);
+  const name = getLocalized(project.name, lang);
 
   return (
-    <article className="page">
-      <div className="container">
+    <article className={styles.article}>
+      <div className={`container ${styles.intro}`}>
         <header className={styles.header}>
           <p className={styles.kicker}>{t(`filters.${project.category}`)}</p>
-          <h1 className="section-title">{getLocalized(project.name, lang)}</h1>
-          <p className="section-lead">{getLocalized(project.description, lang)}</p>
+          <h1 className="section-title">{name}</h1>
+          <p className="section-lead">
+            {getLocalized(project.description, lang)}
+          </p>
         </header>
 
         <dl className={styles.meta}>
@@ -77,29 +80,17 @@ export default async function ProjectDetailPage({ params }: Props) {
             <dd>{t(`filters.${project.category}`)}</dd>
           </div>
         </dl>
-
-        <div className={styles.gallery}>
-          {project.images.map((src) => (
-            <div key={src} className={styles.frame}>
-              <Image
-                src={src}
-                alt={getLocalized(project.name, lang)}
-                fill
-                sizes="(max-width: 900px) 100vw, 50vw"
-                className={styles.image}
-              />
-            </div>
-          ))}
-        </div>
-
-        {next ? (
-          <div className={styles.next}>
-            <Link href={`/projects/${next.slug}`} className="btn btn-line">
-              {t("nextProject")}: {getLocalized(next.name, lang)}
-            </Link>
-          </div>
-        ) : null}
       </div>
+
+      <ProjectGallery images={project.images} alt={name} />
+
+      {next ? (
+        <div className={`container ${styles.next}`}>
+          <Link href={`/projects/${next.slug}`} className="btn btn-line">
+            {t("nextProject")}: {getLocalized(next.name, lang)}
+          </Link>
+        </div>
+      ) : null}
     </article>
   );
 }

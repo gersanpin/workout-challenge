@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import {
@@ -13,8 +14,8 @@ import styles from "./ProjectGrid.module.css";
 type CollageSize = "hero" | "tall" | "square" | "wide";
 
 /**
- * Fixed pack for a typical project set: every row completes
- * so the white gutters stay thin lines, not empty cells.
+ * Pack that completes every row on the responsive templates below,
+ * so the only white left is the thin gutter between tiles.
  */
 const SIZE_CYCLE: CollageSize[] = [
   "hero",
@@ -35,6 +36,19 @@ export function ProjectGrid({ projects }: Props) {
   const t = useTranslations("Projects");
   const locale = useLocale() as LocaleCode;
 
+  useEffect(() => {
+    const html = document.documentElement;
+    const { body } = document;
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+    };
+  }, []);
+
   if (projects.length === 0) {
     return <p className={styles.empty}>{t("empty")}</p>;
   }
@@ -50,9 +64,9 @@ export function ProjectGrid({ projects }: Props) {
                 src={project.images[0]}
                 alt={getLocalized(project.name, locale)}
                 fill
-                sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 40vw"
+                sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 25vw"
                 className={styles.image}
-                priority={index < 3}
+                priority={index < 4}
               />
               <div className={styles.meta}>
                 <h2>{getLocalized(project.name, locale)}</h2>

@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -25,29 +25,45 @@ function latLngToPosition(lat: number, lng: number, radius: number) {
   );
 }
 
-function GlobeMesh() {
+function EarthGlobe() {
+  const [colorMap, bumpMap] = useTexture([
+    "/textures/earth-day.jpg",
+    "/textures/earth-topology.png",
+  ]);
+
+  useEffect(() => {
+    colorMap.colorSpace = THREE.SRGBColorSpace;
+    colorMap.anisotropy = 8;
+    bumpMap.anisotropy = 4;
+    colorMap.needsUpdate = true;
+  }, [colorMap, bumpMap]);
+
   return (
     <mesh>
-      <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
+      <sphereGeometry args={[GLOBE_RADIUS, 96, 96]} />
       <meshStandardMaterial
-        color="#8a9198"
-        roughness={0.92}
-        metalness={0.08}
+        map={colorMap}
+        bumpMap={bumpMap}
+        bumpScale={0.035}
+        roughness={0.88}
+        metalness={0.05}
       />
     </mesh>
   );
 }
 
-function GridLines() {
-  const geometry = useMemo(
-    () => new THREE.SphereGeometry(GLOBE_RADIUS + 0.002, 36, 24),
-    [],
-  );
+function Atmosphere() {
   return (
-    <lineSegments raycast={() => null}>
-      <wireframeGeometry args={[geometry]} />
-      <lineBasicMaterial color="#5d6770" transparent opacity={0.28} />
-    </lineSegments>
+    <mesh scale={1.018} raycast={() => null}>
+      <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
+      <meshBasicMaterial
+        color="#7ea8c9"
+        transparent
+        opacity={0.08}
+        side={THREE.BackSide}
+        depthWrite={false}
+      />
+    </mesh>
   );
 }
 
@@ -95,9 +111,9 @@ function ProjectPin({
       <mesh raycast={() => null}>
         <sphereGeometry args={[selected ? 0.055 : 0.038, 16, 16]} />
         <meshStandardMaterial
-          color={selected ? "#fbfaf8" : "#1f262c"}
-          emissive={selected ? "#6d7c89" : "#17191b"}
-          emissiveIntensity={selected ? 0.7 : 0.2}
+          color={selected ? "#fbfaf8" : "#c81e3a"}
+          emissive={selected ? "#f2efe8" : "#8a1528"}
+          emissiveIntensity={selected ? 0.55 : 0.35}
         />
       </mesh>
     </group>
@@ -124,12 +140,13 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
           dpr={[1, 1.75]}
           onPointerMissed={() => onSelect(null)}
         >
-          <color attach="background" args={["#d9d7d2"]} />
-          <ambientLight intensity={0.9} />
-          <directionalLight position={[4, 3, 2]} intensity={1.15} />
+          <color attach="background" args={["#d4d2cd"]} />
+          <ambientLight intensity={0.55} />
+          <directionalLight position={[5, 2.5, 3]} intensity={1.45} />
+          <directionalLight position={[-3, -1, -2]} intensity={0.25} />
           <Suspense fallback={null}>
-            <GlobeMesh />
-            <GridLines />
+            <EarthGlobe />
+            <Atmosphere />
             {projects.map((project) => (
               <ProjectPin
                 key={project.slug}

@@ -1,8 +1,16 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
-import { Canvas } from "@react-three/fiber";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  type MutableRefObject,
+} from "react";
+import Image from "next/image";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useTexture } from "@react-three/drei";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -14,6 +22,7 @@ import {
 import styles from "./ProjectGlobe.module.css";
 
 const GLOBE_RADIUS = 1.6;
+const CAMERA_DISTANCE = 4.05;
 
 const vertexShader = /* glsl */ `
 varying vec2 vUv;
@@ -42,17 +51,14 @@ void main() {
   float water = texture2D(uWater, vUv).r;
   float topo = texture2D(uTopo, vUv).r;
 
-  // Real coastlines, abstract material palette
   float landMask = 1.0 - smoothstep(0.25, 0.58, water);
   vec3 land = mix(uLand, uLandHigh, smoothstep(0.05, 0.55, topo));
   vec3 ocean = mix(uOceanDeep, uOcean, 0.55);
   vec3 base = mix(ocean, land, landMask);
 
-  // Soft coast edge
   float coast = smoothstep(0.2, 0.42, water) * (1.0 - smoothstep(0.42, 0.7, water));
   base = mix(base, mix(uLand, uOcean, 0.55), coast * 0.16);
 
-  // Nearly flat light for an editorial, minimal read
   float ndotl = clamp(dot(normalize(vNormalW), normalize(uLightDir)), 0.0, 1.0);
   float hemi = 0.9 + 0.1 * ndotl;
   float relief = mix(1.0, 0.96 + topo * 0.08, landMask);
@@ -88,7 +94,6 @@ function AbstractEarth() {
     () => ({
       uWater: { value: waterMap },
       uTopo: { value: topoMap },
-      // Raw sRGB values + toneMapped={false} for predictable abstract color
       uLand: { value: new THREE.Color("#ddd6cb") },
       uLandHigh: { value: new THREE.Color("#f0ebe3") },
       uOcean: { value: new THREE.Color("#a7b0b8") },
@@ -127,7 +132,7 @@ function Atmosphere() {
 }
 
 function MapPinMesh({ selected }: { selected: boolean }) {
-  const scale = selected ? 1.15 : 1;
+  const scale = selected ? 1.2 : 1;
   const body = selected ? "#2f3840" : "#1b2228";
   const head = selected ? "#f2efe8" : "#2a3238";
   const ring = selected ? "#6d7c89" : "#ecebe8";
@@ -206,6 +211,67 @@ function ProjectPin({
   );
 }
 
+function CameraFocus({
+  project,
+  controlsRef,
+}: {
+  project: Project | null;
+  controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+}) {
+  const { camera } = useThree();
+  const animation = useRef<{
+    from: THREE.Vector3;
+    to: THREE.Vector3;
+    progress: number;
+  } | null>(null);
+  const focusKey = project
+    ? `${project.slug}:${project.latitude}:${project.longitude}`
+    : null;
+
+  useEffect(() => {
+    if (!project || !focusKey) {
+      animation.current = null;
+      return;
+    }
+
+    const direction = latLngToPosition(
+      project.latitude,
+      project.longitude,
+      1,
+    ).normalize();
+    const distance = Math.max(camera.position.length(), CAMERA_DISTANCE);
+    const to = direction.multiplyScalar(distance);
+
+    animation.current = {
+      from: camera.position.clone(),
+      to,
+      progress: 0,
+    };
+  }, [camera, focusKey, project]);
+
+  useFrame((_, delta) => {
+    const controls = controlsRef.current;
+    const current = animation.current;
+    if (!current) return;
+
+    current.progress = Math.min(1, current.progress + delta * 1.35);
+    const eased = 1 - (1 - current.progress) ** 3;
+    camera.position.lerpVectors(current.from, current.to, eased);
+    camera.lookAt(0, 0, 0);
+
+    if (controls) {
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    if (current.progress >= 1) {
+      animation.current = null;
+    }
+  });
+
+  return null;
+}
+
 type Props = {
   projects: Project[];
   selectedSlug: string | null;
@@ -217,12 +283,14 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
   const locale = useLocale() as LocaleCode;
   const selected =
     projects.find((project) => project.slug === selectedSlug) ?? null;
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const preview = selected?.images[0];
 
   return (
     <div className={styles.wrap}>
       <div className={styles.canvas}>
         <Canvas
-          camera={{ position: [0, 0.3, 4.05], fov: 40 }}
+          camera={{ position: [0, 0.3, CAMERA_DISTANCE], fov: 40 }}
           dpr={[1, 1.75]}
           gl={{ alpha: true, antialias: true }}
           style={{ background: "transparent" }}
@@ -241,7 +309,9 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
                 onSelect={onSelect}
               />
             ))}
+            <CameraFocus project={selected} controlsRef={controlsRef} />
             <OrbitControls
+              ref={controlsRef}
               makeDefault
               enablePan={false}
               minDistance={2.8}
@@ -257,6 +327,20 @@ export function ProjectGlobe({ projects, selectedSlug, onSelect }: Props) {
       <aside className={styles.panel}>
         {selected ? (
           <>
+            {preview ? (
+              <Link
+                href={`/projects/${selected.slug}`}
+                className={styles.preview}
+              >
+                <Image
+                  src={preview}
+                  alt={getLocalized(selected.name, locale)}
+                  fill
+                  sizes="280px"
+                  className={styles.previewImage}
+                />
+              </Link>
+            ) : null}
             <p className={styles.kicker}>{t(`filters.${selected.category}`)}</p>
             <h2>{getLocalized(selected.name, locale)}</h2>
             <dl className={styles.details}>

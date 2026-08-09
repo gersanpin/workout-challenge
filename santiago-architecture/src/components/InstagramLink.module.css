@@ -1,0 +1,27 @@
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  transition: color 0.25s var(--ease), opacity 0.25s var(--ease);
+}
+
+.link:hover {
+  color: var(--ink);
+  opacity: 1;
+}
+
+.icon {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.muted {
+  color: var(--ink-muted);
+}
+
+.large .icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}

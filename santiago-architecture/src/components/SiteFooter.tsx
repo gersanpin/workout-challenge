@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { usePathname } from "@/i18n/navigation";
+import { InstagramLink } from "./InstagramLink";
 import styles from "./SiteFooter.module.css";
 
 export function SiteFooter() {
@@ -15,7 +16,10 @@ export function SiteFooter() {
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
-        <span className={styles.brand}>Santiago Architecture</span>
+        <div className={styles.left}>
+          <span className={styles.brand}>Santiago Architecture</span>
+          <InstagramLink muted />
+        </div>
         <span>
           © {year}. {t("rights")}
         </span>

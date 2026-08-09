@@ -3,6 +3,8 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+import { InstagramLink } from "./InstagramLink";
+import { siteConfig } from "@/lib/site";
 import styles from "./ContactInquiryForm.module.css";
 
 type FormState = {

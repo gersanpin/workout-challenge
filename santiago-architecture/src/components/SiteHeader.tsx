@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
+import { InstagramLink } from "./InstagramLink";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import styles from "./SiteHeader.module.css";
 
@@ -39,18 +40,22 @@ export function SiteHeader() {
               </Link>
             );
           })}
+          <InstagramLink className={styles.socialDesktop} muted />
           <LanguageSwitcher className={styles.langDesktop} />
         </nav>
 
-        <button
-          type="button"
-          className={styles.menuButton}
-          aria-expanded={open}
-          aria-controls="mobile-menu"
-          onClick={() => setOpen((value) => !value)}
-        >
-          {open ? t("close") : t("menu")}
-        </button>
+        <div className={styles.mobileActions}>
+          <InstagramLink className={styles.socialMobile} muted />
+          <button
+            type="button"
+            className={styles.menuButton}
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? t("close") : t("menu")}
+          </button>
+        </div>
       </div>
 
       <div
@@ -67,6 +72,7 @@ export function SiteHeader() {
               {t(link.key)}
             </Link>
           ))}
+          <InstagramLink muted large />
           <LanguageSwitcher />
         </nav>
       </div>
